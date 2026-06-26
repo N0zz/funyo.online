@@ -20,7 +20,10 @@
   #top .stat .lbl { opacity:0.6; font-size:11px; letter-spacing:1px; }
   .back { position:fixed; top:8px; left:10px; z-index:9; font-family:inherit; font-size:12px; letter-spacing:1px;
     color:var(--parch); text-decoration:none; background:rgba(20,12,6,0.6); border:1px solid #2c1d10; border-radius:7px; padding:6px 10px; }
-  #top { padding-left:96px; }
+  .back { cursor:pointer; }
+  .nav { position:fixed; top:8px; left:10px; z-index:9; display:flex; gap:8px; }
+  .nav .back { position:static; top:auto; left:auto; }
+  #top { padding-left:172px; }
 
   #bottom { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; gap:8px; align-items:stretch;
     padding:8px; justify-content:center; flex-wrap:wrap; }
@@ -64,7 +67,10 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<a class="back" href="../../">&#x2039; Arcade</a>
+<div class="nav">
+  <button class="back" id="menuBtn" type="button">&#x2039; Menu</button>
+  <a class="back" href="../../">Arcade &#x203A;</a>
+</div>
 <div id="top" class="panel">
   <div class="stat"><span class="lbl">GOLD</span> <b id="gold">0</b></div>
   <div class="stat"><span class="lbl">KEEP</span> <b id="hp">0</b></div>
@@ -328,8 +334,8 @@
     bossWarnShown = false;
     state = 'wave';
     SND.play('wave');
-    selTower = null;
-    const pt = $('panelTower'); if (pt) pt.style.display = 'none';
+    // keep the player's current build/upgrade selection across wave starts
+    // (auto-start used to yank it away mid-action)
     updateHud();
     refreshToolbar();
     announceWave(wave);
@@ -977,6 +983,8 @@
   $('startGameBtn').addEventListener('click', startGame);
   const spdBtn = $('speedBtn');
   if (spdBtn) spdBtn.addEventListener('click', () => { gameSpeed = gameSpeed === 1 ? 2 : 1; refreshToolbar(); });
+  const menuBtn = $('menuBtn');
+  if (menuBtn) menuBtn.addEventListener('click', () => { try { location.reload(); } catch (e) {} });
   const autoBtn = $('autoBtn');
   if (autoBtn) autoBtn.addEventListener('click', () => {
     autoWave = !autoWave;
