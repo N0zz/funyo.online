@@ -9,9 +9,10 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #b8d4f0; font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
   #game { display: block; width: 100vw; height: 100vh; }
-  .back { position: fixed; top: 8px; left: 10px; z-index: 9; font-size: 12px; letter-spacing: 1px;
-    color: #5a3f8a; text-decoration: none; background: rgba(255,255,255,0.7); border: 1px solid rgba(180,160,220,0.5);
-    border-radius: 7px; padding: 6px 10px; }
+  .back { position: fixed; top: 10px; left: 12px; z-index: 10; font-size: 12px; letter-spacing: 1px; font-weight: 600;
+    color: #fff; text-decoration: none; background: rgba(122,79,191,0.92); border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 8px; padding: 7px 12px; box-shadow: 0 2px 8px rgba(90,60,140,0.3); }
+  .back:hover { background: #7a4fbf; }
   #hud { position: fixed; top: 0; left: 0; right: 0; height: 48px; z-index: 5; display: flex; align-items: center;
     gap: 22px; padding: 0 14px 0 96px; background: rgba(255,255,255,0.45); backdrop-filter: blur(6px);
     border-bottom: 1px solid rgba(200,180,240,0.35); font-size: 15px; color: #4a3070; }
@@ -94,7 +95,7 @@
   // ---- Constants ----
   const BLOCK_H = 28;
   // Playfield max width — keeps traversal snappy on wide/landscape screens
-  const MAX_PLAY_W = 380;
+  const MAX_PLAY_W = 720; // upper cap; actual width is ~27% of viewport (see resize)
 
   // Per-mode config
   const MODE_CFG = {
@@ -466,7 +467,7 @@
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
     // Constrain play column so block traversal feels snappy
-    PF_W = Math.min(W, MAX_PLAY_W);
+    PF_W = Math.max(340, Math.min(Math.round(W * 0.27), MAX_PLAY_W, W));
     PF_X = (W - PF_W) / 2;
   }
   window.addEventListener('resize', resize);
