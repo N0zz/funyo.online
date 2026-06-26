@@ -167,25 +167,28 @@
   const keys={};
   window.addEventListener('keydown',(e)=>{
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
-    keys[e.key.length===1?e.key.toLowerCase():e.key]=true;
+    const low = e.key.length===1?e.key.toLowerCase():e.key;
+    keys[low]=true;
+    // WASD mirror the arrow keys everywhere (steering AND menu navigation)
+    const k = ({a:'ArrowLeft', d:'ArrowRight', w:'ArrowUp', s:'ArrowDown'})[low] || e.key;
     if((e.key==='Enter'||e.key===' ') && (state==='menu'||state==='dead'||state==='won')){ startGame(); return; }
     if(e.key==='Escape'){ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); return; }
     if(state==='levelup'){
-      if(e.key==='ArrowLeft'){ selIdx=(selIdx+pickOptions.length-1)%pickOptions.length; renderPicker(); }
-      else if(e.key==='ArrowRight'){ selIdx=(selIdx+1)%pickOptions.length; renderPicker(); }
-      else if(e.key==='Enter'||e.key===' ') pickByIndex(selIdx);
-      else if(/^[1-9]$/.test(e.key)) pickByIndex(parseInt(e.key,10)-1);
+      if(k==='ArrowLeft'){ selIdx=(selIdx+pickOptions.length-1)%pickOptions.length; renderPicker(); }
+      else if(k==='ArrowRight'){ selIdx=(selIdx+1)%pickOptions.length; renderPicker(); }
+      else if(k==='Enter'||k===' ') pickByIndex(selIdx);
+      else if(/^[1-9]$/.test(k)) pickByIndex(parseInt(k,10)-1);
       return;
     }
     if(state==='shop'){
       const n=pool().length; // selection runs over the items only
-      if(e.key==='ArrowLeft'){ selIdx=(selIdx+n-1)%n; renderShop(); }
-      else if(e.key==='ArrowRight'){ selIdx=(selIdx+1)%n; renderShop(); }
-      else if(e.key==='ArrowUp'){ selIdx=(selIdx+n-4)%n; renderShop(); }
-      else if(e.key==='ArrowDown'){ selIdx=(selIdx+4)%n; renderShop(); }
-      else if(e.key==='Enter'){ closeShop(); }            // Enter always continues to next wave
-      else if(e.key===' '){ buyByIndex(selIdx); }          // Space buys the highlighted item
-      else if(/^[1-9]$/.test(e.key)) buyByIndex(parseInt(e.key,10)-1);
+      if(k==='ArrowLeft'){ selIdx=(selIdx+n-1)%n; renderShop(); }
+      else if(k==='ArrowRight'){ selIdx=(selIdx+1)%n; renderShop(); }
+      else if(k==='ArrowUp'){ selIdx=(selIdx+n-4)%n; renderShop(); }
+      else if(k==='ArrowDown'){ selIdx=(selIdx+4)%n; renderShop(); }
+      else if(k==='Enter'){ closeShop(); }            // Enter always continues to next wave
+      else if(k===' '){ buyByIndex(selIdx); }          // Space buys the highlighted item
+      else if(/^[1-9]$/.test(k)) buyByIndex(parseInt(k,10)-1);
       return;
     }
   });

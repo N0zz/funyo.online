@@ -411,6 +411,13 @@ function testWASD(file) {
   const a1 = T().shipAngle;
   g.down('a'); g.step(5); g.up('a');
   ok(T().shipAngle < a1, file + ' A rotates left');
+  // WASD must also navigate the upgrade picker (same as arrows)
+  T().forcePick(); g.step(1);
+  if (T().state === 'levelup') {
+    const s0 = T().sel;
+    g.down('d'); g.step(1); g.up('d');
+    ok(T().sel !== s0, file + ' D navigates the upgrade picker (' + s0 + ' -> ' + T().sel + ')');
+  }
 }
 
 function testSaveOnQuit(file) {
