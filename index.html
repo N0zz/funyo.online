@@ -76,8 +76,9 @@
 
   .help-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; }
   .ibtn { font-family:var(--mono); font-size:12px; letter-spacing:2px; cursor:pointer; padding:9px 16px; border-radius:10px;
-    color:var(--text); background:var(--surface-2); border:1px solid var(--border); }
+    color:var(--text); background:var(--surface-2); border:1px solid var(--border); text-decoration:none; display:inline-flex; align-items:center; }
   .ibtn:hover { border-color:#9fe8ff; color:#fff; }
+  #newsletter:hover { border-color:#ff6719; color:#fff; }
   .tip { position:relative; display:inline-flex; }
   .qbtn { width:30px; height:30px; border-radius:50%; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); cursor:pointer; font-size:14px; line-height:1; }
   .qbtn:hover { border-color:#9fe8ff; color:#fff; }
@@ -144,6 +145,7 @@
             <span style="opacity:.8">Already installed? Open it from your home screen, or the “Open in app” icon in the address bar.</span></span>
         </span>
         <button class="ibtn" id="feedback" style="margin-left:8px">💬 Feedback</button>
+        <a class="ibtn" id="newsletter" href="https://n0zz.substack.com/subscribe" target="_blank" rel="noopener">📬 Subscribe</a>
       </div>
     </header>
 
