@@ -11,11 +11,14 @@
   html,body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:#fff;
     font-family: 'Courier New', Courier, monospace; user-select:none; touch-action:none; }
   #game { display:block; width:100vw; height:100vh; }
-  .back { position:fixed; top:8px; left:10px; z-index:9; font-family:inherit; font-size:12px; letter-spacing:1px;
+  .back { font-family:inherit; font-size:12px; letter-spacing:1px;
     color:#fff; text-decoration:none; background:rgba(0,0,0,0.6); border:1px solid var(--mg);
-    border-radius:7px; padding:6px 10px; text-shadow:0 0 8px var(--mg); box-shadow:0 0 8px rgba(255,0,255,0.3); }
+    border-radius:7px; padding:6px 10px; text-shadow:0 0 8px var(--mg); box-shadow:0 0 8px rgba(255,0,255,0.3);
+    cursor:pointer; }
+  .nav { position:fixed; top:8px; left:10px; z-index:9; display:flex; gap:8px; }
+  .nav .back { position:static; top:auto; left:auto; }
   #hud { position:fixed; top:0; left:0; right:0; height:44px; z-index:5; display:flex; align-items:center;
-    gap:22px; padding:0 14px; padding-left:100px; font-size:14px; letter-spacing:2px;
+    gap:22px; padding:0 14px; padding-left:170px; font-size:14px; letter-spacing:2px;
     background:rgba(10,0,16,0.85); border-bottom:1px solid rgba(255,0,255,0.3); }
   #hud .lbl { opacity:0.5; font-size:10px; letter-spacing:2px; display:block; }
   #hud .val { color:var(--cy); text-shadow:0 0 8px var(--cy); }
@@ -38,7 +41,10 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<a class="back" href="../../">‹ Arcade</a>
+<div class="nav">
+  <button class="back" id="menuBtn" type="button">&#x2039; Menu</button>
+  <a class="back" href="../../">Arcade &#x203A;</a>
+</div>
 <div id="hud">
   <div class="stat"><span class="lbl">SCORE</span><span class="val" id="scoreEl">0</span></div>
   <div class="stat"><span class="lbl">BEST</span><span class="val" id="bestEl">0</span></div>
@@ -89,7 +95,7 @@
 
   // ---- Config ----
   const PADDLE_H = 14, BALL_R = 7;
-  const BRICK_ROWS = 8, BRICK_COLS = 14, BRICK_GAP = 3;
+  const BRICK_ROWS = 10, BRICK_COLS = 18, BRICK_GAP = 3;
   const LIVES_START = 3;
   const MIN_VY = 1.5;
   const ENDLESS_ROW_INTERVAL = 420;
@@ -629,6 +635,7 @@
   window.addEventListener('keyup', e => { keys[e.key] = false; });
 
   document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('menuBtn').addEventListener('click', () => { try { location.reload(); } catch (e) {} });
 
   // Mode picker
   const modeBtns = document.querySelectorAll('.modeBtn');

@@ -255,7 +255,7 @@ section('Breakout: restart resets all state');
   ok(Tr().lives === 3, 'lives reset to 3 on restart');
   ok(Tr().level === 1, 'level reset to 1 on restart');
   ok(Tr().ballStuck === true, 'ball stuck on restart');
-  ok(Tr().bricks === 112, 'all 112 bricks present on restart (got ' + Tr().bricks + ')');
+  ok(Tr().bricks === 180, 'all 180 bricks present on restart (got ' + Tr().bricks + ')');
 }
 
 section('Breakout: startMode — classic defaults');
@@ -264,7 +264,7 @@ section('Breakout: startMode — classic defaults');
   const Tc = gc.T;
   Tc().start(); // defaults to classic
   ok(Tc().mode === 'classic', 'start() defaults to classic mode');
-  ok(Tc().bricks === 112, 'classic mode has 112 bricks (8×14)');
+  ok(Tc().bricks === 180, 'classic mode has 180 bricks (10×18)');
 }
 
 section('Breakout: startMode(\'endless\')');
