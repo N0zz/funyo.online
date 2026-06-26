@@ -112,10 +112,15 @@
   }
   .resetbtn:hover { border-color: #ff8f8f; color: #ff8f8f; box-shadow: 0 0 12px rgba(255,120,120,0.3); }
   .footer { font-size: 11px; opacity: 0.35; letter-spacing: 2px; }
+  .arcade-back { position:fixed; top:14px; left:16px; z-index:9; font-family:inherit; font-size:12px; letter-spacing:2px;
+    color:#cfe8ff; text-decoration:none; background:rgba(10,16,30,0.7); border:1px solid rgba(120,200,255,0.4);
+    border-radius:8px; padding:7px 12px; }
+  .arcade-back:hover { border-color:#9fe8ff; box-shadow:0 0 12px rgba(120,200,255,0.4); }
 </style>
 </head>
 <body>
   <canvas id="stars"></canvas>
+  <a class="arcade-back" href="../../">‹ ARCADE</a>
   <div id="select">
     <h1>ASTEROIDS</h1>
     <div class="sub">select version</div>
