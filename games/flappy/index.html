@@ -17,17 +17,32 @@
   #hud { position:fixed; top:10px; right:14px; z-index:5; text-align:right; pointer-events:none; }
   #hud .score { font-size:28px; font-weight:bold; color:#3a2a17; text-shadow:0 1px 0 rgba(255,255,255,0.6); }
   #hud .best  { font-size:12px; color:#7a6050; letter-spacing:1px; }
+  #hud.night .score { color:#fdf6e3; text-shadow:0 1px 4px rgba(0,0,0,0.5); }
+  #hud.night .best  { color:#c0b080; }
   #overlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; gap:16px; background:rgba(184,228,249,0.88); padding:24px; }
+    text-align:center; gap:14px; background:rgba(184,228,249,0.88); padding:24px; }
   #overlay.hidden { display:none; }
+  #overlay.night { background:rgba(20,30,60,0.88); }
   #overlay h1 { margin:0; font-size:42px; letter-spacing:3px; color:#3a7a2a; text-shadow:0 2px 0 rgba(200,240,160,0.6); }
+  #overlay.night h1 { color:#c8e0ff; text-shadow:0 2px 6px rgba(80,120,255,0.4); }
   #overlay p  { margin:2px; font-size:15px; color:#4a3020; max-width:420px; line-height:1.5; }
+  #overlay.night p { color:#c0cce8; }
   #overlay .hint { opacity:0.65; font-size:13px; }
-  #overlay button { font-family:inherit; cursor:pointer; font-size:16px; letter-spacing:1px; padding:11px 28px;
+  #overlay .mode-row { display:flex; gap:10px; justify-content:center; margin-top:4px; }
+  #overlay .mode-btn {
+    font-family:inherit; cursor:pointer; font-size:14px; letter-spacing:1px; padding:9px 22px;
+    border-radius:12px; color:#fdf6e3; background:rgba(120,160,220,0.35); border:2px solid rgba(120,160,220,0.5);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  #overlay .mode-btn.active-day  { background:linear-gradient(180deg,#ffe066,#f0a020); border-color:#c07010; color:#3a2a17; }
+  #overlay .mode-btn.active-night { background:linear-gradient(180deg,#5060c0,#303080); border-color:#8090ff; color:#e8eeff; }
+  #overlay button.play-btn { font-family:inherit; cursor:pointer; font-size:16px; letter-spacing:1px; padding:11px 28px;
     border-radius:12px; color:#fdf6e3; background:linear-gradient(180deg,#6ec040,#4a9020); border:2px solid #2e6010; }
+  #overlay.night button.play-btn { background:linear-gradient(180deg,#5060d0,#2a3090); border-color:#7080ff; }
   #goScreen { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; gap:14px; background:rgba(100,60,40,0.75); padding:24px; pointer-events:none; }
+    text-align:center; gap:14px; background:rgba(100,60,40,0.75); padding:24px; }
   #goScreen.hidden { display:none; }
+  #goScreen.night { background:rgba(10,15,40,0.80); }
   #goScreen h2 { margin:0; font-size:36px; color:#fdf6e3; letter-spacing:2px; }
   #goScreen .goScore { font-size:22px; color:#f9e080; }
   #goScreen .goBest  { font-size:14px; color:#e0cca0; letter-spacing:1px; }
@@ -46,7 +61,11 @@
   <h1>🌸 Meadow Flyer</h1>
   <p>Guide the little bee through the flower meadow.</p>
   <p class="hint">Tap / Click / Space to flap · Mobile friendly</p>
-  <button id="playBtn">Fly!</button>
+  <div class="mode-row">
+    <button class="mode-btn active-day" id="modeDay">☀️ Day</button>
+    <button class="mode-btn" id="modeNight">🌙 Night</button>
+  </div>
+  <button class="play-btn" id="playBtn">Fly!</button>
 </div>
 <div id="goScreen" class="hidden">
   <h2>Oh no!</h2>
@@ -58,7 +77,7 @@
 (() => {
   const $ = id => document.getElementById(id);
   const canvas = $('game'), ctx = canvas.getContext('2d');
-  const overlay = $('overlay'), goScreen = $('goScreen');
+  const overlay = $('overlay'), goScreen = $('goScreen'), hud = $('hud');
 
   // roundRect polyfill for Safari < 15.4
   if (typeof ctx.roundRect !== 'function') {
@@ -90,14 +109,42 @@
   })();
 
   // ---- Constants ----
-  const GRAVITY = 0.38;
-  const FLAP_VY = -7.2;
-  const OBS_SPEED = 2.8;
-  const OBS_W = 62;
-  const GAP_H = 148;
-  const OBS_INTERVAL = 220;  // pixels between obstacle centres
-  const BIRD_X = 90;
-  const BIRD_R = 14;
+  const GRAVITY     = 0.28;   // was 0.38 — gentler fall
+  const FLAP_VY     = -6.0;   // was -7.2 — softer flap
+  const OBS_SPEED_DAY   = 2.1;   // was 2.8 — slower scroll
+  const OBS_SPEED_NIGHT = 2.5;   // night: slightly faster for variety
+  const OBS_W       = 62;
+  const GAP_H       = 185;    // was 148 — much bigger gap
+  const OBS_INTERVAL= 280;    // was 220 — more breathing room between obstacles
+  const BIRD_X      = 90;
+  const BIRD_R      = 14;
+  const HITBOX_SHRINK = 4;    // was 3 — slightly more forgiving
+
+  // ---- Mode ----
+  let mode = 'day'; // 'day' | 'night'
+
+  function applyModeUI() {
+    if (mode === 'night') {
+      overlay.classList.add('night');
+      goScreen.classList.add('night');
+      hud.classList.add('night');
+    } else {
+      overlay.classList.remove('night');
+      goScreen.classList.remove('night');
+      hud.classList.remove('night');
+    }
+    if ($('modeDay')) {
+      $('modeDay').classList.toggle('active-day', mode === 'day');
+      $('modeDay').classList.toggle('active-night', false);
+      $('modeNight').classList.toggle('active-night', mode === 'night');
+      $('modeNight').classList.toggle('active-day', false);
+    }
+  }
+
+  if ($('modeDay')) {
+    $('modeDay').addEventListener('click', () => { mode = 'day'; applyModeUI(); updateHud(); });
+    $('modeNight').addEventListener('click', () => { mode = 'night'; applyModeUI(); updateHud(); });
+  }
 
   // ---- RNG (seedable) ----
   let rngSeed = Date.now();
@@ -108,12 +155,20 @@
   let W, H;
   let state = 'ready'; // ready | playing | over
   let score = 0;
-  let best = parseInt(localStorage.getItem('flappy_best') || '0', 10);
+  let obsSpeed = OBS_SPEED_DAY;
+
+  function bestKey() { return 'flappy_best_' + mode; }
+  function getBest() { return parseInt(localStorage.getItem(bestKey()) || '0', 10); }
+  function saveBest(v) { localStorage.setItem(bestKey(), v); }
+  let best = getBest();
+
   let bird = { x: BIRD_X, y: 0, vy: 0, flapAnim: 0, wobble: 0 };
   let obstacles = [];   // { x, gapY, passed }
   let particles = [];   // { x, y, vx, vy, life, col }
+  let stars = [];       // night mode stars
+  let fireflies = [];   // night mode fireflies
   let nextObsX = 0;
-  let pendingGapY = null; // if set, next obstacle uses this gapY
+  let pendingGapY = null;
   let frame = 0;
 
   // ---- Parallax layers ----
@@ -124,8 +179,12 @@
   function initParallax() {
     clouds.length = 0;
     hills.length = 0;
+    stars.length = 0;
+    fireflies.length = 0;
     for (let i = 0; i < 5; i++) clouds.push({ x: (i / 5) * W + rng() * W * 0.3, y: H * (0.05 + rng() * 0.18), r: 28 + rng() * 32, s: 0.35 + rng() * 0.25 });
     for (let i = 0; i < 4; i++) hills.push({ x: (i / 4) * W + rng() * W * 0.4, r: W * (0.18 + rng() * 0.14), s: 0.55 + rng() * 0.35 });
+    for (let i = 0; i < 60; i++) stars.push({ x: rng() * W, y: rng() * H * 0.65, r: 0.8 + rng() * 1.8, twinkle: rng() * Math.PI * 2 });
+    for (let i = 0; i < 14; i++) fireflies.push({ x: rng() * W, y: H * 0.3 + rng() * H * 0.45, phase: rng() * Math.PI * 2, speed: 0.4 + rng() * 0.8, amp: 20 + rng() * 40 });
   }
 
   function resize() {
@@ -146,8 +205,9 @@
     bird.wobble = 0;
     obstacles = [];
     particles = [];
-    nextObsX = W + OBS_INTERVAL;
     pendingGapY = null;
+    obsSpeed = mode === 'night' ? OBS_SPEED_NIGHT : OBS_SPEED_DAY;
+    best = getBest();
     seedRng(Date.now());
     updateHud();
   }
@@ -162,7 +222,9 @@
   function gameOver() {
     state = 'over';
     SND.play('hit');
-    if (score > best) { best = score; localStorage.setItem('flappy_best', best); }
+    const cur = getBest();
+    if (score > cur) saveBest(score);
+    best = getBest();
     updateHud();
     $('goScoreEl').textContent = 'Score: ' + score;
     $('goBestEl').textContent = 'BEST ' + best;
@@ -178,12 +240,12 @@
 
   function updateHud() {
     $('scoreEl').textContent = score;
-    $('bestEl').textContent = 'BEST ' + best;
+    $('bestEl').textContent = 'BEST ' + getBest();
   }
 
   // ---- Spawn obstacle ----
   function spawnObstacle() {
-    const margin = H * 0.15;
+    const margin = H * 0.12;
     const gapY = pendingGapY !== null ? pendingGapY : margin + rng() * (H - margin * 2 - GAP_H);
     pendingGapY = null;
     obstacles.push({ x: W + OBS_W, gapY, passed: false });
@@ -209,8 +271,9 @@
     bird.flapAnim = Math.max(0, bird.flapAnim - 0.08);
     bird.wobble = Math.sin(frame * 0.18) * 0.04;
 
-    // boundary
-    if (bird.y - BIRD_R <= 0 || bird.y + BIRD_R >= H) { gameOver(); return; }
+    // boundary — ground check uses groundH so bird hits the visual ground
+    const groundH = 28;
+    if (bird.y - BIRD_R <= 0 || bird.y + BIRD_R >= H - groundH) { gameOver(); return; }
 
     // spawn obstacles
     if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < W - OBS_INTERVAL + OBS_W) {
@@ -220,21 +283,21 @@
     // move obstacles + collision + scoring
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
-      o.x -= OBS_SPEED;
+      o.x -= obsSpeed;
       if (o.x + OBS_W < 0) { obstacles.splice(i, 1); continue; }
 
-      // collision: stem is drawn with 6px inset each side, match that visually
-      const bx = bird.x, by = bird.y, br = BIRD_R - 3;
+      const bx = bird.x, by = bird.y, br = BIRD_R - HITBOX_SHRINK;
       const stemX = o.x + 6, stemW = OBS_W - 12;
       const inX = bx + br > stemX && bx - br < stemX + stemW;
       const inGap = by - br > o.gapY && by + br < o.gapY + GAP_H;
       if (inX && !inGap) { gameOver(); return; }
 
-      // score
       if (!o.passed && o.x + OBS_W < bird.x - BIRD_R) {
         o.passed = true;
         score++;
-        if (score > best) { best = score; localStorage.setItem('flappy_best', best); }
+        const cur = getBest();
+        if (score > cur) saveBest(score);
+        best = getBest();
         updateHud();
         SND.play('score');
         spawnPass(bird.x + 20, bird.y);
@@ -249,8 +312,14 @@
     }
 
     // parallax scroll
-    cloudScroll += 0.35;
-    hillScroll += 0.7;
+    cloudScroll += 0.28;
+    hillScroll += 0.55;
+
+    // firefly drift
+    for (const f of fireflies) {
+      f.x -= obsSpeed * 0.3;
+      if (f.x < -10) f.x = W + 10;
+    }
   }
 
   // ---- Render helpers ----
@@ -266,38 +335,70 @@
     ctx.beginPath(); ctx.arc(x, H, r, 0, Math.PI, true); ctx.closePath(); ctx.fill();
   }
 
+  function drawStars() {
+    for (const s of stars) {
+      const tw = 0.5 + 0.5 * Math.sin(frame * 0.04 + s.twinkle);
+      ctx.globalAlpha = 0.4 + 0.6 * tw;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawFireflies() {
+    for (const f of fireflies) {
+      const glow = 0.5 + 0.5 * Math.sin(frame * 0.07 + f.phase);
+      const fy = f.y + Math.sin(frame * 0.02 + f.phase) * f.amp * 0.3;
+      ctx.globalAlpha = 0.3 + 0.7 * glow;
+      ctx.fillStyle = '#d0ff60';
+      ctx.beginPath(); ctx.arc(f.x, fy, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.12 * glow;
+      ctx.fillStyle = '#c0ff40';
+      ctx.beginPath(); ctx.arc(f.x, fy, 8, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawObstacle(o) {
     const topH = o.gapY;
     const botY = o.gapY + GAP_H;
     const botH = H - botY;
 
-    // stem gradient
-    const grad = ctx.createLinearGradient(o.x, 0, o.x + OBS_W, 0);
-    grad.addColorStop(0, '#7ec850');
-    grad.addColorStop(0.5, '#9ed870');
-    grad.addColorStop(1, '#5a9e30');
+    let grad, petalCol, centerCol;
+    if (mode === 'night') {
+      grad = ctx.createLinearGradient(o.x, 0, o.x + OBS_W, 0);
+      grad.addColorStop(0, '#2a4060');
+      grad.addColorStop(0.5, '#3a5880');
+      grad.addColorStop(1, '#1a2840');
+      petalCol = '#a080e0';
+      centerCol = '#c0a0ff';
+    } else {
+      grad = ctx.createLinearGradient(o.x, 0, o.x + OBS_W, 0);
+      grad.addColorStop(0, '#7ec850');
+      grad.addColorStop(0.5, '#9ed870');
+      grad.addColorStop(1, '#5a9e30');
+      petalCol = '#f9c0c0';
+      centerCol = '#f9e080';
+    }
 
-    // top obstacle (hanging flower cluster)
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.roundRect(o.x + 6, 0, OBS_W - 12, topH - 6, [0, 0, 8, 8]); ctx.fill();
-    // petal blob
-    ctx.fillStyle = '#f9c0c0';
+    ctx.fillStyle = petalCol;
     for (let a = 0; a < 5; a++) {
       const ang = (a / 5) * Math.PI * 2;
       ctx.beginPath(); ctx.ellipse(o.x + OBS_W / 2 + Math.cos(ang) * 14, topH - 8 + Math.sin(ang) * 10, 10, 8, ang, 0, Math.PI * 2); ctx.fill();
     }
-    ctx.fillStyle = '#f9e080';
+    ctx.fillStyle = centerCol;
     ctx.beginPath(); ctx.arc(o.x + OBS_W / 2, topH - 8, 10, 0, Math.PI * 2); ctx.fill();
 
-    // bottom obstacle (growing flower)
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.roundRect(o.x + 6, botY + 6, OBS_W - 12, botH - 6, [8, 8, 0, 0]); ctx.fill();
-    ctx.fillStyle = '#f9c0c0';
+    ctx.fillStyle = petalCol;
     for (let a = 0; a < 5; a++) {
       const ang = (a / 5) * Math.PI * 2;
       ctx.beginPath(); ctx.ellipse(o.x + OBS_W / 2 + Math.cos(ang) * 14, botY + 8 + Math.sin(ang) * 10, 10, 8, ang, 0, Math.PI * 2); ctx.fill();
     }
-    ctx.fillStyle = '#f9e080';
+    ctx.fillStyle = centerCol;
     ctx.beginPath(); ctx.arc(o.x + OBS_W / 2, botY + 8, 10, 0, Math.PI * 2); ctx.fill();
   }
 
@@ -310,22 +411,17 @@
     ctx.translate(x, y);
     ctx.rotate(angle);
 
-    // body
     ctx.fillStyle = '#f9e040';
     ctx.beginPath(); ctx.ellipse(0, 0, BIRD_R, BIRD_R * 0.8, 0, 0, Math.PI * 2); ctx.fill();
-    // wings (flap animation)
     ctx.fillStyle = '#f0c828';
     ctx.beginPath(); ctx.ellipse(-4, -flapOff - 4, 10, 6, -0.4, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(-4,  flapOff + 4, 10, 6,  0.4, 0, Math.PI * 2); ctx.fill();
-    // eye
     ctx.fillStyle = '#3a2a17';
     ctx.beginPath(); ctx.arc(BIRD_R * 0.55, -2, 3, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'white';
     ctx.beginPath(); ctx.arc(BIRD_R * 0.55 + 1, -3, 1.2, 0, Math.PI * 2); ctx.fill();
-    // beak
     ctx.fillStyle = '#e07030';
     ctx.beginPath(); ctx.moveTo(BIRD_R * 0.8, -1); ctx.lineTo(BIRD_R * 1.22, 1); ctx.lineTo(BIRD_R * 0.8, 3); ctx.closePath(); ctx.fill();
-    // antennae (bee style)
     ctx.strokeStyle = '#8a6020'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(-2, -BIRD_R * 0.7); ctx.quadraticCurveTo(-8, -BIRD_R * 1.3, -12, -BIRD_R * 1.5); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(4, -BIRD_R * 0.7); ctx.quadraticCurveTo(8, -BIRD_R * 1.3, 11, -BIRD_R * 1.5); ctx.stroke();
@@ -337,35 +433,68 @@
   }
 
   function render() {
-    // sky gradient
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-    skyGrad.addColorStop(0, '#c8eeff');
-    skyGrad.addColorStop(1, '#e8f8d0');
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, W, H);
+    if (mode === 'night') {
+      // Night sky gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+      skyGrad.addColorStop(0, '#0a0e1e');
+      skyGrad.addColorStop(0.6, '#1a2040');
+      skyGrad.addColorStop(1, '#1a3020');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, H);
 
-    // clouds (parallax layer 1)
-    for (const c of clouds) {
-      const cx = ((c.x - cloudScroll * c.s) % (W + 120) + W + 120) % (W + 120) - 60;
-      drawCloud(cx, c.y, c.r);
+      drawStars();
+
+      // moon
+      ctx.fillStyle = 'rgba(240,235,200,0.90)';
+      ctx.beginPath(); ctx.arc(W * 0.82, H * 0.12, 28, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(30,40,80,0.35)';
+      ctx.beginPath(); ctx.arc(W * 0.82 + 10, H * 0.12 - 8, 22, 0, Math.PI * 2); ctx.fill();
+
+      // night hills
+      drawHill(((120 - hillScroll * 0.45) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.28, '#101830');
+      drawHill(((W * 0.55 - hillScroll * 0.6) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.22, '#0c1428');
+      drawHill(((W * 0.8 - hillScroll * 0.5) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.32, '#141c34');
+
+      // ground
+      const groundH = 28;
+      ctx.fillStyle = '#0e1a10';
+      ctx.fillRect(0, H - groundH, W, groundH);
+      ctx.fillStyle = '#162010';
+      ctx.fillRect(0, H - groundH, W, 5);
+
+      for (const o of obstacles) drawObstacle(o);
+
+      drawFireflies();
+    } else {
+      // Day sky gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+      skyGrad.addColorStop(0, '#c8eeff');
+      skyGrad.addColorStop(1, '#e8f8d0');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // clouds
+      for (const c of clouds) {
+        const cx = ((c.x - cloudScroll * c.s) % (W + 120) + W + 120) % (W + 120) - 60;
+        drawCloud(cx, c.y, c.r);
+      }
+
+      // hills
+      drawHill(((120 - hillScroll * 0.45) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.28, '#a8d870');
+      drawHill(((W * 0.55 - hillScroll * 0.6) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.22, '#90cc60');
+      drawHill(((W * 0.8 - hillScroll * 0.5) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.32, '#b0dc80');
+
+      // ground
+      const groundH = 28;
+      ctx.fillStyle = '#7ec850';
+      ctx.fillRect(0, H - groundH, W, groundH);
+      ctx.fillStyle = '#5a9e30';
+      ctx.fillRect(0, H - groundH, W, 5);
+
+      for (const o of obstacles) drawObstacle(o);
     }
 
-    // hills (parallax layer 2)
-    drawHill(((120 - hillScroll * 0.45) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.28, '#a8d870');
-    drawHill(((W * 0.55 - hillScroll * 0.6) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.22, '#90cc60');
-    drawHill(((W * 0.8 - hillScroll * 0.5) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.32, '#b0dc80');
-
-    // ground strip
-    const groundH = 28;
-    ctx.fillStyle = '#7ec850';
-    ctx.fillRect(0, H - groundH, W, groundH);
-    ctx.fillStyle = '#5a9e30';
-    ctx.fillRect(0, H - groundH, W, 5);
-
-    // obstacles
-    for (const o of obstacles) drawObstacle(o);
-
-    // particles
+    // particles (both modes)
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, p.life);
       ctx.fillStyle = p.col;
@@ -373,7 +502,6 @@
     }
     ctx.globalAlpha = 1;
 
-    // bird
     drawBird();
   }
 
@@ -383,11 +511,8 @@
   }
 
   // ---- Input ----
-  function onTap() {
-    flap();
-  }
-  canvas.addEventListener('pointerdown', onTap);
-  document.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onTap(); } });
+  canvas.addEventListener('pointerdown', () => flap());
+  document.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flap(); } });
   $('playBtn').addEventListener('click', startGame);
 
   // ---- Test hook ----
@@ -397,15 +522,21 @@
     get bird()  { return { y: bird.y, vy: bird.vy }; },
     get nextGap() { return obstacles.length > 0 ? obstacles.find(o => !o.passed) : null; },
     get obstacles() { return obstacles; },
-    start: startGame,
+    get best() { return getBest(); },
+    get mode() { return mode; },
+    get GAP_H() { return GAP_H; },
+    get GRAVITY() { return GRAVITY; },
+    get OBS_INTERVAL() { return OBS_INTERVAL; },
+    start() { mode = 'day'; applyModeUI(); startGame(); },
+    startMode(m) { mode = (m === 'night' ? 'night' : 'day'); applyModeUI(); startGame(); },
     flap: () => { if (state === 'playing') { bird.vy = FLAP_VY; bird.flapAnim = 1; } },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
     seed: seedRng,
     spawnGapAt(y) { pendingGapY = y; },
-    get best() { return best; },
-    setBest(v) { best = v; localStorage.setItem('flappy_best', v); },
+    setBest(v) { saveBest(v); best = v; },
   };
 
+  applyModeUI();
   resize(); updateHud(); loop();
 })();
 </script>

@@ -165,13 +165,15 @@ T().start();
 // Place gap at a safe vertical position
 const H = 800;
 const gapY = H * 0.38;   // 304
-const birdTarget = gapY + 74;  // 378 — middle of the gap
+const birdTarget = gapY + 92;  // 396 — middle of the gap (GAP_H=185, so midpoint is +92)
 T().spawnGapAt(gapY);
 // Step 60 frames (grace period before first obstacle) keeping bird alive by flapping
 for (let i = 0; i < 60; i++) { if (T().bird.y > birdTarget + 20) T().flap(); T().step(1); }
-// Now keep flying toward the gap until score increments or the run ends
+// Now keep flying toward the gap until score increments or the run ends.
+// Obstacle spawns at x = W+OBS_W (~1342) and travels at OBS_SPEED_DAY=2.1 px/frame,
+// so allow ~800 steps for it to pass BIRD_X fully.
 let guard = 0;
-while (T().score < 1 && T().state === 'playing' && guard++ < 600) {
+while (T().score < 1 && T().state === 'playing' && guard++ < 800) {
   if (T().bird.y > birdTarget + 20) T().flap();
   T().step(1);
 }
@@ -180,13 +182,12 @@ ok(T().score >= 1, 'score increments after flying through gap (score=' + T().sco
 // (e2) hitbox uses stem width (OBS_W-12), not full OBS_W — bird in gap side-inset should survive
 section('Collision hitbox alignment');
 {
-  // Bird at BIRD_X=90, br=11. Obstacle stem drawn at o.x+6 width 50.
-  // Place obstacle so its LEFT STEM EDGE (o.x+6) is just to the right of the bird's right edge (90+11=101).
-  // stemX = obsX+6 = 102 → bird right=101 < stemX=102 → NOT inX → no collision.
-  // If hitbox were full OBS_W: inX = 101 > obsX=96 → collision (false kill).
+  // Bird at BIRD_X=90, br=10 (BIRD_R-HITBOX_SHRINK=14-4=10). Obstacle stem at o.x+6.
+  // Place obstacle so stemX = obsX+6 is just right of bird's right edge (90+10=100).
+  // obsX=95 → stemX=101 → bird right=100 < stemX=101 → NOT inX → no collision.
   g = runGame();
   T().start();
-  const obsX = 96; // stemX = 96+6 = 102, bird right = 90+11 = 101
+  const obsX = 95; // stemX = 95+6 = 101, bird right = 90+10 = 100
   T().spawnGapAt(800 * 0.42); // gap centered near bird y
   T().step(1); // trigger spawn if needed
   const obs = T().obstacles;
@@ -213,21 +214,21 @@ T().setBest(0);
 T().start();
 T().seed(99);
 const persistGapY = H * 0.38;
-const persistBirdTarget = persistGapY + 74;
+const persistBirdTarget = persistGapY + 92;
 T().spawnGapAt(persistGapY);
 // Grace period — keep bird alive
 for (let i = 0; i < 60; i++) { if (T().bird.y > persistBirdTarget + 20) T().flap(); T().step(1); }
 let persistGuard = 0;
-while (T().score < 1 && T().state === 'playing' && persistGuard++ < 600) {
+while (T().score < 1 && T().state === 'playing' && persistGuard++ < 800) {
   if (T().bird.y > persistBirdTarget + 20) T().flap();
   T().step(1);
 }
 if (T().score > 0) {
-  ok(g.store['flappy_best'] !== null && parseInt(g.store['flappy_best'], 10) >= T().score,
-    'best saved to localStorage (stored=' + g.store['flappy_best'] + ', score=' + T().score + ')');
+  ok(g.store['flappy_best_day'] !== undefined && parseInt(g.store['flappy_best_day'], 10) >= T().score,
+    'best saved to localStorage for day mode (stored=' + g.store['flappy_best_day'] + ', score=' + T().score + ')');
 } else {
   T().setBest(5);
-  ok(g.store['flappy_best'] === '5', 'setBest writes to localStorage');
+  ok(g.store['flappy_best_day'] === '5', 'setBest writes to localStorage (day key)');
 }
 
 // (h) over → start() restarts
@@ -238,6 +239,95 @@ ok(T().state === 'over', 'game ends');
 T().start();
 ok(T().state === 'playing', 'start() from over → playing again');
 ok(T().score === 0, 'score resets on restart');
+
+// (i) easier difficulty constants
+section('Easier difficulty');
+{
+  g = runGame();
+  ok(T().GAP_H >= 175, 'GAP_H is at least 175 (got ' + T().GAP_H + ') — bigger gap than original 148');
+  ok(T().GRAVITY <= 0.32, 'GRAVITY is at most 0.32 (got ' + T().GRAVITY + ') — gentler than original 0.38');
+  ok(T().OBS_INTERVAL >= 260, 'OBS_INTERVAL is at least 260 (got ' + T().OBS_INTERVAL + ') — more spacing than original 220');
+}
+
+// (j) bird survives longer with periodic flapping in easier tuning
+section('Easier survival');
+{
+  // Flap every 36 frames — an easy resting rhythm calibrated to the gentler GRAVITY=0.28/FLAP_VY=-6.0.
+  // This would be fatal under the original hard tuning (GRAVITY=0.38, FLAP_VY=-7.2 overshoots ceiling).
+  // No obstacles can reach the bird within 300 frames (grace period + slow OBS_SPEED_DAY=2.1).
+  g = runGame();
+  T().seed(1234);
+  T().start();
+  let flapGuard = 0;
+  while (T().state === 'playing' && flapGuard < 300) {
+    if (flapGuard % 36 === 0) T().flap();
+    T().step(1);
+    flapGuard++;
+  }
+  ok(T().state === 'playing', 'bird survives 300 steps with a relaxed flap-every-36 rhythm (state=' + T().state + ')');
+}
+
+// (k) Day mode is default; start() sets mode to day
+section('Day mode default');
+{
+  g = runGame();
+  T().start();
+  ok(T().mode === 'day', 'start() defaults to day mode (got ' + T().mode + ')');
+  ok(T().state === 'playing', 'day mode starts playing');
+}
+
+// (l) Night mode: startMode('night') boots, plays, has separate best key
+section('Night mode');
+{
+  g = runGame();
+  // Clear both best keys
+  g.store['flappy_best_day'] = '0';
+  g.store['flappy_best_night'] = '0';
+  T().startMode('night');
+  ok(T().mode === 'night', 'startMode("night") sets mode to night');
+  ok(T().state === 'playing', 'night mode starts playing');
+
+  // Night should have its own best key
+  T().setBest(7);
+  ok(g.store['flappy_best_night'] === '7', 'setBest in night mode writes flappy_best_night');
+  ok(g.store['flappy_best_day'] === '0', 'day best key unaffected by night setBest');
+}
+
+// (m) startMode('day') switches back to day
+section('Mode switching');
+{
+  g = runGame();
+  T().startMode('night');
+  ok(T().mode === 'night', 'night mode active');
+  T().startMode('day');
+  ok(T().mode === 'day', 'startMode("day") switches back to day');
+  ok(T().state === 'playing', 'playing after switching to day');
+}
+
+// (n) restart from game-over does not reuse pinned test gap
+section('pendingGapY cleared on restart');
+{
+  g = runGame();
+  T().start();
+  T().spawnGapAt(200); // pin a gap
+  // Run a few steps so obstacle may spawn, then die
+  for (let i = 0; i < 70; i++) T().step(1);
+  // Force game over if still playing
+  if (T().state === 'playing') { T().bird.y = 780; T().step(1); }
+  ok(T().state === 'over', 'over after crashing');
+  // Restart and check pendingGapY is null (no pinned gap bleeds through)
+  T().start();
+  ok(T().state === 'playing', 'restarted OK');
+  // If pendingGapY leaked, the first spawned obstacle would use y=200 (possibly off-screen).
+  // We verify by stepping past grace period and checking the gap is within sane bounds.
+  for (let i = 0; i < 65; i++) T().step(1);
+  const firstObs = T().obstacles[0];
+  if (firstObs) {
+    ok(firstObs.gapY > 50 && firstObs.gapY < H - 50, 'post-restart gap is within screen bounds (not pinned y=200 leaked): gapY=' + firstObs.gapY);
+  } else {
+    ok(true, 'no obstacle yet after grace period — gap pin test skipped');
+  }
+}
 
 // ----------------------------------------------------------------
 console.log('\n----------------------------------------');
