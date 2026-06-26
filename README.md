@@ -43,7 +43,9 @@ app store:
 - **iPhone (Safari):** **Share** → **“Add to Home Screen”**.
 - **Desktop (Chrome/Edge):** the **Install** button, or the install icon in the address bar.
 
-Each game also works offline once you've opened it.
+**Install individual games too.** Every game is its own Progressive Web App — open
+a game and use **Install / Add to Home Screen** to put just that game on your home
+screen (its own icon, opens fullscreen, plays offline). Handy if you only want one.
 
 ## Add a game
 
