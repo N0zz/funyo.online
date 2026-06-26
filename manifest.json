@@ -1,0 +1,14 @@
+{
+  "name": "Arcade",
+  "short_name": "Arcade",
+  "description": "A little catalogue of self-contained browser games — playable offline.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0c14",
+  "theme_color": "#0a0c14",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

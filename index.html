@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arcade</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0a0c14">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Arcade">
+<link rel="apple-touch-icon" href="favicon.svg">
+<style>
+  :root { --bg:#0a0c14; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:#e7ecf5; font-family:"Courier New",monospace; }
+  body { padding: 48px 22px 60px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header { text-align:center; margin-bottom: 40px; }
+  h1 { margin:0; font-size: clamp(40px, 9vw, 76px); letter-spacing: 14px; font-weight: 800;
+       background: linear-gradient(90deg,#9fe8ff,#e0b25a,#c79bff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .sub { margin-top: 10px; opacity:0.5; letter-spacing: 4px; font-size: 13px; }
+
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px; }
+  .tile {
+    position: relative; display:flex; flex-direction:column; text-decoration:none; color:inherit;
+    border:1px solid rgba(255,255,255,0.1); border-radius:18px; overflow:hidden;
+    background: rgba(255,255,255,0.03); min-height: 230px;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+  .tile:hover, .tile:focus { transform: translateY(-6px); border-color: var(--accent); box-shadow: 0 14px 40px rgba(0,0,0,0.5), 0 0 26px -6px var(--accent); outline:none; }
+  .art { flex:1; display:flex; align-items:center; justify-content:center; font-size: 84px;
+         background: radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%); }
+  .art .glyph { filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
+  .meta { padding: 16px 18px 18px; border-top: 1px solid rgba(255,255,255,0.07); }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .meta h2 { margin:0; font-size: 20px; letter-spacing: 1px; }
+  .tag { font-size: 10px; letter-spacing: 2px; padding: 3px 9px; border-radius: 20px; color: var(--accent);
+         background: color-mix(in srgb, var(--accent) 18%, transparent); white-space:nowrap; }
+  .meta p { margin: 8px 0 0; font-size: 12.5px; line-height: 1.55; opacity: 0.65; }
+  .play { margin-top: 14px; font-size: 12px; letter-spacing: 2px; color: var(--accent); opacity:0.9; }
+  #install { margin-top: 16px; font-family:inherit; font-size: 13px; letter-spacing: 2px; cursor:pointer;
+    padding: 9px 18px; border-radius: 22px; color:#0a0c14; background:#9fe8ff; border:0; font-weight:700; display:none; }
+  #install:hover { box-shadow: 0 0 18px rgba(159,232,255,0.6); }
+  .install-help { margin-top: 12px; font-size: 11px; opacity: 0.45; letter-spacing: 1px; line-height: 1.7; }
+  footer { text-align:center; margin-top: 46px; font-size: 11px; opacity: 0.32; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ARCADE</h1>
+      <div class="sub">a little catalogue of self-contained browser games</div>
+      <button id="install">📱 Install</button>
+      <div class="install-help" id="installHelp">
+        Install to your home screen to play fullscreen &amp; offline —
+        <b>Android Chrome:</b> menu ⋮ → “Add to Home screen” · <b>iPhone Safari:</b> Share → “Add to Home Screen”.
+      </div>
+    </header>
+    <div class="grid" id="grid"></div>
+    <footer>built for fun · no ads · no tracking · plays offline</footer>
+  </div>
+
+  <script src="games.js"></script>
+  <script>
+    const grid = document.getElementById('grid');
+    (window.GAMES || []).forEach(g => {
+      const a = document.createElement('a');
+      a.className = 'tile';
+      a.href = 'games/' + g.slug + '/';
+      a.style.setProperty('--accent', g.accent || '#9fe8ff');
+      a.innerHTML =
+        '<div class="art"><span class="glyph">' + (g.icon || '🎮') + '</span></div>' +
+        '<div class="meta">' +
+          '<div class="row"><h2>' + g.title + '</h2><span class="tag">' + (g.tag || 'GAME') + '</span></div>' +
+          '<p>' + g.blurb + '</p>' +
+          '<div class="play">PLAY ▸</div>' +
+        '</div>';
+      grid.appendChild(a);
+    });
+
+    // PWA install: show the button when the browser offers a prompt (Android/desktop Chrome)
+    const installBtn = document.getElementById('install');
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'inline-block';
+    });
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null; installBtn.style.display = 'none';
+    });
+    window.addEventListener('appinstalled', () => { installBtn.style.display = 'none'; });
+    // already installed? hide the help text
+    if (window.matchMedia && matchMedia('(display-mode: standalone)').matches) {
+      document.getElementById('installHelp').style.display = 'none';
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
