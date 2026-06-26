@@ -17,18 +17,25 @@
     gap:22px; padding:0 16px; padding-left:100px; background:rgba(13,17,23,0.82); border-bottom:1px solid #1e2d3a; }
   #hud .stat .lbl { opacity:0.5; font-size:10px; letter-spacing:2px; }
   #hud .stat b { color:var(--accent); font-size:15px; }
+  #hud .stat b.warn { color:#ff3c3c; }
   #overlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; gap:16px; background:rgba(13,17,23,0.88); padding:24px; }
+    text-align:center; gap:14px; background:rgba(13,17,23,0.88); padding:24px; }
   #overlay.hidden { display:none; }
   #overlay h1 { margin:0; font-size:42px; letter-spacing:5px; color:var(--accent); text-shadow:0 0 30px rgba(255,122,60,0.4); }
   #overlay p { margin:2px; font-size:14px; opacity:0.85; max-width:480px; line-height:1.6; letter-spacing:0.5px; }
   #overlay .hint { opacity:0.5; font-size:12px; letter-spacing:1px; }
-  #overlay button { font-family:inherit; cursor:pointer; font-size:14px; letter-spacing:2px; padding:10px 28px;
+  .mode-label { font-size:11px; letter-spacing:2px; opacity:0.6; margin-bottom:2px; }
+  .mode-row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .mode-btn { font-family:inherit; cursor:pointer; font-size:13px; letter-spacing:2px; padding:9px 18px;
+    border-radius:6px; color:var(--fg); background:transparent; border:1px solid #3a4a5a; transition:background 0.15s,border-color 0.15s; }
+  .mode-btn:hover { border-color:var(--accent); }
+  .mode-btn.selected { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:bold; }
+  .start-btn { font-family:inherit; cursor:pointer; font-size:14px; letter-spacing:2px; padding:10px 32px;
     border-radius:6px; color:var(--fg); background:var(--accent); border:none; margin-top:4px; }
   #endScreen { position:fixed; inset:0; z-index:8; display:none; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:14px; background:rgba(13,17,23,0.92); padding:24px; }
   #endScreen h1 { margin:0; font-size:36px; letter-spacing:4px; color:var(--accent); }
-  #endScreen .summary { display:grid; grid-template-columns:1fr 1fr; gap:10px 28px; margin:10px 0; max-width:320px; }
+  #endScreen .summary { display:grid; grid-template-columns:1fr 1fr; gap:10px 28px; margin:10px 0; max-width:340px; }
   #endScreen .srow { text-align:left; }
   #endScreen .srow .lbl { opacity:0.5; font-size:11px; letter-spacing:2px; }
   #endScreen .srow b { color:var(--accent); font-size:16px; display:block; }
@@ -42,15 +49,26 @@
 <div id="hud">
   <div class="stat"><div class="lbl">SCORE</div><b id="hScore">0</b></div>
   <div class="stat"><div class="lbl">ACC</div><b id="hAcc">--%</b></div>
-  <div class="stat"><div class="lbl">TIME</div><b id="hTime">30</b></div>
-  <div class="stat"><div class="lbl">BEST</div><b id="hBest">0</b></div>
+  <div class="stat"><div id="hTimeLbl" class="lbl">TIME</div><b id="hTime">30</b></div>
+  <div class="stat"><div id="hBestLbl" class="lbl">BEST</div><b id="hBest">0</b></div>
 </div>
 
 <div id="overlay">
   <h1>RANGE</h1>
-  <p>Click targets as fast as possible. Missing costs you. 30 seconds on the clock.</p>
+  <p>Click targets as fast as possible. Missing costs your combo.</p>
+  <div class="mode-label">TIMED MODE — score in the window</div>
+  <div class="mode-row" id="timedBtns">
+    <button class="mode-btn" data-mode="10">10s</button>
+    <button class="mode-btn selected" data-mode="30">30s</button>
+    <button class="mode-btn" data-mode="20">20s</button>
+    <button class="mode-btn" data-mode="60">60s</button>
+  </div>
+  <div class="mode-label" style="margin-top:6px">SPRINT MODE — reach 100 pts fastest</div>
+  <div class="mode-row">
+    <button class="mode-btn" data-mode="sprint">SPRINT TO 100</button>
+  </div>
   <p class="hint">CLICK / TAP TO SHOOT</p>
-  <button id="startBtn">READY UP</button>
+  <button class="start-btn" id="startBtn">READY UP</button>
 </div>
 
 <div id="endScreen">
@@ -61,7 +79,7 @@
     <div class="srow"><span class="lbl">HITS</span><b id="eHits">0</b></div>
     <div class="srow"><span class="lbl">MISSES</span><b id="eMisses">0</b></div>
     <div class="srow"><span class="lbl">BEST REACTION</span><b id="eBestReact">--ms</b></div>
-    <div class="srow"><span class="lbl">BEST SCORE</span><b id="eBest">0</b></div>
+    <div class="srow"><span class="lbl" id="eBestLbl">BEST SCORE</span><b id="eBest">0</b></div>
   </div>
   <button id="restartBtn">FIRE AGAIN</button>
 </div>
@@ -89,30 +107,49 @@
   })();
 
   // ---- Constants ----
-  const SESSION = 30;
+  const DEFAULT_SESSION = 30;
+  const SPRINT_TARGET = 100;
   const TARGET_BASE_R = 34;
   const SPAWN_INTERVAL_INIT = 90;
   const SPAWN_INTERVAL_MIN = 40;
 
+  // ---- Mode state ----
+  // mode: 'timed' | 'sprint'
+  // sessionSeconds: number (only for timed)
+  let mode = 'timed';
+  let sessionSeconds = DEFAULT_SESSION;
+
   // ---- State ----
   let state = 'ready'; // ready | playing | over
-  let score = 0, hits = 0, misses = 0, timeLeft = SESSION;
+  let score = 0, hits = 0, misses = 0, timeLeft = sessionSeconds;
+  let elapsedFrames = 0; // for sprint: count-up timer
   let targets = [], particles = [];
   let frame = 0, spawnTimer = 0, spawnInterval = SPAWN_INTERVAL_INIT;
   let reticle = { x: -100, y: -100 };
   let hitMarkers = [];
   let bestReact = Infinity, lastSpawnFrame = 0;
   let combo = 0;
-  let bestScore = 0, bestAccuracy = 0;
   let W = 0, H = 0;
 
-  function loadBest() {
-    try { bestScore = parseInt(localStorage.getItem('aim-trainer_best') || '0', 10) || 0; } catch (e) { bestScore = 0; }
+  // per-mode bests: timed stores best score, sprint stores best time (frames)
+  const bestKey = (m, s) => m === 'sprint' ? 'aim-trainer_sprint' : 'aim-trainer_best_' + s;
+
+  function loadBest(m, s) {
+    try { return parseInt(localStorage.getItem(bestKey(m, s)) || '0', 10) || 0; } catch (e) { return 0; }
   }
-  function saveBest() {
-    try { localStorage.setItem('aim-trainer_best', String(bestScore)); } catch (e) {}
+  function saveBest(m, s, val) {
+    try { localStorage.setItem(bestKey(m, s), String(val)); } catch (e) {}
   }
-  loadBest();
+
+  // bestScore used by HUD and __test — means: best score for timed, 0 for sprint (sprint uses bestTime)
+  // We compute it dynamically from localStorage
+  function getBestForCurrentMode() {
+    if (mode === 'sprint') {
+      const t = loadBest('sprint', 0);
+      return t; // stored as frames; 0 = no best yet
+    }
+    return loadBest('timed', sessionSeconds);
+  }
 
   function resize() {
     W = canvas.width = window.innerWidth;
@@ -124,8 +161,23 @@
     const acc = hits + misses > 0 ? Math.round(hits / (hits + misses) * 100) : null;
     $('hScore').textContent = score;
     $('hAcc').textContent = acc !== null ? acc + '%' : '--%';
-    $('hTime').textContent = Math.ceil(timeLeft);
-    $('hBest').textContent = bestScore;
+
+    if (mode === 'sprint') {
+      $('hTimeLbl').textContent = 'ELAPSED';
+      const secs = (elapsedFrames / 60).toFixed(1);
+      $('hTime').textContent = secs + 's';
+      $('hTime').className = '';
+      $('hBestLbl').textContent = 'BEST TIME';
+      const bt = loadBest('sprint', 0);
+      $('hBest').textContent = bt > 0 ? (bt / 60).toFixed(1) + 's' : '--';
+    } else {
+      $('hTimeLbl').textContent = 'TIME';
+      const tl = Math.ceil(timeLeft);
+      $('hTime').textContent = tl;
+      $('hTime').className = (state === 'playing' && timeLeft <= 5) ? 'warn' : '';
+      $('hBestLbl').textContent = 'BEST';
+      $('hBest').textContent = loadBest('timed', sessionSeconds);
+    }
   }
 
   function rng(min, max) { return min + Math.random() * (max - min); }
@@ -173,6 +225,8 @@
         hitMarkers.push({ x: px, y: py, life: 1 });
         SND.play('hit');
         hit = true;
+        // sprint win check
+        if (mode === 'sprint' && score >= SPRINT_TARGET) { spawnTarget(); endGame(); return; }
         spawnTarget();
         break;
       }
@@ -187,7 +241,9 @@
   }
 
   function reset() {
-    score = 0; hits = 0; misses = 0; timeLeft = SESSION;
+    score = 0; hits = 0; misses = 0;
+    timeLeft = mode === 'timed' ? sessionSeconds : 0;
+    elapsedFrames = 0;
     targets = []; particles = []; hitMarkers = [];
     frame = 0; spawnTimer = 0; spawnInterval = SPAWN_INTERVAL_INIT;
     combo = 0; bestReact = Infinity;
@@ -207,14 +263,28 @@
     state = 'over';
     SND.play('end');
     const acc = hits + misses > 0 ? Math.round(hits / (hits + misses) * 100) : 0;
-    bestAccuracy = acc;
-    if (score > bestScore) { bestScore = score; saveBest(); }
+
     $('eScore').textContent = score;
     $('eAcc').textContent = acc + '%';
     $('eHits').textContent = hits;
     $('eMisses').textContent = misses;
     $('eBestReact').textContent = bestReact < Infinity ? bestReact + 'ms' : '--ms';
-    $('eBest').textContent = bestScore;
+
+    if (mode === 'sprint') {
+      const prevBest = loadBest('sprint', 0);
+      const isNew = prevBest === 0 || elapsedFrames < prevBest;
+      if (isNew) saveBest('sprint', 0, elapsedFrames);
+      const displayBest = isNew ? elapsedFrames : prevBest;
+      $('eBestLbl').textContent = 'BEST TIME';
+      $('eBest').textContent = (displayBest / 60).toFixed(2) + 's';
+    } else {
+      const prevBest = loadBest('timed', sessionSeconds);
+      const newBest = Math.max(score, prevBest);
+      if (score > prevBest) saveBest('timed', sessionSeconds, score);
+      $('eBestLbl').textContent = 'BEST SCORE';
+      $('eBest').textContent = newBest;
+    }
+
     endScreen.style.display = 'flex';
     updateHud();
   }
@@ -222,12 +292,17 @@
   function update() {
     if (state !== 'playing') return;
     frame++;
-    timeLeft -= 1 / 60;
-    if (timeLeft <= 0) { timeLeft = 0; endGame(); return; }
+    elapsedFrames++;
 
-    // escalate spawn pace
-    const elapsed = SESSION - timeLeft;
-    spawnInterval = Math.max(SPAWN_INTERVAL_MIN, SPAWN_INTERVAL_INIT - Math.floor(elapsed * 0.8));
+    if (mode === 'timed') {
+      timeLeft -= 1 / 60;
+      if (timeLeft <= 0) { timeLeft = 0; endGame(); return; }
+      const elapsed = sessionSeconds - timeLeft;
+      spawnInterval = Math.max(SPAWN_INTERVAL_MIN, SPAWN_INTERVAL_INIT - Math.floor(elapsed * 0.8));
+    } else {
+      // sprint: escalate based on score
+      spawnInterval = Math.max(SPAWN_INTERVAL_MIN, SPAWN_INTERVAL_INIT - Math.floor(score * 0.5));
+    }
 
     // no target safety-spawn
     if (targets.length === 0) { spawnTarget(); spawnTimer = 0; }
@@ -278,12 +353,11 @@
 
   function drawTarget(t) {
     const { x, y, r, life } = t;
-    const s = life; // pop-in scale
+    const s = life;
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(s, s);
 
-    // outer ring
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fillStyle = '#1a2030';
     ctx.fill();
@@ -291,24 +365,20 @@
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // middle ring
     ctx.beginPath(); ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2);
     ctx.strokeStyle = '#ff7a3c99';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // inner ring
     ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
     ctx.strokeStyle = '#ff7a3c';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // bullseye
     ctx.beginPath(); ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2);
     ctx.fillStyle = '#ff7a3c';
     ctx.fill();
 
-    // crosshair ticks
     ctx.strokeStyle = '#ff7a3c88';
     ctx.lineWidth = 1;
     const tk = r * 0.15;
@@ -326,10 +396,8 @@
     ctx.beginPath();
     ctx.arc(x, y, cr, 0, Math.PI * 2);
     ctx.stroke();
-    // center dot
     ctx.fillStyle = '#ff7a3c';
     ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI * 2); ctx.fill();
-    // ticks
     const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     ctx.strokeStyle = '#ff7a3c';
     ctx.lineWidth = 1.5;
@@ -346,7 +414,6 @@
     ctx.fillRect(0, 0, W, H);
     drawGrid();
 
-    // particles
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, p.life);
       ctx.fillStyle = p.col;
@@ -354,7 +421,6 @@
     }
     ctx.globalAlpha = 1;
 
-    // hit markers (X mark)
     for (const m of hitMarkers) {
       ctx.globalAlpha = Math.max(0, m.life);
       ctx.strokeStyle = '#ff7a3c';
@@ -365,7 +431,6 @@
     }
     ctx.globalAlpha = 1;
 
-    // targets
     for (const t of targets) drawTarget(t);
 
     // combo
@@ -377,8 +442,17 @@
       ctx.fillText('x' + (1 + Math.floor(combo / 3)) + ' COMBO', W - 16, HUD_H + 8);
     }
 
-    // time warning
-    if (state === 'playing' && timeLeft <= 5) {
+    // sprint progress bar
+    if (state === 'playing' && mode === 'sprint') {
+      const pct = Math.min(score / SPRINT_TARGET, 1);
+      ctx.fillStyle = '#1a2535';
+      ctx.fillRect(0, H - 8, W, 8);
+      ctx.fillStyle = '#ff7a3c';
+      ctx.fillRect(0, H - 8, W * pct, 8);
+    }
+
+    // timed time warning flash
+    if (state === 'playing' && mode === 'timed' && timeLeft <= 5) {
       ctx.globalAlpha = 0.15 + 0.12 * Math.sin(frame * 0.3);
       ctx.strokeStyle = '#ff7a3c';
       ctx.lineWidth = 4;
@@ -386,7 +460,6 @@
       ctx.globalAlpha = 1;
     }
 
-    // crosshair
     if (state === 'playing') drawCrosshair(reticle.x, reticle.y);
   }
 
@@ -413,8 +486,36 @@
     reticle.x = x; reticle.y = y;
   });
 
-  $('startBtn').addEventListener('click', startGame);
-  $('restartBtn').addEventListener('click', startGame);
+  // ---- Mode picker ----
+  let selectedMode = 'timed';
+  let selectedSeconds = DEFAULT_SESSION;
+
+  function selectMode(m, s) {
+    selectedMode = m;
+    selectedSeconds = s;
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.mode === (m === 'sprint' ? 'sprint' : String(s)));
+    });
+  }
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.mode;
+      if (v === 'sprint') selectMode('sprint', 0);
+      else selectMode('timed', parseInt(v, 10));
+    });
+  });
+
+  $('startBtn').addEventListener('click', () => {
+    mode = selectedMode;
+    sessionSeconds = selectedSeconds || DEFAULT_SESSION;
+    startGame();
+  });
+
+  $('restartBtn').addEventListener('click', () => {
+    endScreen.style.display = 'none';
+    overlay.classList.remove('hidden');
+  });
 
   // ---- Test hook ----
   window.__test = {
@@ -424,12 +525,32 @@
     get misses() { return misses; },
     get accuracy() { return hits + misses > 0 ? hits / (hits + misses) : 0; },
     get timeLeft() { return timeLeft; },
+    get elapsed() { return elapsedFrames / 60; }, // seconds elapsed (useful for sprint)
+    get elapsedFrames() { return elapsedFrames; },
     get targets() { return targets.map(t => ({ x: t.x, y: t.y, r: t.r })); },
-    get bestScore() { return bestScore; },
-    start: startGame,
+    get bestScore() {
+      if (mode === 'timed') return loadBest('timed', sessionSeconds);
+      return 0;
+    },
+    get bestTime() { return loadBest('sprint', 0); }, // frames; 0 = no best
+    get mode() { return mode; },
+    start() {
+      mode = 'timed';
+      sessionSeconds = DEFAULT_SESSION;
+      startGame();
+    },
+    startMode(arg) {
+      if (arg === 'sprint') {
+        mode = 'sprint';
+        sessionSeconds = 0;
+      } else {
+        mode = 'timed';
+        sessionSeconds = Number(arg) || DEFAULT_SESSION;
+      }
+      startGame();
+    },
     shootAt(x, y) { shoot(x, y); },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
-    // expose for determinism in tests
     setSeed(s) { _rng = seededRng(s); },
   };
 

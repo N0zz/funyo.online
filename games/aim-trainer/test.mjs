@@ -43,6 +43,17 @@ function makeEl(id) {
   return el;
 }
 
+function makeModeBtns() {
+  const modes = ['10', '30', '20', '60', 'sprint'];
+  return modes.map(m => {
+    const btn = makeEl('btn-' + m);
+    btn.dataset = { mode: m };
+    btn.className = m === '30' ? 'mode-btn selected' : 'mode-btn';
+    btn.classList.contains = c => btn.className.includes(c);
+    return btn;
+  });
+}
+
 function runGame(file) {
   const html = fs.readFileSync(path.join(DIR, file), 'utf8');
   const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
@@ -50,7 +61,12 @@ function runGame(file) {
   const code = m[1];
 
   const elCache = {};
-  const getEl = (id) => (elCache[id] ||= makeEl(id));
+  const modeBtns = makeModeBtns();
+
+  const getEl = (id) => {
+    if (!elCache[id]) elCache[id] = makeEl(id);
+    return elCache[id];
+  };
   const store = {};
   const handlers = {};
 
@@ -65,7 +81,10 @@ function runGame(file) {
     getElementById: getEl,
     createElement: (tag) => makeEl('new-' + tag),
     addEventListener: () => {},
-    querySelectorAll: () => [],
+    querySelectorAll: (sel) => {
+      if (sel === '.mode-btn') return modeBtns;
+      return [];
+    },
     body: makeEl('body'),
   };
 
@@ -114,23 +133,24 @@ ok(typeof T().accuracy === 'number', 'accuracy is a number');
 ok(typeof T().timeLeft === 'number', 'timeLeft is a number');
 ok(Array.isArray(T().targets), 'targets is an array');
 ok(typeof T().start === 'function', 'start() exposed');
+ok(typeof T().startMode === 'function', 'startMode() exposed');
 ok(typeof T().shootAt === 'function', 'shootAt() exposed');
 ok(typeof T().step === 'function', 'step() exposed');
 ok(typeof T().setSeed === 'function', 'setSeed() exposed');
+ok(typeof T().elapsed === 'number', 'elapsed getter exposed');
+ok(typeof T().bestTime === 'number', 'bestTime getter exposed');
+ok(typeof T().mode === 'string', 'mode getter exposed');
 
 section('seeded RNG');
 {
-  // To test determinism: start, set seed, shoot the first target (spawned via Math.random),
-  // which triggers spawnTarget() with the seeded RNG. Compare two runs.
   function seededPositions(seed) {
     const gi = runGame('index.html');
     const Ti = () => gi.test();
     Ti().start();
     Ti().setSeed(seed);
     Ti().step(5);
-    // shoot first target (position from Math.random, irrelevant for comparison)
     const first = Ti().targets[0];
-    if (first) Ti().shootAt(first.x, first.y); // triggers seeded spawn
+    if (first) Ti().shootAt(first.x, first.y);
     Ti().step(1);
     return Ti().targets.map(t => t.x + ',' + t.y);
   }
@@ -138,14 +158,12 @@ section('seeded RNG');
   const run2 = seededPositions(7);
   ok(JSON.stringify(run1) === JSON.stringify(run2), 'seeded RNG produces deterministic spawns (run1=' + run1 + ')');
 
-  // seededRng must stay in [0, 1) — verify target coords stay within spawn bounds
-  // W=1280, H=800, pad=80, HUD_H=48 → x in (80, 1200), y in (128, 720)
   const gBounds = runGame('index.html');
   const Tb = () => gBounds.test();
   Tb().start();
   Tb().setSeed(0xffffffff);
   const firstTgt = Tb().targets[0];
-  if (firstTgt) Tb().shootAt(firstTgt.x, firstTgt.y); // trigger seeded spawn
+  if (firstTgt) Tb().shootAt(firstTgt.x, firstTgt.y);
   Tb().step(1);
   const seededTgt = Tb().targets[0];
   if (seededTgt) {
@@ -167,10 +185,15 @@ ok(T().targets.length >= 1, 'at least one target present after start');
 const tgt = T().targets[0];
 ok(typeof tgt.x === 'number' && typeof tgt.y === 'number' && tgt.r > 0, 'target has x,y,r fields');
 
+section('start() defaults to timed 30s mode');
+T().start();
+ok(T().mode === 'timed', 'start() uses timed mode');
+ok(T().timeLeft >= 29 && T().timeLeft <= 30, 'start() sets timeLeft to ~30 (got ' + T().timeLeft + ')');
+
 section('hit: shootAt center of target');
 T().start();
 const t0 = T().targets[0];
-T().step(10); // advance a few frames so life > 0
+T().step(10);
 const scoreBefore = T().score;
 const hitsBefore = T().hits;
 T().shootAt(t0.x, t0.y);
@@ -181,7 +204,6 @@ section('miss: shootAt empty space');
 T().start();
 T().step(5);
 const missesBefore = T().misses;
-// shoot far from all targets
 T().shootAt(1, 1);
 ok(T().misses > missesBefore, 'misses incremented after shooting empty space');
 
@@ -193,55 +215,108 @@ T().shootAt(t1.x, t1.y);  // hit
 T().step(5);
 T().shootAt(0, 0);          // miss (top-left corner, no target)
 const acc = T().accuracy;
-// 1 hit, 1 miss → 0.5
 ok(Math.abs(acc - 0.5) < 0.01, 'accuracy = hits/(hits+misses) = 0.5 (got ' + acc + ')');
 
 section('accuracy stays 0 with no shots');
 T().start();
 ok(T().accuracy === 0, 'accuracy 0 when no shots fired');
 
-section('step past session → game over');
-T().start();
-const fps = 60;
-const sessionFrames = 30 * fps + 5;
-T().step(sessionFrames);
-ok(T().state === 'over', 'state becomes "over" after stepping past session (got ' + T().state + ')');
-ok(T().timeLeft <= 0, 'timeLeft ≤ 0 at game over (got ' + T().timeLeft + ')');
+section('timed mode: step past session → game over at limit');
+{
+  const fps = 60;
+  // test with 10s timed
+  const g10 = runGame('index.html');
+  const T10 = () => g10.test();
+  T10().startMode(10);
+  ok(T10().state === 'playing', 'startMode(10) → playing');
+  ok(T10().timeLeft >= 9.9 && T10().timeLeft <= 10, 'timeLeft starts at ~10 (got ' + T10().timeLeft + ')');
+  // step exactly 10s + a few frames
+  T10().step(10 * fps + 5);
+  ok(T10().state === 'over', 'state is "over" after 10s (got ' + T10().state + ')');
+  ok(T10().timeLeft <= 0, 'timeLeft ≤ 0 at end of 10s mode (got ' + T10().timeLeft + ')');
 
-section('best score persists');
+  // verify 30s mode also works
+  T().start();
+  const sessionFrames = 30 * fps + 5;
+  T().step(sessionFrames);
+  ok(T().state === 'over', 'state becomes "over" after stepping past 30s session (got ' + T().state + ')');
+  ok(T().timeLeft <= 0, 'timeLeft ≤ 0 at game over (got ' + T().timeLeft + ')');
+}
+
+section('sprint mode: ends when score reaches 100');
+{
+  const gsp = runGame('index.html');
+  const Ts = () => gsp.test();
+  Ts().startMode('sprint');
+  ok(Ts().state === 'playing', 'startMode("sprint") → playing');
+  ok(Ts().mode === 'sprint', 'mode is "sprint"');
+  ok(Ts().timeLeft === 0, 'sprint has no timeLeft countdown (got ' + Ts().timeLeft + ')');
+
+  // drive hits until score >= 100
+  let safetyIter = 0;
+  while (Ts().state === 'playing' && Ts().score < 100 && safetyIter++ < 2000) {
+    Ts().step(3);
+    const tgt = Ts().targets[0];
+    if (tgt) Ts().shootAt(tgt.x, tgt.y);
+  }
+  ok(Ts().state === 'over', 'sprint ends when score reaches 100 (score=' + Ts().score + ', state=' + Ts().state + ')');
+  ok(Ts().score >= 100, 'sprint score is >= 100 at end (got ' + Ts().score + ')');
+  ok(Ts().elapsedFrames > 0, 'elapsedFrames > 0 after sprint (got ' + Ts().elapsedFrames + ')');
+  ok(Ts().elapsed > 0, 'elapsed seconds > 0 after sprint (got ' + Ts().elapsed + ')');
+}
+
+section('sprint: best time persists to localStorage');
+{
+  const gsp2 = runGame('index.html');
+  const Ts2 = () => gsp2.test();
+  Ts2().startMode('sprint');
+  let safetyIter = 0;
+  while (Ts2().state === 'playing' && Ts2().score < 100 && safetyIter++ < 2000) {
+    Ts2().step(3);
+    const tgt = Ts2().targets[0];
+    if (tgt) Ts2().shootAt(tgt.x, tgt.y);
+  }
+  const savedTime = parseInt(gsp2.store['aim-trainer_sprint'] || '0', 10);
+  ok(savedTime > 0, 'sprint best time saved to localStorage (got ' + savedTime + ')');
+  ok(Ts2().bestTime === savedTime, 'bestTime getter matches localStorage (bestTime=' + Ts2().bestTime + ', saved=' + savedTime + ')');
+}
+
+section('timed best score persists');
 const g2 = runGame('index.html');
 const T2 = () => g2.test();
 T2().start();
 T2().step(5);
 const tgt2 = T2().targets[0];
-// hit many times to rack up a score
 for (let i = 0; i < 10; i++) {
   T2().step(3);
   const tt = T2().targets[0];
   if (tt) T2().shootAt(tt.x, tt.y);
 }
 const scoreAfterHits = T2().score;
-T2().step(30 * 60 + 5); // end session
+T2().step(30 * 60 + 5);
 ok(T2().state === 'over', 'game over in fresh instance');
-const savedBest = parseInt(g2.store['aim-trainer_best'] || '0', 10);
+const savedBest = parseInt(g2.store['aim-trainer_best_30'] || '0', 10);
 ok(savedBest >= scoreAfterHits, 'best score written to localStorage (saved=' + savedBest + ', score=' + scoreAfterHits + ')');
 
 section('new session loads saved best');
-const g3 = runGame('index.html');
-// seed the store before boot is already past, so pre-populate via the existing store
-// Instead test that if we set localStorage before game init, best loads correctly.
-// We test via a fresh game that already has a best saved from g2.
-// Since each runGame is independent, check the in-session bestScore getter.
-// Pre-populate a best via a helper approach: run, set best manually via direct store injection.
 const g4 = (() => {
   const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
   const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
+
+  const modeBtns = makeModeBtns();
   const elCache = {};
   const getEl = (id) => (elCache[id] ||= makeEl(id));
-  const store = { 'aim-trainer_best': '9999' };
+  const store = { 'aim-trainer_best_30': '9999' };
   const win = { innerWidth: 1280, innerHeight: 800, addEventListener: () => {}, removeEventListener: () => {} };
   const sandbox = {
-    window: win, document: { getElementById: getEl, createElement: t => makeEl(t), addEventListener: () => {}, querySelectorAll: () => [], body: makeEl('body') },
+    window: win,
+    document: {
+      getElementById: getEl,
+      createElement: t => makeEl(t),
+      addEventListener: () => {},
+      querySelectorAll: (sel) => sel === '.mode-btn' ? modeBtns : [],
+      body: makeEl('body'),
+    },
     location: { search: '' }, navigator: {},
     localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
     requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, setInterval: () => 0, clearInterval: () => {},
@@ -253,7 +328,38 @@ const g4 = (() => {
   try { vm.runInContext(m[1], ctx, { filename: 'index.html' }); } catch (e) {}
   return { test: () => win.__test };
 })();
+g4.test().start(); // start timed 30s so bestScore reads aim-trainer_best_30
 ok(g4.test().bestScore === 9999, 'best score loaded from localStorage on boot (got ' + g4.test().bestScore + ')');
+
+section('per-mode best isolation: different timed durations use different keys');
+{
+  const giso = runGame('index.html');
+  const Tiso = () => giso.test();
+
+  // play 10s mode and end it
+  Tiso().startMode(10);
+  for (let i = 0; i < 5; i++) {
+    Tiso().step(3);
+    const tt = Tiso().targets[0];
+    if (tt) Tiso().shootAt(tt.x, tt.y);
+  }
+  Tiso().step(10 * 60 + 5);
+  const score10 = parseInt(giso.store['aim-trainer_best_10'] || '0', 10);
+
+  // play 30s mode and end it
+  Tiso().startMode(30);
+  for (let i = 0; i < 5; i++) {
+    Tiso().step(3);
+    const tt = Tiso().targets[0];
+    if (tt) Tiso().shootAt(tt.x, tt.y);
+  }
+  Tiso().step(30 * 60 + 5);
+  const score30 = parseInt(giso.store['aim-trainer_best_30'] || '0', 10);
+
+  ok(giso.store['aim-trainer_best_10'] !== undefined, '10s mode saves to aim-trainer_best_10');
+  ok(giso.store['aim-trainer_best_30'] !== undefined, '30s mode saves to aim-trainer_best_30');
+  ok(!('aim-trainer_best' in giso.store), 'old key aim-trainer_best not written');
+}
 
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);
