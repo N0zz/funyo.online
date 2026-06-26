@@ -25,6 +25,8 @@
   .btn { font-family:inherit; font-size:14px; letter-spacing:2px; padding:10px 22px; border-radius:10px; cursor:pointer; border:1px solid rgba(120,200,255,0.5); background:rgba(20,30,50,0.6); color:#cfe8ff; margin:4px; }
   .btn:hover { border-color:#9fe8ff; box-shadow:0 0 14px rgba(120,200,255,0.4); }
   .row { display:flex; gap:10px; justify-content:center; margin-top:6px; }
+  .settings { display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+  .settings .vol { font-size:12px; letter-spacing:1px; opacity:0.8; } .settings .vol input { vertical-align:middle; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -62,6 +64,34 @@
   function saveBestScore(v){ try{ const p=localStorage.getItem(SCORE_KEY); if(p==null||v>parseInt(p,10)){ localStorage.setItem(SCORE_KEY,String(v)); return true; } }catch(e){} return false; }
   if (SPEEDRUN){ timerEl.style.display='block'; timerGoal.textContent='GOAL: '+SR_TARGET_SCORE+' PTS'; modeHint.textContent='SPEEDRUN — reach '+SR_TARGET_SCORE+' points as fast as you can.'; }
 
+
+  // ---- Audio (procedural Web Audio — no asset files; inert when AudioContext is absent) ----
+  const SND = (() => {
+    let ac, master, sfxG, musG, mt=null;
+    const opt = {
+      get sfx(){ try{ return localStorage.getItem('asteroids_sfx')!=='0'; }catch(e){ return true; } },
+      get music(){ try{ return localStorage.getItem('asteroids_music')!=='0'; }catch(e){ return true; } },
+      get vol(){ try{ const v=localStorage.getItem('asteroids_vol'); return v==null?0.6:parseFloat(v); }catch(e){ return 0.6; } },
+    };
+    function ensure(){ if(ac!==undefined) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC){ ac=null; return; }
+      ac=new AC(); master=ac.createGain(); master.gain.value=opt.vol; master.connect(ac.destination);
+      sfxG=ac.createGain(); sfxG.connect(master); musG=ac.createGain(); musG.gain.value=0.3; musG.connect(master); }
+    function tone(f,d,type,g){ if(!ac) return; const o=ac.createOscillator(),v=ac.createGain(); o.type=type||'square'; o.frequency.value=f; v.gain.value=g||0.18; v.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+d); o.connect(v); v.connect(sfxG); o.start(); o.stop(ac.currentTime+d); }
+    function noise(d,g){ if(!ac) return; const n=ac.createBufferSource(),b=ac.createBuffer(1,Math.max(1,ac.sampleRate*d),ac.sampleRate),dt=b.getChannelData(0); for(let i=0;i<dt.length;i++) dt[i]=(Math.random()*2-1)*(1-i/dt.length); n.buffer=b; const v=ac.createGain(); v.gain.value=g||0.3; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1400; n.connect(f); f.connect(v); v.connect(sfxG); n.start(); }
+    const SFX={ shoot:()=>tone(660,0.07,'square',0.08), pop:()=>tone(320,0.06,'square',0.06), explode:()=>noise(0.3,0.35), hit:()=>tone(170,0.12,'sawtooth',0.22),
+      pickup:()=>{tone(880,0.07);setTimeout(()=>tone(1320,0.1),55);}, level:()=>[523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,0.12,'triangle',0.18),i*70)),
+      boss:()=>tone(90,0.7,'sawtooth',0.3), over:()=>[440,330,220].forEach((f,i)=>setTimeout(()=>tone(f,0.25,'sawtooth',0.18),i*150)) };
+    const scale=[220,277.18,329.63,440,329.63,277.18]; let step=0;
+    function mtick(){ if(!ac||!opt.music) return; const f=scale[step%scale.length]*(Math.floor(step/6)%2?0.5:1); const o=ac.createOscillator(),v=ac.createGain(); o.type='triangle'; o.frequency.value=f; v.gain.value=0; v.gain.linearRampToValueAtTime(0.16,ac.currentTime+0.03); v.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.4); o.connect(v); v.connect(musG); o.start(); o.stop(ac.currentTime+0.45); step++; }
+    return {
+      play(n){ ensure(); if(!ac) return; if(ac.state==='suspended') ac.resume(); if(opt.sfx)(SFX[n]||(()=>{}))(); },
+      startMusic(){ ensure(); if(!ac||mt) return; mt=setInterval(mtick,250); },
+      stopMusic(){ if(mt){ clearInterval(mt); mt=null; } },
+      refresh(){ ensure(); if(master) master.gain.value=opt.vol; if(!opt.music) this.stopMusic(); },
+      opt,
+    };
+  })();
+
   let W,H;
   function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; buildStars(); }
   window.addEventListener('resize', resize);
@@ -91,14 +121,18 @@
 
   function startGame(){ score=0; lives=3; level=1; weaponLevel=1; asteroids=[]; bullets=[]; particles=[];
     spawnShip(); spawnWave(4); state='playing'; overlay.classList.add('hidden'); updateHud();
-    srElapsed=0; srPrev=now(); srDone=false; }
-  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">score '+score+' &middot; wave '+level+'</p><div class="row"><button class="btn" id="resumeBtn">RESUME (ESC)</button>'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
+    srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); }
+  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">score '+score+' &middot; wave '+level+'</p>'+settingsHTML()+'<div class="row"><button class="btn" id="resumeBtn">RESUME (ESC)</button>'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
   function resumeGame(){ state='playing'; srPrev=now(); overlay.classList.add('hidden'); }
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
   function updateHud(){ scoreEl.textContent=score; livesEl.textContent='▲ '.repeat(Math.max(0,lives)).trim(); weaponEl.textContent=WEAPONS[weaponLevel-1].label; }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=90; }
   function quitToMenu(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
-  function wireOverlay(){ const mb=document.getElementById('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=document.getElementById('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); }
+  function settingsHTML(){ return '<div class="settings"><button class="btn" id="sfxBtn">SFX: '+(SND.opt.sfx?'ON':'OFF')+'</button><button class="btn" id="musicBtn">MUSIC: '+(SND.opt.music?'ON':'OFF')+'</button><label class="vol">VOL <input type="range" id="volRange" min="0" max="1" step="0.05" value="'+SND.opt.vol+'"></label></div>'; }
+  function wireSettings(){ const sb=document.getElementById('sfxBtn'); if(sb) sb.addEventListener('click',()=>{ const v=!SND.opt.sfx; try{localStorage.setItem('asteroids_sfx',v?'1':'0');}catch(e){} sb.textContent='SFX: '+(v?'ON':'OFF'); if(v) SND.play('pop'); });
+    const mb2=document.getElementById('musicBtn'); if(mb2) mb2.addEventListener('click',()=>{ const v=!SND.opt.music; try{localStorage.setItem('asteroids_music',v?'1':'0');}catch(e){} mb2.textContent='MUSIC: '+(v?'ON':'OFF'); if(v) SND.startMusic(); else SND.stopMusic(); });
+    const vr=document.getElementById('volRange'); if(vr) vr.addEventListener('input',()=>{ try{localStorage.setItem('asteroids_vol',vr.value);}catch(e){} SND.refresh(); }); }
+  function wireOverlay(){ const mb=document.getElementById('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=document.getElementById('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); wireSettings(); }
   const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
   function checkWeaponUpgrade(){ const nx=WEAPONS[weaponLevel]; if(nx && score>=nx.score){ weaponLevel=nx.level; flash('WEAPON UPGRADED'); updateHud(); } }
 
@@ -116,18 +150,18 @@
     else if(weaponLevel===2){ const perp=ship.angle+Math.PI/2, off=6, ox=Math.cos(perp)*off, oy=Math.sin(perp)*off;
       [[ox,oy],[-ox,-oy]].forEach(([dx,dy])=>{ bullets.push({ x:ship.x+Math.cos(ship.angle)*ship.r+dx, y:ship.y+Math.sin(ship.angle)*ship.r+dy, vx:Math.cos(ship.angle)*8+ship.vx, vy:Math.sin(ship.angle)*8+ship.vy, life:70, r:2 }); }); }
     else { [-0.18,0,0.18].forEach(da=>fireBullet(ship.angle+da)); }
-    burst(ship.x+Math.cos(ship.angle)*ship.r, ship.y+Math.sin(ship.angle)*ship.r, '180,230,255', 3, 1.5);
+    burst(ship.x+Math.cos(ship.angle)*ship.r, ship.y+Math.sin(ship.angle)*ship.r, '180,230,255', 3, 1.5); SND.play('shoot');
   }
   function hitAsteroid(idx){ const a=asteroids[idx]; score+=a.size===3?20:a.size===2?50:100; burst(a.x,a.y,'120,200,255',a.size*8,a.size*1.4);
     if(a.size>1){ asteroids.push(makeAsteroid(a.x,a.y,a.size-1)); asteroids.push(makeAsteroid(a.x,a.y,a.size-1)); }
-    asteroids.splice(idx,1); updateHud(); checkWeaponUpgrade();
+    asteroids.splice(idx,1); SND.play('pop'); updateHud(); checkWeaponUpgrade();
     if(SPEEDRUN && !srDone && score>=SR_TARGET_SCORE) winRun();
     if(asteroids.length===0){ level++; spawnWave(3+level); } }
-  function killShip(){ burst(ship.x,ship.y,'255,160,120',40,4); lives--; updateHud(); if(lives<=0){ state='dead'; showGameOver(); } else spawnShip(); }
-  function winRun(){ srDone=true; state='won'; const isBest=saveBest(srElapsed);
+  function killShip(){ SND.play('hit'); burst(ship.x,ship.y,'255,160,120',40,4); lives--; updateHud(); if(lives<=0){ state='dead'; showGameOver(); } else spawnShip(); }
+  function winRun(){ srDone=true; state='won'; SND.stopMusic(); SND.play('level'); const isBest=saveBest(srElapsed);
     overlay.innerHTML='<h1 class="win">COMPLETE</h1><p>Time: <strong>'+fmtTime(srElapsed)+'</strong>'+(isBest?'  ★ NEW BEST':'')+'</p><p class="hint">'+SR_TARGET_SCORE+' points reached</p><p class="blink">press ENTER or SPACE to run again</p><div class="row">'+MENU_BTN+'</div>';
     overlay.classList.remove('hidden'); wireOverlay(); }
-  function showGameOver(){ const best=!SPEEDRUN&&saveBestScore(score); overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
+  function showGameOver(){ SND.stopMusic(); SND.play('over'); const best=!SPEEDRUN&&saveBestScore(score); overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
 
   function update(){
     if(flashTimer>0){ flashTimer--; if(flashTimer===0) flashEl.style.opacity='0'; }

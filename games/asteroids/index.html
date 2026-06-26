@@ -47,6 +47,12 @@
   }
   #modeToggle:hover { transform: translateY(-1px); }
   .modehint { font-size: 11px; opacity: 0.45; letter-spacing: 1px; min-height: 14px; }
+  .audiobar { display: flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: 2px; flex-wrap: wrap; justify-content: center; }
+  .audiobar .lbl { opacity: 0.6; }
+  .audiobar button { font-family: inherit; font-size: 12px; letter-spacing: 2px; padding: 6px 14px; border-radius: 18px; cursor: pointer; border: 1px solid rgba(120,200,255,0.4); background: rgba(20,30,50,0.4); color: #cfe8ff; }
+  .audiobar button:hover { border-color: #9fe8ff; }
+  .audiobar button.off { opacity: 0.45; }
+  .audiobar .vol { opacity: 0.7; }
 
   #cards { display: flex; flex-direction: column; gap: 12px; align-items: center; max-width: 1100px; }
   .row-label { font-size: 12px; letter-spacing: 3px; opacity: 0.45; margin-top: 8px; }
@@ -105,6 +111,13 @@
       <button id="modeToggle">NORMAL</button>
     </div>
     <div class="modehint" id="modehint">Endless — survive and rack up the highest score.</div>
+
+    <div class="audiobar">
+      <span class="lbl">AUDIO</span>
+      <button id="sfxToggle">SFX: ON</button>
+      <button id="musicToggle">MUSIC: ON</button>
+      <label class="vol">VOL <input type="range" id="volRange" min="0" max="1" step="0.05" value="0.6"></label>
+    </div>
 
     <div class="cards" id="cards"></div>
     <div class="footer">↑ thrust · ←/→ rotate · SPACE shoot · ESC pause</div>
@@ -210,6 +223,24 @@
       select.style.display = 'flex';
       renderCards(); // refresh best times
     }
+
+    // ---- audio settings (shared localStorage; games read these on load) ----
+    const sfxToggle = document.getElementById('sfxToggle');
+    const musicToggle = document.getElementById('musicToggle');
+    const volRange = document.getElementById('volRange');
+    function getS(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }
+    function setS(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function refreshAudioUI() {
+      const sfx = getS('asteroids_sfx', '1') !== '0';
+      const music = getS('asteroids_music', '1') !== '0';
+      sfxToggle.textContent = 'SFX: ' + (sfx ? 'ON' : 'OFF'); sfxToggle.classList.toggle('off', !sfx);
+      musicToggle.textContent = 'MUSIC: ' + (music ? 'ON' : 'OFF'); musicToggle.classList.toggle('off', !music);
+      volRange.value = getS('asteroids_vol', '0.6');
+    }
+    sfxToggle.addEventListener('click', () => { setS('asteroids_sfx', getS('asteroids_sfx','1') !== '0' ? '0' : '1'); refreshAudioUI(); });
+    musicToggle.addEventListener('click', () => { setS('asteroids_music', getS('asteroids_music','1') !== '0' ? '0' : '1'); refreshAudioUI(); });
+    volRange.addEventListener('input', () => setS('asteroids_vol', volRange.value));
+    refreshAudioUI();
 
     modeToggle.addEventListener('click', () => setMode(!speedrun));
     back.addEventListener('click', toMenu);

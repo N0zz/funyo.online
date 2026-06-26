@@ -58,6 +58,8 @@
   .btn:hover { border-color:#9fe8ff; box-shadow:0 0 14px rgba(120,200,255,0.4); }
   .btn.sel { border-color:#ffd166; color:#ffd166; box-shadow:0 0 16px rgba(255,209,102,0.5); }
   .credits-big { font-size:26px; color:#ffd166; letter-spacing:3px; text-shadow:0 0 14px rgba(255,209,102,0.7); margin:-4px 0 2px; }
+  .settings { display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+  .settings .vol { font-size:12px; letter-spacing:1px; opacity:0.8; } .settings .vol input { vertical-align:middle; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -98,6 +100,33 @@
   const BEST_KEY = 'asteroids_best_' + FILE;
   const now = () => (window.performance && performance.now) ? performance.now() : Date.now();
   let srElapsed=0, srPrev=0, srDone=false;
+
+  // ---- Audio (procedural Web Audio — no asset files; inert when AudioContext is absent) ----
+  const SND = (() => {
+    let ac, master, sfxG, musG, mt=null;
+    const opt = {
+      get sfx(){ try{ return localStorage.getItem('asteroids_sfx')!=='0'; }catch(e){ return true; } },
+      get music(){ try{ return localStorage.getItem('asteroids_music')!=='0'; }catch(e){ return true; } },
+      get vol(){ try{ const v=localStorage.getItem('asteroids_vol'); return v==null?0.6:parseFloat(v); }catch(e){ return 0.6; } },
+    };
+    function ensure(){ if(ac!==undefined) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC){ ac=null; return; }
+      ac=new AC(); master=ac.createGain(); master.gain.value=opt.vol; master.connect(ac.destination);
+      sfxG=ac.createGain(); sfxG.connect(master); musG=ac.createGain(); musG.gain.value=0.3; musG.connect(master); }
+    function tone(f,d,type,g){ if(!ac) return; const o=ac.createOscillator(),v=ac.createGain(); o.type=type||'square'; o.frequency.value=f; v.gain.value=g||0.18; v.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+d); o.connect(v); v.connect(sfxG); o.start(); o.stop(ac.currentTime+d); }
+    function noise(d,g){ if(!ac) return; const n=ac.createBufferSource(),b=ac.createBuffer(1,Math.max(1,ac.sampleRate*d),ac.sampleRate),dt=b.getChannelData(0); for(let i=0;i<dt.length;i++) dt[i]=(Math.random()*2-1)*(1-i/dt.length); n.buffer=b; const v=ac.createGain(); v.gain.value=g||0.3; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1400; n.connect(f); f.connect(v); v.connect(sfxG); n.start(); }
+    const SFX={ shoot:()=>tone(660,0.07,'square',0.08), pop:()=>tone(320,0.06,'square',0.06), explode:()=>noise(0.3,0.35), hit:()=>tone(170,0.12,'sawtooth',0.22),
+      pickup:()=>{tone(880,0.07);setTimeout(()=>tone(1320,0.1),55);}, level:()=>[523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,0.12,'triangle',0.18),i*70)),
+      boss:()=>tone(90,0.7,'sawtooth',0.3), over:()=>[440,330,220].forEach((f,i)=>setTimeout(()=>tone(f,0.25,'sawtooth',0.18),i*150)) };
+    const scale=[220,277.18,329.63,440,329.63,277.18]; let step=0;
+    function mtick(){ if(!ac||!opt.music) return; const f=scale[step%scale.length]*(Math.floor(step/6)%2?0.5:1); const o=ac.createOscillator(),v=ac.createGain(); o.type='triangle'; o.frequency.value=f; v.gain.value=0; v.gain.linearRampToValueAtTime(0.16,ac.currentTime+0.03); v.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.4); o.connect(v); v.connect(musG); o.start(); o.stop(ac.currentTime+0.45); step++; }
+    return {
+      play(n){ ensure(); if(!ac) return; if(ac.state==='suspended') ac.resume(); if(opt.sfx)(SFX[n]||(()=>{}))(); },
+      startMusic(){ ensure(); if(!ac||mt) return; mt=setInterval(mtick,250); },
+      stopMusic(){ if(mt){ clearInterval(mt); mt=null; } },
+      refresh(){ ensure(); if(master) master.gain.value=opt.vol; if(!opt.music) this.stopMusic(); },
+      opt,
+    };
+  })();
   function fmtTime(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
   function saveBest(ms){ try{ const p=localStorage.getItem(BEST_KEY); if(p==null||ms<parseInt(p,10)){ localStorage.setItem(BEST_KEY,String(Math.floor(ms))); return true; } }catch(e){} return false; }
 
@@ -179,8 +208,8 @@
     spawnShip(); recalc(); ship.hp=ship.maxHp; ship.shield=ship.shieldMax;
   }
   function startGame(){ resetRun(); startWave(1); state='playing'; overlay.classList.add('hidden');
-    srElapsed=0; srPrev=now(); srDone=false; updateHud(); }
-  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">wave '+wave+' &middot; score '+score+'</p><div id="shopFoot"><button class="btn" id="resumeBtn">RESUME (ESC)</button> '+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
+    srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); updateHud(); }
+  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">wave '+wave+' &middot; score '+score+'</p>'+settingsHTML()+'<div id="shopFoot"><button class="btn" id="resumeBtn">RESUME (ESC)</button> '+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
   function resumeGame(){ state='playing'; srPrev=now(); overlay.classList.add('hidden'); }
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14,hp:3,maxHp:3,shield:0,shieldMax:0,frenzy:0}; invuln=120; }
 
@@ -207,7 +236,7 @@
     orbCd.length = ship.orbN;
     for(let i=0;i<orbCd.length;i++) if(orbCd[i]==null) orbCd[i]=0;
   }
-  function applyUpgrade(id){ up[id]=(up[id]||0)+1; if(id==='hull') ship.hp=Math.min(99,ship.hp+1); if(id==='shield') ship.shield=(up.shield); recalc(); flash(ALL_UPGRADES.find(u=>u.id===id).name.toUpperCase()); updateHud(); }
+  function applyUpgrade(id){ up[id]=(up[id]||0)+1; if(id==='hull') ship.hp=Math.min(99,ship.hp+1); if(id==='shield') ship.shield=(up.shield); recalc(); SND.play('level'); flash(ALL_UPGRADES.find(u=>u.id===id).name.toUpperCase()); updateHud(); }
 
   function updateHud(){
     scoreEl.textContent=score; const left=enemiesLeft(); waveEl.textContent='WAVE '+wave+(left>0?(' · '+left+' left'):'');
@@ -218,7 +247,11 @@
   }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=80; }
   function quitToMenu(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
-  function wireOverlay(){ const mb=$('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=$('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); const sb=$('startBtn'); if(sb) sb.addEventListener('click', startGame); }
+  function settingsHTML(){ return '<div class="settings"><button class="btn" id="sfxBtn">SFX: '+(SND.opt.sfx?'ON':'OFF')+'</button><button class="btn" id="musicBtn">MUSIC: '+(SND.opt.music?'ON':'OFF')+'</button><label class="vol">VOL <input type="range" id="volRange" min="0" max="1" step="0.05" value="'+SND.opt.vol+'"></label></div>'; }
+  function wireSettings(){ const sb=$('sfxBtn'); if(sb) sb.addEventListener('click',()=>{ const v=!SND.opt.sfx; try{localStorage.setItem('asteroids_sfx',v?'1':'0');}catch(e){} sb.textContent='SFX: '+(v?'ON':'OFF'); if(v) SND.play('pop'); });
+    const mb=$('musicBtn'); if(mb) mb.addEventListener('click',()=>{ const v=!SND.opt.music; try{localStorage.setItem('asteroids_music',v?'1':'0');}catch(e){} mb.textContent='MUSIC: '+(v?'ON':'OFF'); if(v) SND.startMusic(); else SND.stopMusic(); });
+    const vr=$('volRange'); if(vr) vr.addEventListener('input',()=>{ try{localStorage.setItem('asteroids_vol',vr.value);}catch(e){} SND.refresh(); }); }
+  function wireOverlay(){ const mb=$('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=$('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); const sb=$('startBtn'); if(sb) sb.addEventListener('click', startGame); wireSettings(); }
   const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
 
   // ---- Spawning / waves ----
@@ -235,7 +268,7 @@
   function startWave(n){
     wave=n; waveBreak=0;
     bullets=[]; ebullets=[]; // clear leftover shots so a new wave starts clean
-    if(n%5===0){ boss=makeBoss(n); flash('⚠ WAVE '+n+' — BOSS'); }
+    if(n%5===0){ boss=makeBoss(n); SND.play('boss'); flash('⚠ WAVE '+n+' — BOSS'); }
     else {
       const ast=3+Math.floor(n*1.45);
       for(let i=0;i<ast;i++){ const p=edgePos(); asteroids.push(makeAsteroid(p.x,p.y, Math.random()<0.55+n*0.03?3:2)); }
@@ -263,7 +296,7 @@
     const n=ship.proj;
     if(n===1){ fireBullet(ship.angle); }
     else { const arc=0.16; for(let i=0;i<n;i++){ const da=(i-(n-1)/2)*arc; fireBullet(ship.angle+da); } }
-    burst(ship.x+Math.cos(ship.angle)*ship.r, ship.y+Math.sin(ship.angle)*ship.r, '180,230,255', 2, 1.2);
+    burst(ship.x+Math.cos(ship.angle)*ship.r, ship.y+Math.sin(ship.angle)*ship.r, '180,230,255', 2, 1.2); SND.play('shoot');
   }
 
   function dropRewards(x,y,kind){
@@ -299,29 +332,29 @@
     else if(p.type==='shieldcell'){ ship.shield=ship.shieldMax; flash('SHIELD RESTORED'); }
     else if(p.type==='frenzy'){ ship.frenzy=420; flash('FRENZY!'); }
     else if(p.type==='pulse'){ novas.push({x:ship.x,y:ship.y,r:0,max:280,dmg:4}); flash('PULSE'); }
-    burst(p.x,p.y,PICKUPS[p.type].color,12,2); updateHud();
+    burst(p.x,p.y,PICKUPS[p.type].color,12,2); SND.play('pickup'); updateHud();
   }
 
   function killAsteroid(idx){ const a=asteroids[idx]; const kind='ast'+a.size; burst(a.x,a.y,'120,200,255',a.size*7,a.size*1.3);
     if(a.size>1){ asteroids.push(makeAsteroid(a.x,a.y,a.size-1)); asteroids.push(makeAsteroid(a.x,a.y,a.size-1)); }
-    asteroids.splice(idx,1); dropRewards(a.x,a.y,kind); }
-  function killHunter(idx){ const h=hunters[idx]; burst(h.x,h.y,'255,150,220',12,2); hunters.splice(idx,1); dropRewards(h.x,h.y,'hunter'); }
-  function killSentry(idx){ const s=sentries[idx]; burst(s.x,s.y,'150,255,200',16,2.5); sentries.splice(idx,1); dropRewards(s.x,s.y,'sentry'); }
-  function killBoss(){ const b=boss; burst(b.x,b.y,'255,180,120',60,5); const wb=wave; boss=null; dropRewards(b.x,b.y,'boss');
+    asteroids.splice(idx,1); SND.play('pop'); dropRewards(a.x,a.y,kind); }
+  function killHunter(idx){ const h=hunters[idx]; burst(h.x,h.y,'255,150,220',12,2); hunters.splice(idx,1); SND.play('pop'); dropRewards(h.x,h.y,'hunter'); }
+  function killSentry(idx){ const s=sentries[idx]; burst(s.x,s.y,'150,255,200',16,2.5); sentries.splice(idx,1); SND.play('pop'); dropRewards(s.x,s.y,'sentry'); }
+  function killBoss(){ const b=boss; burst(b.x,b.y,'255,180,120',60,5); const wb=wave; boss=null; SND.play('explode'); dropRewards(b.x,b.y,'boss');
     if(SPEEDRUN && !srDone && wb>=SR_TARGET_WAVE){ winRun(); } }
 
   function damageShip(){
     if(invuln>0) return;
     if(ship.shield>0){ ship.shield--; burst(ship.x,ship.y,'120,200,255',14,3); invuln=40; noHit=0; updateHud(); return; }
-    ship.hp--; burst(ship.x,ship.y,'255,120,120',26,3.5); invuln=110; noHit=0; updateHud();
+    ship.hp--; SND.play('hit'); burst(ship.x,ship.y,'255,120,120',26,3.5); invuln=110; noHit=0; updateHud();
     if(ship.hp<=0) die();
   }
   function saveStat(key,v){ try{ const p=localStorage.getItem(key); if(p==null||v>parseInt(p,10)){ localStorage.setItem(key,String(v)); return true; } }catch(e){} return false; }
   function die(){ state='dead'; if(SPEEDRUN) srDone=true; burst(ship.x,ship.y,'255,160,120',50,5);
-    let best=false; if(!SPEEDRUN){ best=saveStat('asteroids_score_'+FILE,score); saveStat('asteroids_wave_'+FILE,wave); }
+    SND.stopMusic(); SND.play('over'); let best=false; if(!SPEEDRUN){ best=saveStat('asteroids_score_'+FILE,score); saveStat('asteroids_wave_'+FILE,wave); }
     overlay.innerHTML='<h1>GAME OVER</h1><p>Score <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+' &middot; reached wave '+wave+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'')+'<p class="blink">press ENTER or SPACE to play again</p><div id="shopFoot">'+MENU_BTN+'</div>';
     overlay.classList.remove('hidden'); wireOverlay(); }
-  function winRun(){ srDone=true; state='won'; const best=saveBest(srElapsed);
+  function winRun(){ srDone=true; state='won'; SND.stopMusic(); SND.play('level'); const best=saveBest(srElapsed);
     overlay.innerHTML='<h1 class="win">WAVE '+SR_TARGET_WAVE+' CLEARED</h1><p>Time <strong>'+fmtTime(srElapsed)+'</strong>'+(best?'  ★ NEW BEST':'')+'</p><p class="hint">score '+score+'</p><p class="blink">press ENTER or SPACE to run again</p><div id="shopFoot">'+MENU_BTN+'</div>';
     overlay.classList.remove('hidden'); wireOverlay(); }
 

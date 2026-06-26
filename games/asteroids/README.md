@@ -22,6 +22,10 @@ Pick a version from the menu. Toggle **NORMAL / SPEEDRUN** at the top before lau
 
 > Tip: after clicking a version, click once on the game so it has keyboard focus.
 
+**Audio** — procedural retro SFX + a generated background music loop (synthesized via
+the Web Audio API, no sound files). Toggle SFX/music and set volume from the launcher's
+**AUDIO** bar or any game's **pause** screen; settings persist.
+
 ### Controls
 
 | Key | Action |
