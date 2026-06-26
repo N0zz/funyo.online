@@ -3,30 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arcade</title>
+<title>funyo</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#0b0f17">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Arcade">
+<meta name="apple-mobile-web-app-title" content="funyo">
 <link rel="apple-touch-icon" href="favicon.svg">
 <!-- SEO + link previews (Open Graph / Twitter Card) -->
 <meta name="description" content="A little catalogue of free, self-contained browser games — Asteroids, tower defense, a bubble shooter and more. No ads, no tracking, plays offline.">
-<link rel="canonical" href="https://n0zz.github.io/arcade/">
+<link rel="canonical" href="https://funyo.online/">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Arcade">
-<meta property="og:title" content="Arcade — free browser games">
+<meta property="og:site_name" content="funyo">
+<meta property="og:title" content="funyo — free browser games">
 <meta property="og:description" content="A little catalogue of free, self-contained browser games. No ads, no tracking, plays offline.">
-<meta property="og:url" content="https://n0zz.github.io/arcade/">
-<meta property="og:image" content="https://n0zz.github.io/arcade/og-image.png">
+<meta property="og:url" content="https://funyo.online/">
+<meta property="og:image" content="https://funyo.online/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="ARCADE — self-contained browser games">
+<meta property="og:image:alt" content="funyo — self-contained browser games">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Arcade — free browser games">
+<meta name="twitter:title" content="funyo — free browser games">
 <meta name="twitter:description" content="A little catalogue of free, self-contained browser games. No ads, plays offline.">
-<meta name="twitter:image" content="https://n0zz.github.io/arcade/og-image.png">
+<meta name="twitter:image" content="https://funyo.online/og-image.png">
 <style>
   :root {
     --bg:#0b0f17; --surface:#161c28; --surface-2:#1e2738; --border:#2a3446;
@@ -130,7 +130,7 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>ARCADE</h1>
+      <h1>funyo</h1>
       <div class="sub">a catalogue of self-contained browser games</div>
       <div class="help-row">
         <button class="ibtn" id="install">📱 Install app</button>
@@ -176,8 +176,8 @@
       <h3>💬 Send feedback</h3>
       <p class="fb-intro">Found a bug or have an idea? Tell me — no account needed.</p>
       <input type="hidden" name="access_key" value="e12aa151-b0f2-4d04-8320-9f2ebaedc51b">
-      <input type="hidden" name="subject" value="Arcade feedback">
-      <input type="hidden" name="from_name" value="Arcade">
+      <input type="hidden" name="subject" value="funyo feedback">
+      <input type="hidden" name="from_name" value="funyo">
       <input type="hidden" name="page" id="fbPage" value="">
       <input type="checkbox" name="botcheck" style="display:none !important" tabindex="-1" autocomplete="off" aria-hidden="true">
       <div>
@@ -263,7 +263,7 @@
 
     // ---- Share buttons ----
     (function () {
-      const url = 'https://n0zz.github.io/arcade/';
+      const url = 'https://funyo.online/';
       const text = 'Free, self-contained browser games — no ads, plays offline:';
       const enc = (typeof encodeURIComponent === 'function') ? encodeURIComponent : (s => String(s));
       const u = enc(url), t = enc(text);
@@ -279,7 +279,7 @@
       const ns = document.getElementById('shareNative');
       if (ns && typeof navigator !== 'undefined' && navigator.share) {
         ns.style.display = '';
-        ns.addEventListener('click', (e) => { e.preventDefault(); navigator.share({ title: 'Arcade', text: text, url: url }).catch(() => {}); });
+        ns.addEventListener('click', (e) => { e.preventDefault(); navigator.share({ title: 'funyo', text: text, url: url }).catch(() => {}); });
       }
     })();
 

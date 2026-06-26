@@ -2,11 +2,11 @@
   <img src="logo-512.png" alt="Arcade logo" width="116" height="116">
 </p>
 
-<h1 align="center">Arcade</h1>
+<h1 align="center">funyo</h1>
 
 <p align="center">
-  <a href="https://n0zz.github.io/arcade/">
-    <img src="https://img.shields.io/badge/%E2%96%B6%20%20OPEN%20ARCADE-1f6feb?style=for-the-badge" alt="Open the arcade" height="64">
+  <a href="https://funyo.online/">
+    <img src="https://img.shields.io/badge/%E2%96%B6%20%20OPEN%20FUNYO-1f6feb?style=for-the-badge" alt="Open funyo" height="64">
   </a>
 </p>
 
@@ -15,7 +15,7 @@
   <a href="https://buymeacoffee.com/n0zz"><img src="https://img.shields.io/badge/%E2%98%95%20Buy%20me%20a%20coffee-ffce5c?style=for-the-badge&logoColor=000" alt="Buy me a coffee"></a>
 </p>
 
-<p align="center"><b>▶ Play in your browser: <a href="https://n0zz.github.io/arcade/">n0zz.github.io/arcade</a></b></p>
+<p align="center"><b>▶ Play in your browser: <a href="https://funyo.online/">funyo.online</a></b></p>
 
 ---
 
