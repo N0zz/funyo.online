@@ -2,6 +2,10 @@
 
 _Date: 2026-06-25_
 
+> **Build status:** all five versions + launcher implemented and passing a headless
+> test suite (`test.mjs`, 101 assertions). Run `node test.mjs` to verify.
+> Speedrun mode (below) was added across every version per the build goal.
+
 ## 1. Versioning model
 
 Each iteration is its own **frozen, fully-playable HTML file**, listed in the menu.
@@ -32,6 +36,19 @@ asteroids-game/
 
 The launcher renders one card per registry entry (title + description + tag), loads
 the chosen file in a fullscreen iframe, with a `‹ versions` button to return.
+
+## 1b. Speedrun mode (all versions)
+
+The launcher has a **NORMAL / SPEEDRUN** toggle. Launching in speedrun passes
+`?speedrun=1` to the game, which then:
+- shows a centered **timer** (mm:ss.cs) that advances only while actively playing
+  (frozen during pause / level-up / shop screens),
+- defines a **goal** — Classic & Enhanced: reach **2000 points**; Roguelite: **clear
+  wave 5** (the first boss),
+- on reaching the goal, shows a COMPLETE screen with the time and saves a **best time**
+  to `localStorage` (`asteroids_best_<file>`), surfaced on the menu card.
+
+Normal mode is endless (survive for the highest score), timer hidden.
 
 ## 2. Scope of this session
 

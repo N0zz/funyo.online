@@ -12,22 +12,45 @@
     color: #cfe8ff;
     overflow: hidden;
   }
+  /* CRT scanline vibe on the menu */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 2px, transparent 3px);
+    opacity: 0.35;
+  }
   #select {
     position: fixed; inset: 0;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 34px;
+    gap: 26px; padding: 30px; box-sizing: border-box;
     background: radial-gradient(circle at center, rgba(10,14,26,0.7), rgba(5,6,10,0.96));
+    overflow-y: auto;
   }
   #select h1 {
-    margin: 0; font-size: 58px; letter-spacing: 12px;
+    margin: 0; font-size: 56px; letter-spacing: 12px;
     text-shadow: 0 0 24px rgba(120,200,255,0.7);
   }
-  #select .sub { opacity: 0.55; font-size: 14px; letter-spacing: 2px; margin-top: -22px; }
-  .cards { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; }
+  #select .sub { opacity: 0.55; font-size: 13px; letter-spacing: 3px; margin-top: -18px; }
+
+  /* mode toggle */
+  .modebar { display: flex; align-items: center; gap: 14px; font-size: 13px; letter-spacing: 2px; }
+  .modebar .lbl { opacity: 0.6; }
+  #modeToggle {
+    font-family: inherit; font-size: 13px; letter-spacing: 2px;
+    padding: 8px 18px; border-radius: 22px; cursor: pointer;
+    border: 1px solid rgba(120,200,255,0.4); background: rgba(20,30,50,0.4); color: #cfe8ff;
+    transition: all 0.15s ease;
+  }
+  #modeToggle.speedrun {
+    border-color: #ffd166; color: #ffd166; box-shadow: 0 0 16px rgba(255,209,102,0.4);
+  }
+  #modeToggle:hover { transform: translateY(-1px); }
+  .modehint { font-size: 11px; opacity: 0.45; letter-spacing: 1px; min-height: 14px; }
+
+  .cards { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; max-width: 1100px; }
   .card {
-    width: 280px; padding: 28px 24px;
-    border: 2px solid rgba(120,200,255,0.35);
+    width: 250px; padding: 22px 20px;
+    border: 2px solid rgba(120,200,255,0.3);
     border-radius: 14px;
     background: rgba(20,30,50,0.35);
     cursor: pointer;
@@ -41,59 +64,110 @@
     outline: none;
   }
   .card .tag {
-    display: inline-block; font-size: 11px; letter-spacing: 2px;
-    padding: 3px 10px; border-radius: 20px; margin-bottom: 14px;
+    display: inline-block; font-size: 10px; letter-spacing: 2px;
+    padding: 3px 10px; border-radius: 20px; margin-bottom: 12px;
   }
-  .card.vanilla .tag { background: rgba(120,255,170,0.18); color: #7fffb0; }
-  .card.latest .tag { background: rgba(255,200,120,0.18); color: #ffc878; }
-  .card h2 { margin: 0 0 10px; font-size: 22px; letter-spacing: 1px; }
-  .card p { margin: 0; font-size: 13px; line-height: 1.6; opacity: 0.75; }
+  .card .tag.CLASSIC { background: rgba(120,255,170,0.16); color: #7fffb0; }
+  .card .tag.ROGUELITE { background: rgba(255,200,120,0.16); color: #ffc878; }
+  .card h2 { margin: 0 0 8px; font-size: 18px; letter-spacing: 0.5px; line-height: 1.2; }
+  .card p { margin: 0; font-size: 12px; line-height: 1.55; opacity: 0.72; }
+  .card .best {
+    margin-top: 12px; font-size: 11px; letter-spacing: 1px;
+    color: #ffd166; opacity: 0; transition: opacity 0.15s;
+  }
+  .card .best.show { opacity: 0.9; }
+  .card .goal { margin-top: 6px; font-size: 11px; color: #9fe8ff; opacity: 0; }
+  .card .goal.show { opacity: 0.7; }
 
-  #frameWrap { position: fixed; inset: 0; display: none; background: #05060a; }
+  #frameWrap { position: fixed; inset: 0; display: none; background: #05060a; z-index: 60; }
   #frameWrap iframe { width: 100%; height: 100%; border: 0; display: block; }
   #back {
-    position: fixed; bottom: 16px; right: 18px;
-    z-index: 10;
-    font-family: "Courier New", monospace;
-    font-size: 13px; letter-spacing: 1px;
+    position: fixed; bottom: 16px; right: 18px; z-index: 70;
+    font-family: "Courier New", monospace; font-size: 13px; letter-spacing: 1px;
     color: #cfe8ff; background: rgba(10,16,30,0.7);
-    border: 1px solid rgba(120,200,255,0.4);
-    border-radius: 8px; padding: 8px 14px;
-    cursor: pointer;
-    display: none;
+    border: 1px solid rgba(120,200,255,0.4); border-radius: 8px; padding: 8px 14px;
+    cursor: pointer; display: none;
   }
   #back:hover { border-color: #9fe8ff; box-shadow: 0 0 14px rgba(120,200,255,0.4); }
+  .footer { font-size: 11px; opacity: 0.35; letter-spacing: 2px; }
 </style>
 </head>
 <body>
   <div id="select">
     <h1>ASTEROIDS</h1>
     <div class="sub">select version</div>
-    <div class="cards">
-      <div class="card vanilla" tabindex="0" data-src="vanilla.html">
-        <span class="tag">FROZEN</span>
-        <h2>Vanilla First Draft</h2>
-        <p>The original build, preserved exactly as it was. Never changes.</p>
-      </div>
-      <div class="card latest" tabindex="0" data-src="latest.html">
-        <span class="tag">UPDATED</span>
-        <h2>Latest</h2>
-        <p>Same game, plus every update applied in later sessions. Pause, extra start keys, weapon upgrades, and more to come.</p>
-      </div>
+
+    <div class="modebar">
+      <span class="lbl">MODE</span>
+      <button id="modeToggle">NORMAL</button>
     </div>
+    <div class="modehint" id="modehint">Endless — survive and rack up the highest score.</div>
+
+    <div class="cards" id="cards"></div>
+    <div class="footer">↑ thrust · ←/→ rotate · SPACE shoot · ESC pause</div>
   </div>
 
   <div id="frameWrap"><iframe id="frame" title="Asteroids"></iframe></div>
   <button id="back">‹ versions</button>
 
+  <script src="versions.js"></script>
   <script>
     const select = document.getElementById('select');
     const frameWrap = document.getElementById('frameWrap');
     const frame = document.getElementById('frame');
     const back = document.getElementById('back');
+    const cardsEl = document.getElementById('cards');
+    const modeToggle = document.getElementById('modeToggle');
+    const modehint = document.getElementById('modehint');
 
-    function play(src) {
-      frame.src = src;
+    let speedrun = false;
+
+    function bestKey(file) { return 'asteroids_best_' + file; }
+    function fmtTime(ms) {
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      const cs = Math.floor((ms % 1000) / 10);
+      return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + '.' + String(cs).padStart(2,'0');
+    }
+    function readBest(file) {
+      try { const v = localStorage.getItem(bestKey(file)); return v ? parseInt(v, 10) : null; }
+      catch (e) { return null; }
+    }
+
+    function renderCards() {
+      cardsEl.innerHTML = '';
+      (window.VERSIONS || []).forEach(v => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.tabIndex = 0;
+        const best = readBest(v.file);
+        card.innerHTML =
+          '<span class="tag ' + v.tag + '">' + v.tag + '</span>' +
+          '<h2>' + v.title + '</h2>' +
+          '<p>' + v.desc + '</p>' +
+          '<div class="goal' + (speedrun ? ' show' : '') + '">GOAL: ' + v.goal + '</div>' +
+          '<div class="best' + (speedrun && best != null ? ' show' : '') + '">BEST ' + (best != null ? fmtTime(best) : '—') + '</div>';
+        const go = () => play(v.file);
+        card.addEventListener('click', go);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+        });
+        cardsEl.appendChild(card);
+      });
+    }
+
+    function setMode(sr) {
+      speedrun = sr;
+      modeToggle.textContent = sr ? 'SPEEDRUN' : 'NORMAL';
+      modeToggle.classList.toggle('speedrun', sr);
+      modehint.textContent = sr
+        ? 'Race the clock — reach each version’s goal as fast as you can. Best times are saved.'
+        : 'Endless — survive and rack up the highest score.';
+      renderCards();
+    }
+
+    function play(file) {
+      frame.src = file + (speedrun ? '?speedrun=1' : '');
       select.style.display = 'none';
       frameWrap.style.display = 'block';
       back.style.display = 'block';
@@ -104,16 +178,13 @@
       frameWrap.style.display = 'none';
       back.style.display = 'none';
       select.style.display = 'flex';
+      renderCards(); // refresh best times
     }
 
-    document.querySelectorAll('.card').forEach(card => {
-      const go = () => play(card.dataset.src);
-      card.addEventListener('click', go);
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
-      });
-    });
+    modeToggle.addEventListener('click', () => setMode(!speedrun));
     back.addEventListener('click', toMenu);
+
+    setMode(false);
   </script>
 </body>
 </html>
