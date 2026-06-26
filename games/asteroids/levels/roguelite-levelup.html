@@ -74,7 +74,7 @@
 <div id="overlay">
   <h1>ASTEROIDS</h1>
   <p id="modeTitle">ROGUELITE — AUTO LEVEL-UP</p>
-  <p><strong>&larr; &rarr;</strong> rotate &middot; <strong>&uarr;</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause</p>
+  <p><strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause</p>
   <p class="hint" id="modeHint">Destroy enemies, collect XP gems, level up and pick upgrades. Survive the waves.</p>
   <p class="blink">press ENTER or SPACE to start</p>
 </div>
@@ -167,7 +167,7 @@
   const keys={};
   window.addEventListener('keydown',(e)=>{
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
-    keys[e.key]=true;
+    keys[e.key.length===1?e.key.toLowerCase():e.key]=true;
     if((e.key==='Enter'||e.key===' ') && (state==='menu'||state==='dead'||state==='won')){ startGame(); return; }
     if(e.key==='Escape'){ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); return; }
     if(state==='levelup'){
@@ -189,7 +189,7 @@
       return;
     }
   });
-  window.addEventListener('keyup',(e)=>{ keys[e.key]=false; });
+  window.addEventListener('keyup',(e)=>{ keys[e.key.length===1?e.key.toLowerCase():e.key]=false; });
 
   // ---- State ----
   let state='menu'; // menu | playing | paused | levelup | shop | dead | won
@@ -415,10 +415,10 @@
 
     if(state==='playing'){
       // ship control
-      if(keys['ArrowLeft']) ship.angle-=ship.turn;
-      if(keys['ArrowRight']) ship.angle+=ship.turn;
+      if(keys['ArrowLeft']||keys['a']) ship.angle-=ship.turn;
+      if(keys['ArrowRight']||keys['d']) ship.angle+=ship.turn;
       let thrusting=false;
-      if(keys['ArrowUp']){ ship.vx+=Math.cos(ship.angle)*ship.accel; ship.vy+=Math.sin(ship.angle)*ship.accel; thrusting=true; }
+      if(keys['ArrowUp']||keys['w']){ ship.vx+=Math.cos(ship.angle)*ship.accel; ship.vy+=Math.sin(ship.angle)*ship.accel; thrusting=true; }
       ship.vx*=0.99; ship.vy*=0.99; const sp=Math.hypot(ship.vx,ship.vy), max=9.5;
       if(sp>max){ ship.vx=ship.vx/sp*max; ship.vy=ship.vy/sp*max; }
       ship.x+=ship.vx; ship.y+=ship.vy; wrap(ship);
@@ -569,7 +569,7 @@
     get bossY(){ return boss?boss.y:null; }, get waveLabel(){ return waveEl.textContent; },
     get strandedEnemies(){ const out=e=>e.x<-12||e.x>W+12||e.y<-12||e.y>H+12; return sentries.filter(out).length + hunters.filter(out).length; },
     get bulletCount(){ return bullets.length; }, shopCostOf(id){ const u=ALL_UPGRADES.find(x=>x.id===id); return u?shopCost(u):0; },
-    get pickupCount(){ return pickups.length; }, get autoFire(){ return ship?!!ship.auto:false; }, get bossHp(){ return boss?boss.maxHp:0; },
+    get pickupCount(){ return pickups.length; }, get autoFire(){ return ship?!!ship.auto:false; }, get bossHp(){ return boss?boss.maxHp:0; }, get shipAngle(){ return ship?ship.angle:null; },
     spawnPickup(type){ pickups.push({x:ship.x,y:ship.y,type,vx:0,vy:0,life:540}); },
     quitToMenu, hasMenuBtn(){ return !!$('menuBtn'); },
     start:startGame, clearEnemies(){ asteroids=[]; hunters=[]; sentries=[]; boss=null; },

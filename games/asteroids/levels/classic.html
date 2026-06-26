@@ -56,7 +56,7 @@
 
 <div id="overlay">
   <h1>ASTEROIDS</h1>
-  <p><strong>&larr; &rarr;</strong> rotate &middot; <strong>&uarr;</strong> thrust &middot; <strong>SPACE</strong> shoot</p>
+  <p><strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot</p>
   <p class="hint" id="modeHint">Fly around them or blast them apart. The screen wraps.</p>
   <p class="blink">press ENTER to start</p>
 </div>
@@ -142,10 +142,10 @@
   const keys = {};
   window.addEventListener('keydown', (e) => {
     if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
-    keys[e.key] = true;
+    keys[e.key.length===1?e.key.toLowerCase():e.key] = true;
     if (e.key === 'Enter' && state !== 'playing') startGame();
   });
-  window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+  window.addEventListener('keyup', (e) => { keys[e.key.length===1?e.key.toLowerCase():e.key] = false; });
 
   let state = 'menu'; // menu | playing | dead | won
   let score=0, lives=3, level=1;
@@ -224,10 +224,10 @@
 
   function update() {
     if (state==='playing') {
-      if (keys['ArrowLeft']) ship.angle-=0.07;
-      if (keys['ArrowRight']) ship.angle+=0.07;
+      if (keys['ArrowLeft']||keys['a']) ship.angle-=0.07;
+      if (keys['ArrowRight']||keys['d']) ship.angle+=0.07;
       let thrusting=false;
-      if (keys['ArrowUp']){ ship.vx+=Math.cos(ship.angle)*0.16; ship.vy+=Math.sin(ship.angle)*0.16; thrusting=true; }
+      if (keys['ArrowUp']||keys['w']){ ship.vx+=Math.cos(ship.angle)*0.16; ship.vy+=Math.sin(ship.angle)*0.16; thrusting=true; }
       ship.vx*=0.99; ship.vy*=0.99;
       const sp=Math.hypot(ship.vx,ship.vy), max=9;
       if (sp>max){ ship.vx=ship.vx/sp*max; ship.vy=ship.vy/sp*max; }

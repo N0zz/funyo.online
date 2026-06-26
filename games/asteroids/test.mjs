@@ -400,6 +400,19 @@ function testBossScaling(file) {
   ok(hp5 > 0 && hp15 > hp5 * 2, file + ' wave-15 boss much tougher than wave-5 (' + hp5 + ' -> ' + hp15 + ')');
 }
 
+function testWASD(file) {
+  section(file + ' (WASD controls)');
+  const g = runGame(file);
+  const T = () => g.test();
+  T().start(); g.step(2);
+  const a0 = T().shipAngle;
+  g.down('d'); g.step(5); g.up('d');
+  ok(T().shipAngle > a0, file + ' D rotates right (' + a0.toFixed(2) + ' -> ' + T().shipAngle.toFixed(2) + ')');
+  const a1 = T().shipAngle;
+  g.down('a'); g.step(5); g.up('a');
+  ok(T().shipAngle < a1, file + ' A rotates left');
+}
+
 function testSaveOnQuit(file) {
   section(file + ' (best score saved on quit)');
   const g = runGame(file);
@@ -516,6 +529,7 @@ for (const [file, prog] of [['roguelite-levelup.html', 'levelup'], ['roguelite-m
   testWave4Clearable(file);
   testBulletsClearOnWave(file);
   testSaveOnQuit(file);
+  testWASD(file);
   testHealthPickup(file);
   testAutoFire(file);
   testBossScaling(file);
