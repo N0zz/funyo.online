@@ -131,7 +131,7 @@
   function rng(min, max) { return min + Math.random() * (max - min); }
   function seededRng(seed) {
     let s = seed | 0;
-    return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+    return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0x100000000; };
   }
 
   let _rng = Math.random;

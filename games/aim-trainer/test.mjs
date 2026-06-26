@@ -116,6 +116,43 @@ ok(Array.isArray(T().targets), 'targets is an array');
 ok(typeof T().start === 'function', 'start() exposed');
 ok(typeof T().shootAt === 'function', 'shootAt() exposed');
 ok(typeof T().step === 'function', 'step() exposed');
+ok(typeof T().setSeed === 'function', 'setSeed() exposed');
+
+section('seeded RNG');
+{
+  // To test determinism: start, set seed, shoot the first target (spawned via Math.random),
+  // which triggers spawnTarget() with the seeded RNG. Compare two runs.
+  function seededPositions(seed) {
+    const gi = runGame('index.html');
+    const Ti = () => gi.test();
+    Ti().start();
+    Ti().setSeed(seed);
+    Ti().step(5);
+    // shoot first target (position from Math.random, irrelevant for comparison)
+    const first = Ti().targets[0];
+    if (first) Ti().shootAt(first.x, first.y); // triggers seeded spawn
+    Ti().step(1);
+    return Ti().targets.map(t => t.x + ',' + t.y);
+  }
+  const run1 = seededPositions(7);
+  const run2 = seededPositions(7);
+  ok(JSON.stringify(run1) === JSON.stringify(run2), 'seeded RNG produces deterministic spawns (run1=' + run1 + ')');
+
+  // seededRng must stay in [0, 1) — verify target coords stay within spawn bounds
+  // W=1280, H=800, pad=80, HUD_H=48 → x in (80, 1200), y in (128, 720)
+  const gBounds = runGame('index.html');
+  const Tb = () => gBounds.test();
+  Tb().start();
+  Tb().setSeed(0xffffffff);
+  const firstTgt = Tb().targets[0];
+  if (firstTgt) Tb().shootAt(firstTgt.x, firstTgt.y); // trigger seeded spawn
+  Tb().step(1);
+  const seededTgt = Tb().targets[0];
+  if (seededTgt) {
+    ok(seededTgt.x <= 1200 && seededTgt.x >= 80, 'seeded target x within spawn bounds (got ' + seededTgt.x + ')');
+    ok(seededTgt.y <= 720 && seededTgt.y >= 128, 'seeded target y within spawn bounds (got ' + seededTgt.y + ')');
+  }
+}
 
 section('initial state');
 ok(T().state === 'ready', 'initial state is "ready" (got ' + T().state + ')');
