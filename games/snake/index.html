@@ -30,6 +30,15 @@
   #overlay button:hover { box-shadow:0 0 32px #0af9; }
   #goScore { font-size:28px; color:#f0f; text-shadow:0 0 20px #f0f; letter-spacing:3px; }
   #goBest { font-size:14px; color:#0af; opacity:0.8; }
+  .opts { display:flex; flex-direction:column; gap:10px; width:100%; max-width:340px; }
+  .opt-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .opt-label { font-size:11px; letter-spacing:2px; opacity:0.6; min-width:60px; text-align:left; }
+  .opt-btns { display:flex; gap:6px; }
+  .opt-btn { font-family:inherit; cursor:pointer; font-size:11px; letter-spacing:2px; padding:6px 12px;
+    border-radius:6px; color:#0af; background:transparent; border:1px solid #0af4;
+    text-shadow:0 0 6px #0af4; transition:all 0.12s; white-space:nowrap; }
+  .opt-btn.active { color:#0ff; border-color:#0ff; background:rgba(0,220,255,0.12); text-shadow:0 0 10px #0ff; box-shadow:0 0 12px #0af6; }
+  .opt-btn:hover { border-color:#0af; }
 </style>
 </head>
 <body>
@@ -44,6 +53,30 @@
 <div id="overlay">
   <h1>NEON SNAKE</h1>
   <p>Navigate the grid. Eat the food. Don't crash.</p>
+  <div class="opts">
+    <div class="opt-row">
+      <span class="opt-label">WALLS</span>
+      <div class="opt-btns">
+        <button class="opt-btn" data-opt="walls" data-val="solid">SOLID</button>
+        <button class="opt-btn" data-opt="walls" data-val="wrap">WRAP</button>
+      </div>
+    </div>
+    <div class="opt-row">
+      <span class="opt-label">SPEED</span>
+      <div class="opt-btns">
+        <button class="opt-btn" data-opt="speed" data-val="normal">NORMAL</button>
+        <button class="opt-btn" data-opt="speed" data-val="fast">FAST</button>
+      </div>
+    </div>
+    <div class="opt-row">
+      <span class="opt-label">SIZE</span>
+      <div class="opt-btns">
+        <button class="opt-btn" data-opt="size" data-val="small">SMALL</button>
+        <button class="opt-btn" data-opt="size" data-val="medium">MEDIUM</button>
+        <button class="opt-btn" data-opt="size" data-val="large">LARGE</button>
+      </div>
+    </div>
+  </div>
   <p class="sub">Arrow keys · WASD · Swipe on mobile</p>
   <button id="startBtn">PLAY</button>
 </div>
@@ -70,18 +103,52 @@
     return { play(n) { ensure(); if (ac && ac.state === 'suspended') ac.resume(); (S[n] || (() => {}))(); } };
   })();
 
-  // ---- Constants ----
-  const COLS = 28, ROWS = 22;
-  const BASE_INTERVAL = 140; // ms per tick at length 1
-  const MIN_INTERVAL = 60;
+  // ---- Grid sizes ----
+  const GRID_SIZES = {
+    small:  { cols: 18, rows: 14 },
+    medium: { cols: 28, rows: 22 },
+    large:  { cols: 40, rows: 30 },
+  };
+
+  // ---- Speed config ----
+  const SPEED_CFG = {
+    normal: { base: 140, ramp: 3, min: 60 },
+    fast:   { base: 90,  ramp: 5, min: 40 },
+  };
+
+  // ---- Options ----
+  const OPT_DEFAULTS = { walls: 'solid', speed: 'normal', size: 'medium' };
+  let opts = { ...OPT_DEFAULTS };
+
+  function loadOpts() {
+    try {
+      const raw = localStorage.getItem('snake_opts');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.walls === 'wrap') opts.walls = 'wrap';
+        if (saved.speed === 'fast') opts.speed = 'fast';
+        if (GRID_SIZES[saved.size]) opts.size = saved.size;
+      }
+    } catch (_) {}
+  }
+  function saveOpts() {
+    try { localStorage.setItem('snake_opts', JSON.stringify(opts)); } catch (_) {}
+  }
 
   // ---- State ----
   let state = 'ready'; // ready | playing | over
   let snake, dir, nextDir, food, score, best, particles, flashAlpha, pendingFood;
+  let COLS, ROWS;
   let W, H, cellW, cellH, offX, offY;
 
   function loadBest() { try { return parseInt(localStorage.getItem('snake_best') || '0', 10) || 0; } catch (_) { return 0; } }
   function saveBest(v) { try { localStorage.setItem('snake_best', String(v)); } catch (_) {} }
+
+  function applyGridSize() {
+    const g = GRID_SIZES[opts.size] || GRID_SIZES.medium;
+    COLS = g.cols;
+    ROWS = g.rows;
+  }
 
   function resize() {
     W = canvas.width = window.innerWidth;
@@ -108,6 +175,8 @@
   }
 
   function reset() {
+    applyGridSize();
+    resize();
     const sx = Math.floor(COLS / 2), sy = Math.floor(ROWS / 2);
     snake = [{ x: sx, y: sy }];
     dir = { x: 1, y: 0 };
@@ -148,10 +217,16 @@
     }
 
     const head = snake[0];
-    const nx = head.x + dir.x, ny = head.y + dir.y;
+    let nx = head.x + dir.x, ny = head.y + dir.y;
 
-    // Wall collision
-    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) { gameOver(); return; }
+    if (opts.walls === 'wrap') {
+      // Wrap around edges
+      nx = ((nx % COLS) + COLS) % COLS;
+      ny = ((ny % ROWS) + ROWS) % ROWS;
+    } else {
+      // Solid walls — collision kills
+      if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) { gameOver(); return; }
+    }
 
     // Self collision — exclude tail tip (it moves away this same tick when not eating)
     if (snake.slice(0, -1).some(s => s.x === nx && s.y === ny)) { gameOver(); return; }
@@ -176,7 +251,6 @@
     SND.play('crash');
     if (score > best) { best = score; saveBest(best); }
     updateHud();
-    // Show game over overlay
     overlay.innerHTML =
       '<h1>GAME OVER</h1>' +
       '<div id="goScore">' + score + '</div>' +
@@ -194,7 +268,32 @@
 
   // ---- Tick timing ----
   let lastTick = 0;
-  function getInterval() { return Math.max(MIN_INTERVAL, BASE_INTERVAL - (snake.length - 1) * 3); }
+  function getInterval() {
+    const cfg = SPEED_CFG[opts.speed] || SPEED_CFG.normal;
+    return Math.max(cfg.min, cfg.base - (snake.length - 1) * cfg.ramp);
+  }
+
+  // ---- Option picker UI ----
+  function syncOptBtns() {
+    if (!overlay) return;
+    const btns = overlay.querySelectorAll ? overlay.querySelectorAll('.opt-btn') : [];
+    btns.forEach(btn => {
+      const active = opts[btn.dataset.opt] === btn.dataset.val;
+      btn.classList.toggle('active', active);
+    });
+  }
+
+  function initOptBtns() {
+    if (!overlay) return;
+    const btns = overlay.querySelectorAll ? overlay.querySelectorAll('.opt-btn') : [];
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        opts[btn.dataset.opt] = btn.dataset.val;
+        saveOpts();
+        syncOptBtns();
+      });
+    });
+  }
 
   // ---- Render ----
   function render(ts) {
@@ -329,7 +428,8 @@
     else nextDir = dy > 0 ? DIR_MAP.down : DIR_MAP.up;
   }, { passive: true });
 
-  document.getElementById('startBtn').addEventListener('click', startGame);
+  const startBtn = document.getElementById('startBtn');
+  if (startBtn) startBtn.addEventListener('click', startGame);
 
   // ---- Test hook ----
   window.__test = {
@@ -338,14 +438,27 @@
     get length() { return snake ? snake.length : 0; },
     get head() { return snake ? { ...snake[0] } : null; },
     get best() { return best; },
+    get cols() { return COLS; },
+    get rows() { return ROWS; },
     start: startGame,
+    startMode(o) {
+      if (o && o.wrap !== undefined) opts.walls = o.wrap ? 'wrap' : 'solid';
+      if (o && o.fast !== undefined) opts.speed = o.fast ? 'fast' : 'normal';
+      if (o && o.size !== undefined && GRID_SIZES[o.size]) opts.size = o.size;
+      saveOpts();
+      startGame();
+    },
     setDir(dx, dy) { nextDir = { x: dx, y: dy }; },
     turn(d) { nextDir = DIR_MAP[d]; },
     step(n) { for (let i = 0; i < (n || 1); i++) tick(); },
     placeFoodAt(x, y) { if (state === 'playing') { pendingFood = { x, y }; food = { x, y }; } },
   };
 
+  loadOpts();
+  applyGridSize();
   resize();
+  initOptBtns();
+  syncOptBtns();
   best = loadBest();
   if (bestEl) bestEl.textContent = best;
   reset();

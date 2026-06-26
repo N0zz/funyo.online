@@ -155,11 +155,11 @@ section('eating grows snake and scores');
   ok(T.score > scoreBefore, 'eating food increases score (' + scoreBefore + ' -> ' + T.score + ')');
 }
 
-section('wall collision ends game');
+section('wall collision ends game (solid mode)');
 {
   const g = runGame();
   const T = g.test();
-  T.start();
+  T.start(); // defaults to solid
   // Point snake upward and step until it hits the top wall
   T.turn('up');
   let guard = 0;
@@ -259,6 +259,111 @@ section('__test API surface');
   ok(typeof T.turn === 'function', '__test.turn is a function');
   ok(typeof T.placeFoodAt === 'function', '__test.placeFoodAt is a function');
   ok(typeof T.start === 'function', '__test.start is a function');
+  ok(typeof T.startMode === 'function', '__test.startMode is a function');
+  ok(typeof T.cols === 'number', '__test.cols is a number');
+  ok(typeof T.rows === 'number', '__test.rows is a number');
+}
+
+section('wrap mode — crossing walls survives');
+{
+  const g = runGame();
+  const T = g.test();
+  // Start with wrap mode
+  T.startMode({ wrap: true, fast: false, size: 'medium' });
+  ok(T.state === 'playing', 'startMode wrap started playing');
+  // Move snake to the right edge and step it through
+  const cols = T.cols;
+  const startHead = T.head;
+  // Place snake at rightmost column by teleporting food to move there
+  // Move right until we'd hit the wall; with wrap we should survive
+  let guard = 0;
+  while (T.head.x < cols - 1 && guard++ < 200) T.step(1);
+  ok(T.state === 'playing', 'survived approaching right wall (state=' + T.state + ')');
+  const headAtEdge = T.head;
+  ok(headAtEdge.x === cols - 1, 'head reached right edge (x=' + headAtEdge.x + ')');
+  // One more step should wrap to x=0
+  T.step(1);
+  ok(T.state === 'playing', 'survived crossing right wall in wrap mode (state=' + T.state + ')');
+  ok(T.head.x === 0, 'head wrapped to x=0 (got x=' + T.head.x + ')');
+}
+
+section('wrap mode — crossing top wall survives');
+{
+  const g = runGame();
+  const T = g.test();
+  T.startMode({ wrap: true });
+  ok(T.state === 'playing', 'wrap mode started');
+  const rows = T.rows;
+  // Turn up and step to top edge
+  T.turn('up');
+  let guard = 0;
+  while (T.head.y > 0 && guard++ < 200) T.step(1);
+  ok(T.state === 'playing', 'survived approaching top wall');
+  ok(T.head.y === 0, 'reached top row (y=' + T.head.y + ')');
+  // One more step wraps to bottom
+  T.step(1);
+  ok(T.state === 'playing', 'survived crossing top wall in wrap mode (state=' + T.state + ')');
+  ok(T.head.y === rows - 1, 'head wrapped to bottom (y=' + T.head.y + ', rows-1=' + (rows - 1) + ')');
+}
+
+section('solid mode — wall still kills');
+{
+  const g = runGame();
+  const T = g.test();
+  T.startMode({ wrap: false });
+  T.turn('up');
+  let guard = 0;
+  while (T.state === 'playing' && guard++ < 50) T.step(1);
+  ok(T.state === 'over', 'wall still kills in solid mode (state=' + T.state + ')');
+}
+
+section('board size changes grid dimensions');
+{
+  const g = runGame();
+  const T = g.test();
+
+  T.startMode({ size: 'small' });
+  const smallCols = T.cols, smallRows = T.rows;
+  ok(smallCols === 18, 'small board: cols=18 (got ' + smallCols + ')');
+  ok(smallRows === 14, 'small board: rows=14 (got ' + smallRows + ')');
+
+  T.startMode({ size: 'medium' });
+  const medCols = T.cols, medRows = T.rows;
+  ok(medCols === 28, 'medium board: cols=28 (got ' + medCols + ')');
+  ok(medRows === 22, 'medium board: rows=22 (got ' + medRows + ')');
+
+  T.startMode({ size: 'large' });
+  const largeCols = T.cols, largeRows = T.rows;
+  ok(largeCols === 40, 'large board: cols=40 (got ' + largeCols + ')');
+  ok(largeRows === 30, 'large board: rows=30 (got ' + largeRows + ')');
+}
+
+section('default start() uses solid/normal/medium');
+{
+  const g = runGame();
+  const T = g.test();
+  T.start();
+  ok(T.cols === 28, 'default start uses medium cols=28 (got ' + T.cols + ')');
+  ok(T.rows === 22, 'default start uses medium rows=22 (got ' + T.rows + ')');
+  // Verify solid walls by hitting the top wall
+  T.turn('up');
+  let guard = 0;
+  while (T.state === 'playing' && guard++ < 50) T.step(1);
+  ok(T.state === 'over', 'default start uses solid walls (wall killed snake)');
+}
+
+section('options persist to localStorage');
+{
+  const g = runGame();
+  const T = g.test();
+  T.startMode({ wrap: true, fast: true, size: 'large' });
+  ok(T.state === 'playing', 'started with options');
+  const saved = g.store['snake_opts'];
+  ok(saved != null, 'snake_opts saved to localStorage');
+  const parsed = JSON.parse(saved);
+  ok(parsed.walls === 'wrap', 'saved walls=wrap (got ' + parsed.walls + ')');
+  ok(parsed.speed === 'fast', 'saved speed=fast (got ' + parsed.speed + ')');
+  ok(parsed.size === 'large', 'saved size=large (got ' + parsed.size + ')');
 }
 
 console.log('\n----------------------------------------');
