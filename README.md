@@ -1,4 +1,8 @@
-# Arcade
+<p align="center">
+  <img src="logo-512.png" alt="Arcade logo" width="116" height="116">
+</p>
+
+<h1 align="center">Arcade</h1>
 
 <p align="center">
   <a href="https://n0zz.github.io/arcade/">
