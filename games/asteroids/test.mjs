@@ -329,15 +329,39 @@ function testKeyboardShopNav(file) {
   T().addCredits(200);
   T().clearEnemies(); g.step(5);
   ok(T().state === 'shop', file + ' shop open');
-  // buy first item via Enter (sel starts at 0)
+  // SPACE buys the highlighted item (sel starts at 0)
   const credBefore = T().credits;
-  g.down('Enter'); g.step(1);
+  g.down(' '); g.step(1); g.up(' ');
   const bought = Object.values(T().upgrades).some(v => v >= 1);
-  ok(bought && T().credits < credBefore, file + ' Enter buys highlighted item');
-  // navigate to Continue (ArrowLeft wraps to the Continue slot) and confirm
-  g.down('ArrowLeft'); g.step(1);
+  ok(bought && T().credits < credBefore, file + ' Space buys highlighted item');
+  // ENTER always continues to the next wave
   g.down('Enter'); g.step(2);
-  ok(T().state === 'playing' && T().wave === 2, file + ' Enter on Continue advances the wave');
+  ok(T().state === 'playing' && T().wave === 2, file + ' Enter continues to the next wave (got state=' + T().state + ' wave=' + T().wave + ')');
+}
+
+function testTieredPricing(file) {
+  section(file + ' (tiered shop pricing)');
+  const g = runGame(file);
+  const T = () => g.test();
+  T().start(); g.step(2);
+  T().addCredits(99999);
+  T().clearEnemies(); g.step(5);
+  ok(T().state === 'shop', file + ' shop open');
+  const c0 = T().shopCostOf('rapid');
+  T().buy(0); g.step(1);               // buy rapid (item 0) once
+  const c1 = T().shopCostOf('rapid');
+  ok(c1 > c0, file + ' next tier costs more (' + c0 + ' -> ' + c1 + ')');
+}
+
+function testBulletsClearOnWave(file) {
+  section(file + ' (bullets clear on new wave)');
+  const g = runGame(file);
+  const T = () => g.test();
+  T().start(); g.step(2);
+  g.down(' '); g.step(20); g.up(' ');   // fire a stream
+  ok(T().bulletCount > 0, file + ' bullets present mid-wave (' + T().bulletCount + ')');
+  T().gotoWave(2); g.step(1);
+  ok(T().bulletCount === 0, file + ' bullets cleared at wave start (' + T().bulletCount + ')');
 }
 
 function testStressManyWaves(file, prog) {
@@ -442,6 +466,7 @@ for (const [file, prog] of [['roguelite-levelup.html', 'levelup'], ['roguelite-m
   testMenuButton(file);
   testWave5BossVisible(file);
   testWave4Clearable(file);
+  testBulletsClearOnWave(file);
   testStressManyWaves(file, prog);
   testSpeedrunWin(file, prog);
 }
@@ -451,6 +476,7 @@ testKeyboardPicker('roguelite-milestones.html');
 testKeyboardShopNav('roguelite-shop.html');
 testShop('roguelite-shop.html');
 testShopProgression('roguelite-shop.html');
+testTieredPricing('roguelite-shop.html');
 testMilestonePick('roguelite-milestones.html');
 
 console.log('\n----------------------------------------');

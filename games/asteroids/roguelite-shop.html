@@ -145,12 +145,13 @@
       return;
     }
     if(state==='shop'){
-      const n=pool().length; // index n == the Continue button
-      if(e.key==='ArrowLeft'){ selIdx=(selIdx+n)%(n+1); renderShop(); }
-      else if(e.key==='ArrowRight'){ selIdx=(selIdx+1)%(n+1); renderShop(); }
-      else if(e.key==='ArrowUp'){ selIdx=Math.max(0,selIdx-4); renderShop(); }
-      else if(e.key==='ArrowDown'){ selIdx=Math.min(n,selIdx+4); renderShop(); }
-      else if(e.key==='Enter'||e.key===' '){ if(selIdx>=n) closeShop(); else buyByIndex(selIdx); }
+      const n=pool().length; // selection runs over the items only
+      if(e.key==='ArrowLeft'){ selIdx=(selIdx+n-1)%n; renderShop(); }
+      else if(e.key==='ArrowRight'){ selIdx=(selIdx+1)%n; renderShop(); }
+      else if(e.key==='ArrowUp'){ selIdx=(selIdx+n-4)%n; renderShop(); }
+      else if(e.key==='ArrowDown'){ selIdx=(selIdx+4)%n; renderShop(); }
+      else if(e.key==='Enter'){ closeShop(); }            // Enter always continues to next wave
+      else if(e.key===' '){ buyByIndex(selIdx); }          // Space buys the highlighted item
       else if(/^[1-9]$/.test(e.key)) buyByIndex(parseInt(e.key,10)-1);
       return;
     }
@@ -222,18 +223,19 @@
   function makeAsteroid(x,y,size){ const r=size===3?56:size===2?34:18; const verts=[]; const n=9+Math.floor(Math.random()*4);
     for(let i=0;i<n;i++){ const ang=(i/n)*Math.PI*2; verts.push({ang,d:r*(0.65+Math.random()*0.5)}); }
     const speed=(1.0+Math.random()*0.9)*(4-size)*0.5*(1+wave*0.045); const dir=Math.random()*Math.PI*2;
-    return {x,y,size,r,hp:size,vx:Math.cos(dir)*speed,vy:Math.sin(dir)*speed,rot:Math.random()*Math.PI*2,vrot:(Math.random()-0.5)*0.03,verts,hue:200+Math.random()*40}; }
-  function makeHunter(x,y){ return {x,y,r:13,hp:2,vx:0,vy:0,rot:0}; }
-  function makeSentry(x,y){ return {x,y,r:16,hp:3,vx:(Math.random()-0.5)*1.2,vy:(Math.random()-0.5)*1.2,fireCd:90+Math.random()*60,rot:0}; }
+    return {x,y,size,r,hp:size+Math.floor(wave/4),vx:Math.cos(dir)*speed,vy:Math.sin(dir)*speed,rot:Math.random()*Math.PI*2,vrot:(Math.random()-0.5)*0.03,verts,hue:200+Math.random()*40}; }
+  function makeHunter(x,y){ return {x,y,r:13,hp:2+Math.floor(wave/5),vx:0,vy:0,rot:0}; }
+  function makeSentry(x,y){ return {x,y,r:16,hp:3+Math.floor(wave/4),vx:(Math.random()-0.5)*1.2,vy:(Math.random()-0.5)*1.2,fireCd:90+Math.random()*60,rot:0}; }
   function makeBoss(w){ return {x:W/2,y:140,r:70,hp:40+w*8,maxHp:40+w*8,vx:1.4,vy:0.9,fireCd:90,spawnCd:160,rot:0}; }
 
   function startWave(n){
     wave=n; waveBreak=0;
+    bullets=[]; ebullets=[]; // clear leftover shots so a new wave starts clean
     if(n%5===0){ boss=makeBoss(n); flash('⚠ WAVE '+n+' — BOSS'); }
     else {
-      const ast=3+Math.floor(n*1.2);
+      const ast=3+Math.floor(n*1.45);
       for(let i=0;i<ast;i++){ const p=edgePos(); asteroids.push(makeAsteroid(p.x,p.y, Math.random()<0.55+n*0.03?3:2)); }
-      const nH = n>=3 ? Math.floor(n/2) : 0;
+      const nH = n>=3 ? Math.floor(n*0.6) : 0;
       for(let i=0;i<nH;i++){ const p=edgePos(); hunters.push(makeHunter(p.x,p.y)); }
       const nS = n>=4 ? Math.floor((n-2)/2) : 0;
       // sentries don't home, so spawn them on-screen (not at the edge) — an edge spawn
@@ -306,22 +308,24 @@
   function pickByIndex(i){ if(state!=='levelup'||!pickOptions[i]) return; applyUpgrade(pickOptions[i].id); pendingPicks--; if(pendingPicks>0){ openPicker(); } else { state='playing'; srPrev=now(); overlay.classList.add('hidden'); } }
 
   // ---- Shop (between waves) ----
+  // each tier costs a bit more than the last: base, +50%, +100%, ...
+  function shopCost(u){ const lv=up[u.id]||0; return Math.round(u.price*(1+0.5*lv)); }
   function openShop(){ state='shop'; selIdx=0; renderShop(); overlay.classList.remove('hidden'); }
   function renderShop(){
     const items=pool();
     let html='<h1 class="win">DRYDOCK</h1>'+
       '<div class="credits-big">◈ '+credits+' CREDITS</div>'+
-      '<p class="hint">wave '+wave+' cleared &middot; ←/→/↑/↓ then ENTER to buy, or press a number</p><div class="cards shop">';
-    items.forEach((u,i)=>{ const lv=up[u.id]||0; const maxed=lv>=u.max; const afford=credits>=u.price && !maxed;
-      html+='<div class="ucard'+(afford?'':' disabled')+(i===selIdx?' sel':'')+'" data-i="'+i+'"><div class="k">'+(i+1)+'</div><h3>'+u.name+'</h3><p>'+u.desc+'</p><div class="lvl">'+(maxed?'MAX':('LV '+lv+'/'+u.max))+'</div><div class="price">'+(maxed?'—':('◈ '+u.price))+'</div></div>'; });
-    html+='</div><div id="shopFoot"><button class="btn'+(selIdx>=items.length?' sel':'')+'" id="continueBtn">CONTINUE ▶ (ENTER)</button> '+MENU_BTN+'</div>';
+      '<p class="hint">wave '+wave+' cleared &middot; ←/→/↑/↓ to highlight &middot; SPACE / number / click to buy &middot; ENTER to continue</p><div class="cards shop">';
+    items.forEach((u,i)=>{ const lv=up[u.id]||0; const maxed=lv>=u.max; const cost=shopCost(u); const afford=credits>=cost && !maxed;
+      html+='<div class="ucard'+(afford?'':' disabled')+(i===selIdx?' sel':'')+'" data-i="'+i+'"><div class="k">'+(i+1)+'</div><h3>'+u.name+'</h3><p>'+u.desc+'</p><div class="lvl">'+(maxed?'MAX':('LV '+lv+'/'+u.max))+'</div><div class="price">'+(maxed?'—':('◈ '+cost))+'</div></div>'; });
+    html+='</div><div id="shopFoot"><button class="btn" id="continueBtn">CONTINUE ▶ (ENTER)</button> '+MENU_BTN+'</div>';
     overlay.innerHTML=html;
     overlay.querySelectorAll('.ucard').forEach(c=>c.addEventListener('click',()=>buyByIndex(parseInt(c.dataset.i,10))));
     $('continueBtn').addEventListener('click', closeShop);
     wireOverlay();
   }
   function buyByIndex(i){ if(state!=='shop') return; const items=pool(); const u=items[i]; if(!u) return; const lv=up[u.id]||0;
-    if(lv>=u.max || credits<u.price) return; credits-=u.price; applyUpgrade(u.id); renderShop(); }
+    const cost=shopCost(u); if(lv>=u.max || credits<cost) return; credits-=cost; applyUpgrade(u.id); renderShop(); }
   function closeShop(){ state='playing'; srPrev=now(); overlay.classList.add('hidden'); startWave(wave+1); }
 
   // ---- Wave completion ----
@@ -379,7 +383,7 @@
       for(const h of hunters){ const a=Math.atan2(ship.y-h.y,ship.x-h.x); h.vx+=Math.cos(a)*0.06; h.vy+=Math.sin(a)*0.06; h.vx*=0.97; h.vy*=0.97; h.x+=h.vx; h.y+=h.vy; h.rot+=0.05; wrap(h); }
       // sentries drift + fire
       for(const s of sentries){ s.x+=s.vx; s.y+=s.vy; if((s.x<40&&s.vx<0)||(s.x>W-40&&s.vx>0)) s.vx*=-1; if((s.y<40&&s.vy<0)||(s.y>H-40&&s.vy>0)) s.vy*=-1; s.rot+=0.02;
-        if(s.fireCd>0) s.fireCd--; else { const a=Math.atan2(ship.y-s.y,ship.x-s.x); ebullets.push({x:s.x,y:s.y,vx:Math.cos(a)*3.2,vy:Math.sin(a)*3.2,life:200,r:3}); s.fireCd=120+Math.random()*60; } }
+        if(s.fireCd>0) s.fireCd--; else { const bs=4; const dist=Math.hypot(ship.x-s.x,ship.y-s.y); const tt=dist/bs; const ax=ship.x+ship.vx*tt, ay=ship.y+ship.vy*tt; const a=Math.atan2(ay-s.y,ax-s.x); ebullets.push({x:s.x,y:s.y,vx:Math.cos(a)*bs,vy:Math.sin(a)*bs,life:200,r:3}); s.fireCd=110+Math.random()*50; } }
       // boss
       if(boss){ boss.x+=boss.vx; boss.y+=boss.vy; if(boss.x<80||boss.x>W-80) boss.vx*=-1; if(boss.y<80||boss.y>H*0.7) boss.vy*=-1; if(boss.y<80) boss.vy=Math.abs(boss.vy); boss.rot+=0.01;
         if(boss.fireCd>0) boss.fireCd--; else { const a=Math.atan2(ship.y-boss.y,ship.x-boss.x); for(const da of [-0.25,0,0.25]) ebullets.push({x:boss.x,y:boss.y,vx:Math.cos(a+da)*3.4,vy:Math.sin(a+da)*3.4,life:240,r:4}); boss.fireCd=90; }
@@ -479,6 +483,7 @@
     get picks(){ return pickOptions.map(o=>o.id); }, get sel(){ return selIdx; }, get magnet(){ return ship?ship.magnet:0; },
     get bossY(){ return boss?boss.y:null; }, get waveLabel(){ return waveEl.textContent; },
     get strandedEnemies(){ const out=e=>e.x<-12||e.x>W+12||e.y<-12||e.y>H+12; return sentries.filter(out).length + hunters.filter(out).length; },
+    get bulletCount(){ return bullets.length; }, shopCostOf(id){ const u=ALL_UPGRADES.find(x=>x.id===id); return u?shopCost(u):0; },
     quitToMenu, hasMenuBtn(){ return !!$('menuBtn'); },
     start:startGame, clearEnemies(){ asteroids=[]; hunters=[]; sentries=[]; boss=null; },
     addScore(n){ score+=n; credits+=Math.floor(n/10); updateHud(); if(PROGRESSION==='milestones'){ while(score>=milestoneNext){ pendingPicks++; milestoneStep+=250; milestoneNext+=milestoneStep; } if(pendingPicks>0&&state==='playing') openPicker(); } },
