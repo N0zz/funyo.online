@@ -73,5 +73,17 @@ filter so local-multiplayer games are obvious.
 
 ## Single-player still queued (coming-soon tiles)
 
-Invaders, Road Hop (crossy), Icy Tower, Pulse Dash (rhythm), Trap the Cat,
-Arcane (spellcaster). See `games.js` for tags/accents.
+Effort tiers match the multiplayer table (trivial / low / med / high) — a "decent
+MVP + 2–3 polish passes," self-contained single file with a `__test` hook.
+
+| Idea | Effort | Workload notes |
+| --- | --- | --- |
+| **Sudoku** | **med** | Grid render + cell select + number pad + keyboard + pencil notes + conflict highlight + hint/undo + timer & best-time per difficulty are all **low**. The real work is the **generator**: a backtracking **solver** to build a full board, then dig out cells while verifying the puzzle keeps a **unique solution**. MVP difficulty = givens count (easy/med/hard); proper technique-based grading would push it to **high** (skip for v1). Suggested tile: 🔢 · tag `LOGIC` · accent `#7aa2ff`. |
+| Invaders | med | formation movement, descending rows, shields, escalating waves |
+| Road Hop (crossy) | med | lane spawns, log-riding, endless scroll |
+| Trap the Cat | med | hex grid + cat BFS pathfinding to the nearest edge |
+| Arcane (spellcaster) | med–high | scope-dependent: spell variety + wave AI |
+| Icy Tower | high | momentum + variable jump + wall-bounce + combos + rising floor (lots of feel-tuning) |
+| Pulse Dash (rhythm) | high | obstacles authored to a beat + generate/sync a track (priciest) |
+
+See `games.js` for tags/accents.
