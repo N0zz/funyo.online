@@ -199,9 +199,9 @@
   const COLORS = ['#ff4d6d','#ff9f1c','#ffe14d','#4ddb8c','#4dbfff','#a56bff','#ff6bbf'];
   const COLOR_NAMES = ['red','orange','yellow','green','cyan','purple','pink'];
   const COLOR_SYMBOLS = ['●','▲','◆','★','■','✦','♥'];
-  const R = 18; // bubble radius
+  let R = 18; // bubble radius (recomputed in resize so the grid fits any width)
   const COLS_COUNT = 12;
-  const ROW_H = R * 1.73;
+  let ROW_H = R * 1.73;
   const SHOOTER_Y_OFFSET = 90;
 
   // ---- State ----
@@ -236,6 +236,10 @@
   function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
+    // Shrink bubbles so the fixed 12-column grid (incl. the half-step offset rows)
+    // always fits the viewport width — otherwise narrow / zoomed screens clip columns.
+    R = Math.max(9, Math.min(18, Math.floor((W - 24) / (2 * (COLS_COUNT + 1)))));
+    ROW_H = R * 1.73;
   }
   window.addEventListener('resize', resize);
 
