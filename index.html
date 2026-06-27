@@ -44,7 +44,7 @@
   body { padding: 44px 22px 56px; line-height:1.5; }
   .wrap { max-width: 1080px; margin: 0 auto; }
 
-  header { text-align:center; margin-bottom: 40px; }
+  header { text-align:center; margin: 34px 0 40px; }
   .brand { display:flex; align-items:center; justify-content:center; gap: clamp(10px, 2.5vw, 18px); }
   .mascot { flex:0 0 auto; width: clamp(46px, 10vw, 78px); height:auto; filter: drop-shadow(0 5px 16px rgba(0,0,0,0.45)); }
   h1 { margin:0; font-family:var(--mono); font-size: clamp(40px, 9vw, 72px); letter-spacing: 14px; font-weight: 800;
@@ -158,8 +158,33 @@
   #shareCopy.ok { color:#7fe0a0; border-color:#7fe0a0; }
 
   /* feedback modal */
-  #fbModal, #nlModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
-  #fbModal::backdrop, #nlModal::backdrop { background:rgba(5,8,13,0.66); }
+  #fbModal, #nlModal, #clModal, #aboutModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop { background:rgba(5,8,13,0.66); }
+  /* about modal */
+  #aboutModal { width:min(520px,94vw); }
+  .about { padding:18px 20px 20px; display:flex; flex-direction:column; gap:12px; }
+  .about p { margin:0; font-size:15.5px; line-height:1.65; color:var(--text); }
+  .about-list { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:11px; }
+  .about-list li { font-size:15px; line-height:1.6; color:var(--muted); }
+  .about-list b { color:var(--text); }
+  .about-list a { color:#9fe8ff; }
+  .about-foot { color:var(--faint); font-size:14px; }
+  /* changelog modal */
+  #clModal { width:min(680px,94vw); }
+  .cl { padding:18px 20px 20px; display:flex; flex-direction:column; gap:13px; }
+  .cl-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .cl-head h3 { margin:0; font-family:var(--mono); letter-spacing:2px; font-size:16px; }
+  .cl-search { width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; color:var(--text); font:inherit; font-size:14px; padding:9px 12px; }
+  .cl-search:focus { outline:none; border-color:#9fe8ff; }
+  .cl-list { max-height:min(64vh,560px); overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-right:4px; }
+  .cl-rel { display:flex; flex-direction:column; gap:8px; }
+  .cl-relhead { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .cl-date { font-family:var(--mono); font-size:12px; letter-spacing:1px; color:var(--faint); }
+  .cl-title { font-size:16.5px; font-weight:700; color:var(--text); }
+  .cl-items { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:7px; }
+  .cl-items li { font-size:15px; color:var(--muted); line-height:1.6; }
+  .cl-sep { border:none; border-top:1px solid var(--border); width:100%; margin:2px 0; }
+  .cl-empty { color:var(--muted); font-size:14px; padding:16px 0; text-align:center; }
   .fb-form { padding:20px; display:flex; flex-direction:column; gap:11px; }
   .fb-form h3 { margin:0; font-family:var(--mono); letter-spacing:2px; font-size:16px; }
   .fb-intro { margin:0 0 4px; color:var(--muted); font-size:13px; }
@@ -179,8 +204,10 @@
   .fb-status.err { color:#ff8a8a; }
 
   /* ---- sticky top bar (☰ menu + 🏆 challenges) ---- */
-  .topbar { position:sticky; top:0; z-index:40; display:flex; align-items:center; justify-content:space-between; gap:12px;
-    margin:-44px -22px 18px; padding:9px 22px; background:rgba(11,15,23,0.82); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); }
+  .float-btns-l { position:fixed; top:13px; left:13px; z-index:40; display:flex; align-items:center; gap:10px; }
+  .float-btns-r { position:fixed; top:13px; right:13px; z-index:40; }
+  .float-btns-l .tb-btn, .float-btns-l .ibtn, .float-btns-r .tb-btn { box-shadow:0 4px 14px rgba(0,0,0,0.42); }
+  @media (max-width:520px){ .tb-chal .tb-lbl { display:none; } }
   .tb-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid var(--border); border-radius:10px;
     background:var(--surface-2); color:var(--text); font-family:var(--mono); font-size:12px; letter-spacing:1.5px; cursor:pointer; }
   .tb-btn:hover { border-color:#9fe8ff; }
@@ -226,11 +253,12 @@
   @media (prefers-reduced-motion: reduce) { .drawer { transition:none; } }
   .dh { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); }
   .dh .dt { font-family:var(--mono); font-size:14px; letter-spacing:3px; text-transform:uppercase; display:flex; align-items:center; gap:9px; }
-  .dh .dx { background:none; border:none; color:var(--faint); font-size:18px; cursor:pointer; line-height:1; }
-  .dh .dx:hover { color:#fff; }
-  .dscroll { flex:1; overflow-y:auto; padding:6px 8px; }
+  .dx { background:none; border:none; color:var(--faint); font-size:18px; cursor:pointer; line-height:1; padding:0; }
+  .dx:hover { color:#fff; }
+  .dscroll { flex:1; overflow-y:auto; padding:6px 8px; display:flex; flex-direction:column; }
+  .dscroll > .dgrp:last-child { margin-top:auto; }
   .dgrp { padding:10px 4px 2px; }
-  .dl { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:0 8px 6px; }
+  .dl { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:0 8px 6px; text-align:center; }
   .ditem { display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:10px 10px; border-radius:10px;
     background:none; border:none; color:var(--text); font:inherit; font-size:14px; cursor:pointer; text-decoration:none; }
   .ditem:hover { background:var(--surface-2); }
@@ -256,14 +284,38 @@
   .clist .crow { display:flex; align-items:center; gap:10px; padding:8px 2px; font-size:13px; color:var(--muted); border-top:1px solid var(--border); }
   .clist .crow .st { width:18px; text-align:center; }
   .cmock { margin:14px 4px 4px; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--faint); text-align:center; }
+  .cmock-top { position:sticky; top:0; z-index:2; margin:-6px -8px 12px; padding:11px 14px; text-align:center; font-family:var(--mono); font-size:11px; letter-spacing:1px; color:#ffce5c; background:rgba(255,206,92,0.12); backdrop-filter:blur(2px); border-bottom:1px solid color-mix(in srgb,#ffce5c 35%,transparent); }
+  .cpreview { opacity:0.4; pointer-events:none; user-select:none; }
+  .ditem.coffee { color:#ffce5c; }
+  .ditem.coffee:hover { background:rgba(255,206,92,0.10); }
+  .ditem .di svg { width:16px; height:16px; display:block; margin:0 auto; fill:currentColor; }
+  .dshare { justify-content:center; margin:2px 4px 8px; gap:8px; flex-wrap:wrap; }
+  .share .sbtn.ok { color:#7fe0a0; border-color:#7fe0a0; }
+  .gtag { font-family:var(--mono); font-size:11px; letter-spacing:1px; }
+  .dresize { position:absolute; top:0; bottom:0; width:9px; cursor:col-resize; z-index:3; touch-action:none; }
+  .drawer.left .dresize { right:0; } .drawer.right .dresize { left:0; }
+  .dresize::after { content:''; position:absolute; top:50%; transform:translateY(-50%); width:3px; height:36px; border-radius:3px; background:var(--border); }
+  .drawer.left .dresize::after { right:3px; } .drawer.right .dresize::after { left:3px; }
+  .dresize:hover::after { background:#9fe8ff; }
 </style>
 </head>
 <body>
+  <div class="float-btns-l">
+    <button class="tb-btn tb-menu" id="menuBtn" aria-label="Open menu" aria-haspopup="dialog">☰</button>
+    <span class="tip">
+      <button class="ibtn" id="install" data-tip="Install funyo to your home screen — fullscreen &amp; offline">📱 Install</button>
+      <span class="tip-pop" id="tipPop"><b>Install to your home screen</b> — fullscreen &amp; offline:<br>
+        <b>Android (Chrome):</b> menu ⋮ → “Add to Home screen”<br>
+        <b>iPhone (Safari):</b> Share → “Add to Home Screen”<br>
+        <b>Desktop (Chrome/Edge):</b> this button, or the install icon in the address bar.<br>
+        <span style="opacity:.8">Want just one game? Each game installs on its own too — open it and use Add to Home Screen / Install.</span><br>
+        <span style="opacity:.8">Already installed? Open it from your home screen, or the “Open in app” icon in the address bar.</span></span>
+    </span>
+  </div>
+  <div class="float-btns-r">
+    <button class="tb-btn tb-chal" id="chalBtn" aria-label="Open challenges" aria-haspopup="dialog"><span class="trophy">🏆</span> <span class="tb-lbl">CHALLENGES</span></button>
+  </div>
   <div class="wrap">
-    <div class="topbar">
-      <button class="tb-btn tb-menu" id="menuBtn" aria-label="Open menu" aria-haspopup="dialog">☰</button>
-      <button class="tb-btn tb-chal" id="chalBtn" aria-label="Open challenges" aria-haspopup="dialog"><span class="trophy">🏆</span> CHALLENGES</button>
-    </div>
     <header>
       <div class="brand">
         <svg class="mascot" viewBox="0 0 64 64" role="img" aria-label="funyo mascot">
@@ -287,15 +339,6 @@
       </div>
       <div class="sub">a catalogue of self-contained browser games</div>
       <div class="controls">
-        <span class="tip">
-          <button class="ibtn" id="install" data-tip="Install funyo to your home screen — fullscreen &amp; offline">📱 Install</button>
-          <span class="tip-pop" id="tipPop"><b>Install to your home screen</b> — fullscreen &amp; offline:<br>
-            <b>Android (Chrome):</b> menu ⋮ → “Add to Home screen”<br>
-            <b>iPhone (Safari):</b> Share → “Add to Home Screen”<br>
-            <b>Desktop (Chrome/Edge):</b> this button, or the install icon in the address bar.<br>
-            <span style="opacity:.8">Want just one game? Each game installs on its own too — open it and use Add to Home Screen / Install.</span><br>
-            <span style="opacity:.8">Already installed? Open it from your home screen, or the “Open in app” icon in the address bar.</span></span>
-        </span>
         <div class="searchbox">🔍 <input id="search" type="search" placeholder="Search…" aria-label="Search games" autocomplete="off"></div>
         <div class="filter-wrap">
           <button class="ibtn filter-btn" id="filterBtn" aria-haspopup="true" aria-expanded="false">⚙ Filter ▾<span class="fcount" id="fcount" hidden></span></button>
@@ -332,6 +375,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
       </div>
       built for fun · no ads · no payments · plays offline &nbsp;·&nbsp;
+      <a class="coffee" href="https://buymeacoffee.com/n0zz">☕ Buy me a coffee</a> &nbsp;·&nbsp;
       <a class="ghlink" href="https://github.com/N0zz/funyo.online" target="_blank" rel="noopener" aria-label="funyo on GitHub" title="View source on GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.39 1.24-3.23-.12-.31-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.87.12 3.18.77.84 1.24 1.92 1.24 3.23 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z"/></svg>
         GitHub</a>
@@ -341,6 +385,7 @@
   <div class="scrim" id="scrim"></div>
 
   <aside class="drawer left" id="menuDrawer" aria-hidden="true" aria-label="Menu">
+    <div class="dresize" title="Drag to resize"></div>
     <div class="dh"><span class="dt">☰ funyo</span><button class="dx" data-close aria-label="Close menu">✕</button></div>
     <div class="dscroll">
       <div class="dgrp">
@@ -351,14 +396,25 @@
       </div>
       <div class="dgrp">
         <div class="dl">Support</div>
-        <a class="ditem" href="https://buymeacoffee.com/n0zz" target="_blank" rel="noopener"><span class="di">☕</span> Buy me a coffee</a>
+        <a class="ditem coffee" href="https://buymeacoffee.com/n0zz" target="_blank" rel="noopener"><span class="di">☕</span> Buy me a coffee</a>
         <button class="ditem" id="merchBtn" type="button"><span class="di">🛍️</span> Merch / Store <span class="mock">SOON</span></button>
       </div>
       <div class="dgrp">
         <div class="dl">More</div>
-        <button class="ditem" id="whatsnewBtn" type="button"><span class="di">🆕</span> What's new <span class="mock">SOON</span></button>
-        <button class="ditem" id="drawerShare" type="button"><span class="di">🔗</span> Share funyo</button>
-        <a class="ditem" href="https://github.com/N0zz/funyo.online" target="_blank" rel="noopener"><span class="di">⌥</span> GitHub</a>
+        <button class="ditem" id="aboutBtn" type="button"><span class="di">🦊</span> About funyo</button>
+        <button class="ditem" id="changelogBtn" type="button"><span class="di">🗒️</span> Changelog</button>
+        <a class="ditem" href="https://github.com/N0zz/funyo.online" target="_blank" rel="noopener"><span class="di"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.39 1.24-3.23-.12-.31-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.87.12 3.18.77.84 1.24 1.92 1.24 3.23 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z"/></svg></span> GitHub</a>
+        <a class="ditem" href="https://github.com/N0zz/funyo.online/blob/main/LICENSE" target="_blank" rel="noopener"><span class="di">⚖️</span> License</a>
+      </div>
+      <div class="dgrp">
+        <div class="dl">Share</div>
+        <div class="share dshare">
+          <a class="sbtn" id="dShareNative" href="#" style="display:none" aria-label="Share…" title="Share…"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></a>
+          <a class="sbtn" id="dShareX" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+          <a class="sbtn" id="dShareFb" target="_blank" rel="noopener" aria-label="Share on Facebook" title="Share on Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+          <a class="sbtn" id="dShareReddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12c-.688 0-1.25.561-1.25 1.25 0 .687.562 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.688-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg></a>
+          <button class="sbtn" id="dShareCopy" type="button" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
+        </div>
       </div>
     </div>
     <div class="ddata">
@@ -370,30 +426,33 @@
   </aside>
 
   <aside class="drawer right" id="chalDrawer" aria-hidden="true" aria-label="Challenges">
+    <div class="dresize" title="Drag to resize"></div>
     <div class="dh"><span class="dt">🏆 Challenges</span><button class="dx" data-close aria-label="Close challenges">✕</button></div>
     <div class="dscroll">
-      <span class="streak">🔥 3-day streak</span>
-      <div class="csec">Today</div>
-      <div class="cc">
-        <div class="top"><span class="game">🫧 BUBBLE POP</span></div>
-        <div class="goal">Score <b>2,000</b> in one run</div>
-        <div class="bar"><i style="width:64%"></i></div>
-        <div class="cmeta"><span>1,280 / 2,000</span><button class="cplay" type="button">▶ Play</button></div>
+      <div class="cmock-top">🚧 Challenges are a preview — coming soon.</div>
+      <div class="cpreview" aria-hidden="true">
+        <span class="streak">🔥 3-day streak</span>
+        <div class="csec">Today</div>
+        <div class="cc">
+          <div class="top"><span class="game">🫧 BUBBLE POP</span></div>
+          <div class="goal">Score <b>2,000</b> in one run</div>
+          <div class="bar"><i style="width:64%"></i></div>
+          <div class="cmeta"><span>1,280 / 2,000</span><button class="cplay" type="button">▶ Play</button></div>
+        </div>
+        <div class="csec">This week</div>
+        <div class="cc">
+          <div class="top"><span class="game">🏰 KEEP DEFENDER</span><span class="cdone">✓ Done</span></div>
+          <div class="goal">Survive <b>10 waves</b></div>
+          <div class="bar"><i style="width:100%;background:#7fe0a0"></i></div>
+          <div class="cmeta"><span>10 / 10 waves</span><span class="cdone">Completed</span></div>
+        </div>
+        <div class="csec">Recent</div>
+        <div class="clist">
+          <div class="crow"><span class="st">✓</span> Reach 30 in Meadow Flyer</div>
+          <div class="crow"><span class="st">✓</span> 50 targets in Range</div>
+          <div class="crow"><span class="st" style="color:var(--faint)">○</span> Stack 12 blocks</div>
+        </div>
       </div>
-      <div class="csec">This week</div>
-      <div class="cc">
-        <div class="top"><span class="game">🏰 KEEP DEFENDER</span><span class="cdone">✓ Done</span></div>
-        <div class="goal">Survive <b>10 waves</b></div>
-        <div class="bar"><i style="width:100%;background:#7fe0a0"></i></div>
-        <div class="cmeta"><span>10 / 10 waves</span><span class="cdone">Completed</span></div>
-      </div>
-      <div class="csec">Recent</div>
-      <div class="clist">
-        <div class="crow"><span class="st">✓</span> Reach 30 in Meadow Flyer</div>
-        <div class="crow"><span class="st">✓</span> 50 targets in Range</div>
-        <div class="crow"><span class="st" style="color:var(--faint)">○</span> Stack 12 blocks</div>
-      </div>
-      <p class="cmock">Challenges are a preview — coming soon.</p>
     </div>
   </aside>
 
@@ -441,6 +500,28 @@
         <button type="submit" class="fb-submit" id="nlSubmit">Subscribe ▸</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="clModal">
+    <div class="cl">
+      <div class="cl-head"><h3>🗒️ Changelog</h3><button type="button" class="dx" id="clClose" aria-label="Close">✕</button></div>
+      <input id="clSearch" class="cl-search" type="search" placeholder="Search changes…" aria-label="Search changelog" autocomplete="off">
+      <div class="cl-list" id="clList"></div>
+    </div>
+  </dialog>
+
+  <dialog id="aboutModal">
+    <div class="about">
+      <div class="cl-head"><h3>🦊 About funyo</h3><button type="button" class="dx" id="aboutClose" aria-label="Close">✕</button></div>
+      <p>funyo is a little catalogue of small, self-contained browser games — made purely for fun.</p>
+      <ul class="about-list">
+        <li><b>Free forever.</b> No ads, no payments, no subscriptions — ever.</li>
+        <li><b>Plays anywhere.</b> Runs in any modern browser on any device — phone, tablet or desktop. Add it to your home screen and it even works offline.</li>
+        <li><b>Source-available.</b> Each game is a single self-contained page — free to read and tinker with for non-commercial use. The only analytics is Google Analytics, and only if you accept the cookie banner; decline and nothing is tracked. <a href="https://github.com/N0zz/funyo.online" target="_blank" rel="noopener">Browse the code on GitHub</a>.</li>
+        <li><b>Yours to keep.</b> Your scores and progress stay on your device — nothing to sign up for.</li>
+      </ul>
+      <p class="about-foot">Made for fun. If you enjoy it, share it with a friend 💛</p>
+    </div>
   </dialog>
 
   <div id="cookieBanner" class="cookie-banner" hidden>
@@ -528,7 +609,32 @@
       return true;
     }
 
+    // bookmarkable filters: read state from ?q&genre&type&soon and mirror it back on every change
+    function readURL() {
+      try {
+        const p = new URLSearchParams((typeof location !== 'undefined' && location.search) || '');
+        const q = p.get('q'); if (q) FILTER.q = q.toLowerCase();
+        const g = p.get('genre'); if (g) g.split(',').forEach(t => { if (t) FILTER.genres.add(t); });
+        const ty = p.get('type'); if (ty === 'single' || ty === 'mp') FILTER.type = ty;
+        if (p.get('soon') === '0') FILTER.showSoon = false;
+      } catch (e) {}
+    }
+    function syncURL() {
+      if (typeof history === 'undefined' || !history.replaceState) return;
+      try {
+        const p = new URLSearchParams();
+        if (FILTER.q) p.set('q', FILTER.q);
+        if (FILTER.genres.size) p.set('genre', [...FILTER.genres].join(','));
+        if (FILTER.type !== 'all') p.set('type', FILTER.type);
+        if (!FILTER.showSoon) p.set('soon', '0');
+        const qs = p.toString();
+        const base = (typeof location !== 'undefined' && location.pathname) ? location.pathname : '';
+        history.replaceState(null, '', qs ? base + '?' + qs : base || location.pathname);
+      } catch (e) {}
+    }
+
     function render() {
+      syncURL();
       grid.innerHTML = '';
       const f = favs();
       const all = (window.GAMES || []).filter(passes);
@@ -572,21 +678,22 @@
       const ss = document.getElementById('showSoon'); if (ss) ss.checked = true;
       fcountUpdate(); render();
     }
-    render();
+    readURL(); render();
 
     // ---- Search (instant, client-side) ----
     (function () {
       const s = document.getElementById('search');
-      if (s) s.addEventListener('input', () => { FILTER.q = s.value.trim().toLowerCase(); render(); });
+      if (s) { s.value = FILTER.q; s.addEventListener('input', () => { FILTER.q = s.value.trim().toLowerCase(); render(); }); }
     })();
 
     // ---- Filter ▾ dropdown (genre checkboxes + type + coming-soon) ----
     (function () {
       const btn = document.getElementById('filterBtn'), pop = document.getElementById('filterPop'), genreList = document.getElementById('genreList');
       if (!btn || !pop || !genreList) return;
-      const cap = t => t ? t.charAt(0) + t.slice(1).toLowerCase() : t;
       const tags = [...new Set((window.GAMES || []).map(g => g.tag).filter(Boolean))].sort();
-      genreList.innerHTML = tags.map(t => '<label class="fchk"><input type="checkbox" value="' + t + '"> ' + cap(t) + '</label>').join('');
+      const tagColor = {}; // each genre takes the accent of the first game carrying it (echoes the tile tag color)
+      (window.GAMES || []).forEach(g => { if (g.tag && !(g.tag in tagColor)) tagColor[g.tag] = g.accent || '#9fe8ff'; });
+      genreList.innerHTML = tags.map(t => '<label class="fchk"><input type="checkbox" value="' + t + '"> <span class="gtag" style="color:' + tagColor[t] + '">' + t + '</span></label>').join('');
       genreList.addEventListener('change', e => {
         const v = e.target.value; if (e.target.checked) FILTER.genres.add(v); else FILTER.genres.delete(v);
         fcountUpdate(); render();
@@ -604,6 +711,11 @@
       if (fc) fc.addEventListener('click', e => { e.preventDefault(); clearFilters(); pop.classList.remove('show'); });
       btn.addEventListener('click', e => { e.stopPropagation(); pop.classList.toggle('show'); });
       document.addEventListener('click', e => { if (!(e.target.closest && e.target.closest('.filter-wrap'))) pop.classList.remove('show'); });
+      // reflect any URL-loaded filter state into the controls
+      genreList.querySelectorAll('input').forEach(i => { i.checked = FILTER.genres.has(i.value); });
+      if (seg) seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.type === FILTER.type));
+      if (ss) ss.checked = FILTER.showSoon;
+      fcountUpdate();
     })();
 
     // ---- Drawers: left ☰ menu + right 🏆 challenges (main-site only) ----
@@ -630,34 +742,63 @@
         // close button, or any actionable item (link / action button) dismisses the drawer
         if (e.target.closest('[data-close]') || e.target.closest('.ditem')) close();
       }));
-      const ds = document.getElementById('drawerShare');
-      if (ds) ds.addEventListener('click', () => {
-        const url = 'https://funyo.online/', text = 'Free, self-contained browser games — no ads, plays offline:';
-        if (typeof navigator !== 'undefined' && navigator.share) navigator.share({ title: 'funyo', text: text, url: url }).catch(() => {});
-        else { try { navigator.clipboard.writeText(url); } catch (e) {} }
-      });
+      // resizable + persisted widths (challenges defaults wider than the menu)
+      const DW = { menu: { key: 'funyo_dw_menu', def: 340 }, chal: { key: 'funyo_dw_chal', def: 440 } };
+      const vw = () => (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1280;
+      const clampW = w => Math.max(280, Math.min(w, vw() * 0.92));
+      const getLS = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+      function applyW(el, kind) {
+        if (!el) return;
+        let w = parseInt(getLS(DW[kind].key) || '', 10);
+        if (!isFinite(w)) w = DW[kind].def;
+        el.style.width = clampW(w) + 'px';
+      }
+      function resizable(el, kind, grow) { // grow>0: left drawer (handle on right); grow<0: right drawer (handle on left)
+        if (!el) return;
+        const h = el.querySelector('.dresize'); if (!h) return;
+        let on = false;
+        const move = e => {
+          if (!on) return;
+          const x = (e.clientX != null) ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+          el.style.width = clampW(grow > 0 ? x : (vw() - x)) + 'px';
+        };
+        const up = () => {
+          if (!on) return; on = false;
+          document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up);
+          try { localStorage.setItem(DW[kind].key, String(parseInt(el.style.width, 10) || DW[kind].def)); } catch (e) {}
+        };
+        h.addEventListener('pointerdown', e => { e.preventDefault(); on = true; document.addEventListener('pointermove', move); document.addEventListener('pointerup', up); });
+      }
+      applyW(menu, 'menu'); applyW(chal, 'chal');
+      resizable(menu, 'menu', 1); resizable(chal, 'chal', -1);
+      // on rotate / viewport change, re-clamp the shown width to fit (saved preference is kept)
+      if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { applyW(menu, 'menu'); applyW(chal, 'chal'); });
     })();
 
-    // ---- Share buttons ----
+    // ---- Share buttons (footer + drawer share rows share one wiring) ----
     (function () {
       const url = 'https://funyo.online/';
       const text = 'Free, self-contained browser games — no ads, plays offline:';
       const enc = (typeof encodeURIComponent === 'function') ? encodeURIComponent : (s => String(s));
       const u = enc(url), t = enc(text);
-      const set = (id, href) => { const e = document.getElementById(id); if (e) e.href = href; };
-      set('shareX', 'https://twitter.com/intent/tweet?text=' + t + '&url=' + u);
-      set('shareFb', 'https://www.facebook.com/sharer/sharer.php?u=' + u);
-      set('shareReddit', 'https://www.reddit.com/submit?url=' + u + '&title=' + t);
-      const cp = document.getElementById('shareCopy');
-      if (cp) cp.addEventListener('click', () => {
-        const done = () => { cp.classList.add('ok'); cp.title = 'Copied!'; setTimeout(() => { cp.classList.remove('ok'); cp.title = 'Copy link'; }, 1500); };
-        try { navigator.clipboard.writeText(url).then(done).catch(() => {}); } catch (e) {}
-      });
-      const ns = document.getElementById('shareNative');
-      if (ns && typeof navigator !== 'undefined' && navigator.share) {
-        ns.style.display = '';
-        ns.addEventListener('click', (e) => { e.preventDefault(); navigator.share({ title: 'funyo', text: text, url: url }).catch(() => {}); });
+      function wire(ids) {
+        const set = (id, href) => { const e = document.getElementById(id); if (e) e.href = href; };
+        set(ids.x, 'https://twitter.com/intent/tweet?text=' + t + '&url=' + u);
+        set(ids.fb, 'https://www.facebook.com/sharer/sharer.php?u=' + u);
+        set(ids.reddit, 'https://www.reddit.com/submit?url=' + u + '&title=' + t);
+        const cp = document.getElementById(ids.copy);
+        if (cp) cp.addEventListener('click', () => {
+          const done = () => { cp.classList.add('ok'); cp.title = 'Copied!'; setTimeout(() => { cp.classList.remove('ok'); cp.title = 'Copy link'; }, 1500); };
+          try { navigator.clipboard.writeText(url).then(done).catch(() => {}); } catch (e) {}
+        });
+        const ns = document.getElementById(ids.native);
+        if (ns && typeof navigator !== 'undefined' && navigator.share) {
+          ns.style.display = '';
+          ns.addEventListener('click', (e) => { e.preventDefault(); navigator.share({ title: 'funyo', text: text, url: url }).catch(() => {}); });
+        }
       }
+      wire({ x: 'shareX', fb: 'shareFb', reddit: 'shareReddit', copy: 'shareCopy', native: 'shareNative' });
+      wire({ x: 'dShareX', fb: 'dShareFb', reddit: 'dShareReddit', copy: 'dShareCopy', native: 'dShareNative' });
     })();
 
     // ---- Install / open ----
@@ -797,6 +938,63 @@
         if (window.funyo && window.funyo.confirm) window.funyo.confirm(msg, wipe);
         else if (typeof confirm !== 'function' || confirm(msg)) wipe();
       });
+    })();
+
+    // ---- Changelog (centered modal; date-grouped releases, lazy-loaded + search incl. dates) ----
+    const CHANGELOG = [
+      { date: '2026-06-27', title: 'Home redesign & polish', items: [
+        'New: redesigned home page — slide-out menu, instant search and genre filters (your filters now save in the link, so you can bookmark them).',
+        'New: NEW and UPDATED badges on game tiles, so fresh and recently-improved games are easy to spot.',
+        'New: “Reset all data” to clear your scores, progress and favorites across every game.',
+        'New: this changelog 🙂',
+        'Fix: Brick Breaker ran too fast on some phones — speed is now consistent everywhere.',
+        'Fix: Range “Sprint” is now a proper race to 100 targets.',
+      ] },
+      { date: '2026-06-26', title: 'First games launch', items: [
+        'Added 8 games: Asteroids, Keep Defender, Bubble Pop, Brick Breaker, Stack, Meadow Flyer, Range and Neon Snake.',
+      ] },
+    ];
+    (function () {
+      const modal = document.getElementById('clModal'), list = document.getElementById('clList');
+      const search = document.getElementById('clSearch'), btn = document.getElementById('changelogBtn'), closeBtn = document.getElementById('clClose');
+      if (!modal || !list || !modal.showModal) return;
+      const PAGE = 3; let shown = 0, filtered = CHANGELOG.slice();
+      const more = () => {
+        filtered.slice(shown, shown + PAGE).forEach((rel, k) => {
+          if (shown + k > 0) { const hr = document.createElement('hr'); hr.className = 'cl-sep'; list.appendChild(hr); }
+          const b = document.createElement('div'); b.className = 'cl-rel';
+          b.innerHTML = '<div class="cl-relhead"><span class="cl-date">' + rel.date + '</span> — <span class="cl-title">' + rel.title + '</span></div>'
+            + '<ul class="cl-items">' + rel.items.map(it => '<li>' + it + '</li>').join('') + '</ul>';
+          list.appendChild(b);
+        });
+        shown = Math.min(shown + PAGE, filtered.length);
+      };
+      const fill = () => { let g = 0; do { more(); } while (shown < filtered.length && list.scrollHeight <= list.clientHeight && g++ < 60); };
+      const reset = () => {
+        const q = ((search && search.value) || '').trim().toLowerCase();
+        filtered = CHANGELOG.filter(r => !q || (r.date + ' ' + r.title + ' ' + r.items.join(' ')).toLowerCase().includes(q));
+        shown = 0; list.innerHTML = '';
+        if (!filtered.length) { const em = document.createElement('div'); em.className = 'cl-empty'; em.textContent = 'No changes match.'; list.appendChild(em); return; }
+        fill();
+      };
+      const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
+      if (btn) btn.addEventListener('click', () => { modal.showModal(); reset(); lock(true); });
+      if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
+      modal.addEventListener('close', () => lock(false));
+      modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+      if (search) search.addEventListener('input', reset);
+      list.addEventListener('scroll', () => { if (shown < filtered.length && list.scrollTop + list.clientHeight >= list.scrollHeight - 24) more(); });
+    })();
+
+    // ---- About funyo (centered modal) ----
+    (function () {
+      const modal = document.getElementById('aboutModal'), btn = document.getElementById('aboutBtn'), closeBtn = document.getElementById('aboutClose');
+      if (!modal || !modal.showModal) return;
+      const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
+      if (btn) btn.addEventListener('click', () => { modal.showModal(); lock(true); });
+      if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
+      modal.addEventListener('close', () => lock(false));
+      modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
     })();
 
     if ('serviceWorker' in navigator) {
