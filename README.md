@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo-512.png" alt="Arcade logo" width="116" height="116">
+  <img src="logo-512.png" alt="funyo logo" width="116" height="116">
 </p>
 
 <h1 align="center">funyo</h1>
@@ -19,7 +19,9 @@
 
 A little **catalogue** of self-contained browser games. Each game is its
 own folder of static HTML/Canvas + vanilla JS — no build step, no dependencies, no
-external assets — and gets a tile on the home page plus a **‹ Arcade** link back.
+external assets — and gets a tile on the home page plus a top-left **‹ Menu** / **funyo ›**
+nav. Every game follows the same flow: **menu (pick a mode) → play → scoreboard (with share
+buttons)**. The home page groups tiles into **Single player** and **Multiplayer** sections.
 
 ## Games
 
@@ -34,7 +36,9 @@ external assets — and gets a tile on the home page plus a **‹ Arcade** link 
 | **Range** | `games/aim-trainer/` | Timed flick-aim target practice with accuracy + combo (tactical theme) |
 | **Bubble Pop** | `games/bubbles/` | Puzzle-Bobble bubble shooter — match 3+, Arcade/Endless/Zen + special shots |
 
-More on the way (Invaders, Road Hop, Icy Tower, Trap the Cat, Pulse Dash, …).
+More on the way — single-player (Sudoku, Invaders, Road Hop, Icy Tower, Trap the Cat,
+Pulse Dash, Dino Jump, …) and **local multiplayer** (Light Cycles 2–4P, Air Hockey,
+Slime Volleyball).
 
 **Stay updated:** hit **📬 Subscribe** on the home page to get an email when a new
 game ships or something gets fixed (free, no spam, unsubscribe anytime).
@@ -54,15 +58,20 @@ screen (its own icon, opens fullscreen, plays offline). Handy if you only want o
 
 ## Add a game
 
-1. Create `games/<slug>/index.html` — self-contained, with a `‹ Arcade` link to `../../`.
-2. Add one entry to **`games.js`** (`slug`, `title`, `blurb`, `icon`, `accent`, `tag`).
-3. (Optional) add it to `sw.js` `SHELL` if it must be cached for first-run offline.
+1. Create `games/<slug>/index.html` — self-contained, with the `‹ Menu` + `funyo ›` nav and
+   the menu → play → scoreboard(+share) flow, plus a `window.__test` hook.
+2. Add one entry to **`games.js`**: `slug`, `title`, `blurb`, `icon`, `accent`, `tag`, and
+   optionally `soon: true` (greyed coming-soon tile), `mp: true` + `players` (e.g. `"2–4P"`,
+   Multiplayer section), `badges: ["new"]`/`["pick"]` (gold/purple tile badge).
+3. Add `games/<slug>/test.mjs` (dependency-free headless harness) and keep it green.
+4. (Optional) add it to `sw.js` `SHELL` if it must be cached for first-run offline.
 
 ## Testing
 
 ```bash
-node test.mjs                 # arcade: catalogue wiring + Keep Defender logic
-node games/asteroids/test.mjs # the asteroids game's own suite
+node test.mjs                  # catalogue wiring + Keep Defender logic + boots every live game
+node games/<slug>/test.mjs     # any single game's own suite (e.g. games/snake/test.mjs)
+node games/asteroids/test.mjs  # the asteroids launcher's suite
 ```
 
 Dependency-free headless harnesses (mock the DOM/canvas, drive each game via a
@@ -71,13 +80,14 @@ Dependency-free headless harnesses (mock the DOM/canvas, drive each game via a
 ## Layout
 
 ```text
-index.html        catalogue (tiles from games.js) + PWA install
+index.html        catalogue (tiles from games.js) + PWA install + share + feedback + newsletter
 games.js          catalogue manifest
-favicon.svg       arcade icon
+analytics.js      consent-gated GA4 loader
+favicon.svg       funyo icon
 manifest.json     PWA manifest      sw.js   service worker (offline)
-.nojekyll         serve files as-is on GitHub Pages
-test.mjs          arcade test harness
-games/<slug>/     each game, standalone
+CNAME             custom domain (funyo.online)   .nojekyll   serve files as-is on GitHub Pages
+test.mjs          catalogue + Keep Defender harness
+games/<slug>/     each game, standalone (index.html + test.mjs + manifest/sw/icons)
 ```
 
 > History note: `games/asteroids/` was imported with `git subtree` so its full

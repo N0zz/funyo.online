@@ -31,7 +31,17 @@ games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, icon-19
 - **Headless-safe:** guard `AudioContext` (lazy, inert if absent), `navigator.vibrate` (only
   if present), `matchMedia`; `ctx.roundRect` fallback. Must boot in a mocked DOM without throwing.
 - **Nav:** top-left `‹ Menu` button (reloads → back to the game's own start screen) + a
-  `funyo ›` link to `../../`. HUD must clear the nav (vertically centered within the bar).
+  `funyo ›` link to `../../`. HUD must clear the nav in **both portrait and landscape**
+  (centered in the bar; in portrait the HUD drops to its own row below the nav).
+- **Three-screen schema (every game):** (1) MENU — title + mode/options selection with a
+  CLEAR selected-state indicator on the active choice; (2) GAME; (3) SCOREBOARD/END — final
+  score + best (persisted in `localStorage`) + a "Play again" action + a **share row**.
+- **End-screen share row:** reuse the catalogue footer's four icon buttons (Native/X/Reddit/
+  Copy) as a clickable DOM overlay. The message is a complete standalone sentence with NO
+  trailing preposition and NO url in it (e.g. `I scored <n> in Neon Snake 🐍`); the url is
+  `https://funyo.online/games/<slug>/`, passed separately. X uses `?text=<msg>&url=<url>`,
+  Reddit `?url=<url>&title=<msg>`, Native `share({text:msg,url})`, Copy writes `msg + '\n' + url`
+  and flashes `.ok`. Compute the score at click time; guard `navigator.share`/`clipboard`.
 - **Each game is its own installable PWA:** `manifest.json` + `sw.js` + `icon-192/512.png`
   (distinct color-emoji icon) + apple/theme meta in `<head>`.
 - **Distinct visual theme per game.** (asteroids=space, keep-defender=castle/parchment,
@@ -76,7 +86,15 @@ games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, icon-19
   rebrands and bump `?v=` so scrapers refetch; re-scrape via the FB Sharing Debugger.
 - **Newsletter:** Kit. The inline Subscribe modal POSTs to Kit form **9615603**; sending domain
   `funyo.online` is DKIM/DMARC-verified (records in OVH), default from `news@funyo.online`.
-- Monetization is optional only: Buy Me a Coffee + GitHub Sponsors (no required payments).
+- **Catalogue layout:** tiles render from `games.js` into two sections — **Single player** and
+  **Multiplayer** (`mp: true`) — split by centered horizontal dividers; within each, order is
+  favorites → available → coming-soon (`soon: true`, greyed). MP tiles show a `players` pill
+  (👥 2P / 2–4P) and keep their genre tag. **Badges** come from the `BADGES` map in `index.html`
+  (`badges: ["new"]` gold, `["pick"]` purple) rendered as a shimmer+sparkle mark, top-left —
+  add a type by adding one map entry + a color rule. Header carries a **mascot placeholder**
+  (chibi fox-girl inline SVG — swap for real art later).
+- Monetization is optional only: **Buy Me a Coffee** (footer) + GitHub Sponsors (README badge
+  only — the footer Sponsor link was removed; footer = coffee + a GitHub-icon repo link).
 
 ## Asteroids is special
 
