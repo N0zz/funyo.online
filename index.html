@@ -158,8 +158,8 @@
   #shareCopy.ok { color:#7fe0a0; border-color:#7fe0a0; }
 
   /* feedback modal */
-  #fbModal, #nlModal, #clModal, #aboutModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
-  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop { background:rgba(5,8,13,0.66); }
+  #fbModal, #nlModal, #clModal, #aboutModal, #nameModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #nameModal::backdrop { background:rgba(5,8,13,0.66); }
   /* about modal */
   #aboutModal { width:min(520px,94vw); }
   .about { padding:18px 20px 20px; display:flex; flex-direction:column; gap:12px; }
@@ -256,6 +256,12 @@
   .dx { background:none; border:none; color:var(--faint); font-size:18px; cursor:pointer; line-height:1; padding:0; }
   .dx:hover { color:#fff; }
   .dscroll { flex:1; overflow-y:auto; padding:6px 8px; display:flex; flex-direction:column; }
+  .dwelcome { display:flex; align-items:center; justify-content:center; gap:2px; padding:6px 8px 12px; margin-bottom:4px; font-size:14px; color:var(--muted); border-bottom:1px solid var(--border); }
+  .dw-word { color:var(--text); transition:opacity .35s ease; }
+  .dw-name { color:#9fe8ff; font-weight:700; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dw-edit { background:none; border:none; color:var(--faint); cursor:pointer; font-size:12px; line-height:1; padding:2px 4px; margin-left:4px; }
+  .dw-edit:hover { color:#9fe8ff; }
+  @media (prefers-reduced-motion: reduce){ .dw-word { transition:none; } }
   .dscroll > .dgrp:last-child { margin-top:auto; }
   .dgrp { padding:10px 4px 2px; }
   .dl { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:0 8px 6px; text-align:center; }
@@ -401,6 +407,7 @@
     <div class="dresize" title="Drag to resize"></div>
     <div class="dh"><span class="dt">☰ Komyo Games</span><button class="dx" data-close aria-label="Close menu">✕</button></div>
     <div class="dscroll">
+      <div class="dwelcome"><span class="dw-word" id="dwWord">Welcome</span>,&nbsp;<span class="dw-name" id="dwName">anonymous</span><button class="dw-edit" id="dwEdit" type="button" aria-label="Edit display name" title="Edit display name">✏️</button></div>
       <div class="dgrp">
         <div class="dl">Connect</div>
         <button class="ditem" id="feedback" type="button"><span class="di">💬</span> Feedback</button>
@@ -522,6 +529,21 @@
       <input id="clSearch" class="cl-search" type="search" placeholder="Search changes…" aria-label="Search changelog" autocomplete="off">
       <div class="cl-list" id="clList"></div>
     </div>
+  </dialog>
+
+  <dialog id="nameModal">
+    <form class="fb-form" id="nameForm">
+      <h3>👋 Welcome to Komyo Games</h3>
+      <p class="fb-intro">Pick a display name (optional) — it shows when you post a score to our Discord. Leave it blank to stay <b>anonymous</b>.</p>
+      <div>
+        <label for="nameInput">Display name</label>
+        <input id="nameInput" type="text" maxlength="24" placeholder="e.g. FoxFan99" autocomplete="off">
+      </div>
+      <div class="fb-actions">
+        <button type="button" class="fb-cancel" id="nameSkip">Skip</button>
+        <button type="submit" class="fb-submit" id="nameSave">Save ▸</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog id="aboutModal">
@@ -971,6 +993,10 @@
 
     // ---- Changelog (centered modal; date-grouped releases, lazy-loaded + search incl. dates) ----
     const CHANGELOG = [
+      { date: '2026-06-27', title: 'We are now Komyo Games', items: [
+        'New name & logo: funyo is now Komyo Games — same games, fresh fox mascot.',
+        'New: post your score to our Discord right from any game’s end screen — set a display name, or stay anonymous.',
+      ] },
       { date: '2026-06-27', title: 'Home redesign & polish', items: [
         'New: redesigned home page — slide-out menu, instant search and genre filters (your filters now save in the link, so you can bookmark them).',
         'New: NEW and UPDATED badges on game tiles, so fresh and recently-improved games are easy to spot.',
@@ -1031,6 +1057,35 @@
       const dh = document.getElementById('dataHelp'), dn = document.getElementById('dataNote');
       if (!dh || !dn) return;
       dh.addEventListener('click', () => { const show = dn.hidden; dn.hidden = !show; dh.setAttribute('aria-expanded', String(show)); });
+    })();
+
+    // ---- welcome banner + display name (first-visit prompt · ✏️ edit · cycling-language greeting) ----
+    (function () {
+      const modal = document.getElementById('nameModal');
+      const form = document.getElementById('nameForm'), input = document.getElementById('nameInput'), skip = document.getElementById('nameSkip');
+      const dwName = document.getElementById('dwName'), edit = document.getElementById('dwEdit'), word = document.getElementById('dwWord');
+      const cur = () => (window.gamekit && window.gamekit.player) ? window.gamekit.player() : 'anonymous';
+      const refresh = () => { if (dwName) dwName.textContent = cur(); };
+      const apply = v => { if (window.gamekit && window.gamekit.setName) window.gamekit.setName(v); refresh(); };
+      let editing = false;
+      const open = (isEdit) => {
+        if (!modal || !modal.showModal) return;
+        editing = !!isEdit;
+        if (input) input.value = isEdit ? (cur() === 'anonymous' ? '' : cur()) : '';
+        if (skip) skip.textContent = isEdit ? 'Cancel' : 'Skip';
+        try { modal.showModal(); } catch (e) {}
+      };
+      if (form) form.addEventListener('submit', e => { e.preventDefault(); apply(input ? input.value : ''); try { modal.close(); } catch (_) {} });
+      if (skip) skip.addEventListener('click', () => { if (!editing) apply(''); try { modal.close(); } catch (_) {} }); // first-visit skip = anonymous
+      if (edit) edit.addEventListener('click', () => open(true));
+      refresh();
+      if (word) {
+        const words = ['Welcome', 'Bienvenue', 'Bienvenido', 'Willkommen', 'Benvenuto', 'Witaj', 'Olá', 'Välkommen', 'Hoş geldin', 'ようこそ', '환영합니다', '欢迎', 'Привіт', 'مرحبا'];
+        let i = 0;
+        setInterval(() => { i = (i + 1) % words.length; word.style.opacity = '0'; setTimeout(() => { word.textContent = words[i]; word.style.opacity = '1'; }, 350); }, 2800);
+      }
+      let has = null; try { has = localStorage.getItem('gamekit_name'); } catch (e) {}
+      if (!has) open(false);
     })();
 
     if ('serviceWorker' in navigator) {
