@@ -57,17 +57,19 @@ function testCatalogue() {
   const GAMES = g.win.GAMES;
   ok(Array.isArray(GAMES) && GAMES.length >= 2, 'games.js exposes games (got ' + (GAMES && GAMES.length) + ')');
   const grid = g.getEl('grid');
-  ok(grid.children.length === GAMES.length, 'one tile per game (got ' + grid.children.length + ')');
-  ok(grid.children[0] && grid.children[0].href === 'games/' + GAMES[0].slug + '/', 'tile links to games/<slug>/ (got ' + (grid.children[0] && grid.children[0].href) + ')');
-  // favorites: starring the 2nd playable game sorts it to the top
-  const star = grid.children[1] && grid.children[1].children[0]; // 2nd tile's ★ button
+  // #grid now also holds full-width section dividers, so count only the tiles.
+  const tiles = () => grid.children.filter(c => c.className && String(c.className).includes('tile'));
+  ok(tiles().length === GAMES.length, 'one tile per game (got ' + tiles().length + ')');
+  ok(tiles()[0] && tiles()[0].href === 'games/' + GAMES[0].slug + '/', 'first tile links to games/<slug>/ (got ' + (tiles()[0] && tiles()[0].href) + ')');
+  // favorites: starring the 2nd playable game sorts it to the top of its section
+  const star = tiles()[1] && tiles()[1].children[0]; // 2nd tile's ★ button
   ok(star, 'playable tile has a favorite star');
   if (star) {
     star.fire('click');
-    ok(grid.children[0].href === 'games/' + GAMES[1].slug + '/', 'favoriting sorts that game first (got ' + grid.children[0].href + ')');
+    ok(tiles()[0].href === 'games/' + GAMES[1].slug + '/', 'favoriting sorts that game first (got ' + tiles()[0].href + ')');
     // unfavorite restores original order
-    grid.children[0].children[0].fire('click');
-    ok(grid.children[0].href === 'games/' + GAMES[0].slug + '/', 'unfavoriting restores order');
+    tiles()[0].children[0].fire('click');
+    ok(tiles()[0].href === 'games/' + GAMES[0].slug + '/', 'unfavoriting restores order');
   }
 }
 

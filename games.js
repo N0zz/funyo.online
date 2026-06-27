@@ -9,6 +9,7 @@ window.GAMES = [
     icon: "🛸",
     accent: "#9fe8ff",
     tag: "ARCADE",
+    badges: ["pick"],
   },
   {
     slug: "tower-defense",
@@ -26,6 +27,7 @@ window.GAMES = [
     icon: "🫧",
     accent: "#2ee8c8",
     tag: "PUZZLE",
+    badges: ["new"],
   },
 
   // ---- coming soon ----
@@ -131,5 +133,40 @@ window.GAMES = [
     icon: "🐍",
     accent: "#7fffb0",
     tag: "CLASSIC",
+  },
+
+  // ---- multiplayer (local, single-screen) — coming soon ----
+  {
+    slug: "tron",
+    title: "Light Cycles",
+    blurb: "Neon trails fill the arena — box your rivals in, last cycle riding wins. Local 2–4 players.",
+    icon: "🏍️",
+    accent: "#5fe0ff",
+    tag: "ARCADE",
+    players: "2–4P",
+    mp: true,
+    soon: true,
+  },
+  {
+    slug: "air-hockey",
+    title: "Air Hockey",
+    blurb: "Slam the puck past your friend on a glowing rink. Fast, frantic, two-thumb local play.",
+    icon: "🏒",
+    accent: "#ff5c8a",
+    tag: "SPORT",
+    players: "2P",
+    mp: true,
+    soon: true,
+  },
+  {
+    slug: "slime-volley",
+    title: "Slime Volleyball",
+    blurb: "Two blobs, one ball, one net — bounce it onto their side. Silly, springy local duel.",
+    icon: "🏐",
+    accent: "#caff4d",
+    tag: "SPORT",
+    players: "2P",
+    mp: true,
+    soon: true,
   },
 ];
