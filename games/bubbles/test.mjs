@@ -285,6 +285,34 @@ section('Bubble Pop: special charge fills and grants special shot');
   ok(Ts().specialType !== null, 'specialType is set when special is ready');
 }
 
+section('Bubble Pop: per-mode bests for menu');
+{
+  const gb = runGame();
+  const Tb = gb.T;
+  // Seed distinct bests per mode and confirm bestFor reads each one back.
+  Tb().startMode('arcade');
+  Tb().setScore(700);
+  Tb().clearGrid();
+  Tb().setGridCell(0, 0, 1);
+  let gb1 = 0;
+  while (Tb().state === 'playing' && gb1++ < 200) { Tb().forceDescend(); Tb().step(1); }
+
+  Tb().startMode('endless');
+  Tb().setScore(1200);
+  Tb().clearGrid();
+  Tb().setGridCell(0, 0, 1);
+  let gb2 = 0;
+  while (Tb().state === 'playing' && gb2++ < 200) { Tb().forceDescend(); Tb().step(1); }
+
+  ok(Tb().bestFor('arcade') >= 700, 'bestFor(arcade) returns persisted arcade best (got ' + Tb().bestFor('arcade') + ')');
+  ok(Tb().bestFor('endless') >= 1200, 'bestFor(endless) returns persisted endless best (got ' + Tb().bestFor('endless') + ')');
+  ok(Tb().bestFor('zen') === 0, 'bestFor(zen) is 0 when never played (got ' + Tb().bestFor('zen') + ')');
+  // refreshMenuBests must be headless-safe (querySelectorAll mocked to [])
+  let threw = false;
+  try { Tb().refreshMenuBests(); } catch (e) { threw = true; }
+  ok(!threw, 'refreshMenuBests() is headless-safe');
+}
+
 section('Bubble Pop: setShotColor / aimAngle API');
 {
   T().startMode('arcade');

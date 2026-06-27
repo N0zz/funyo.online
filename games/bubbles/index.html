@@ -78,6 +78,8 @@
     background:var(--aqua); border-radius:5px; padding:1px 6px; }
   .mode-btn .m-title { font-size:15px; font-weight:700; color:var(--aqua); }
   .mode-btn .m-desc { font-size:11px; color:var(--dim); margin-top:2px; }
+  .mode-btn .m-best { font-size:10px; letter-spacing:1px; text-transform:uppercase; margin-top:5px;
+    color:var(--gold); font-weight:700; }
   #overlay button.play-btn { font-family:inherit; cursor:pointer; font-size:16px;
     letter-spacing:1px; padding:12px 36px; border-radius:12px; border:2px solid var(--aqua2);
     color:#0d1f2d; background:linear-gradient(135deg,var(--aqua),var(--aqua2));
@@ -101,12 +103,12 @@
 
   .share { display:flex; gap:9px; justify-content:center; flex-wrap:wrap; align-items:center; margin-top:6px; }
   .share .lbl { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim); margin-right:2px; }
-  .share .sbtn { appearance:none; -webkit-appearance:none; font:inherit; margin:0; line-height:0;
+  #gameOver .share .sbtn { appearance:none; -webkit-appearance:none; font:inherit; margin:0; line-height:0;
     display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; padding:0; cursor:pointer;
     border-radius:10px; color:var(--aqua); background:rgba(46,232,200,0.1); border:1px solid var(--border); transition:color .12s, border-color .12s, background .12s; }
   .share .sbtn svg { width:18px; height:18px; fill:currentColor; display:block; }
-  .share .sbtn:hover { color:#fff; border-color:var(--aqua); background:rgba(46,232,200,0.22); }
-  .share .sbtn.ok { color:#7fe0a0; border-color:#7fe0a0; }
+  #gameOver .share .sbtn:hover { color:#fff; border-color:var(--aqua); background:rgba(46,232,200,0.22); }
+  #gameOver .share .sbtn.ok { color:#7fe0a0; border-color:#7fe0a0; }
 
   #wonScreen { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column;
     align-items:center; justify-content:center; text-align:center; gap:14px;
@@ -156,14 +158,17 @@
     <button class="mode-btn active" data-mode="arcade">
       <div class="m-title">Arcade</div>
       <div class="m-desc">Clear board to advance<br>Grid descends over time</div>
+      <div class="m-best" data-best="arcade">best: 0</div>
     </button>
     <button class="mode-btn" data-mode="endless">
       <div class="m-title">Endless</div>
       <div class="m-desc">New rows push in forever<br>Survive &amp; rack up score</div>
+      <div class="m-best" data-best="endless">best: 0</div>
     </button>
     <button class="mode-btn" data-mode="zen">
       <div class="m-title">Zen</div>
       <div class="m-desc">No pressure, no descent<br>Just pop and relax</div>
+      <div class="m-best" data-best="zen">best: 0</div>
     </button>
   </div>
   <p style="font-size:12px;color:var(--dim);margin-top:6px;">Mouse/touch to aim &middot; Click/tap to shoot &middot; A/D or ← → to aim &middot; Space to fire</p>
@@ -347,6 +352,15 @@
   }
   function saveBest() {
     try { if (score > bestScore) { bestScore = score; localStorage.setItem(bestKey(), String(score)); } } catch(e) {}
+  }
+  function bestFor(m) {
+    try { const v = localStorage.getItem('bubbles_best_' + m); return v ? (parseInt(v, 10) || 0) : 0; } catch(e) { return 0; }
+  }
+  function refreshMenuBests() {
+    document.querySelectorAll('.m-best').forEach(el => {
+      const m = el.dataset.best;
+      if (m) el.textContent = 'best: ' + bestFor(m);
+    });
   }
 
   // ---- Start / modes ----
@@ -1125,6 +1139,7 @@
   $('goMenu').addEventListener('click', () => {
     $('gameOver').classList.add('hidden');
     $('overlay').classList.remove('hidden');
+    refreshMenuBests();
   });
   $('wonNext').addEventListener('click', startGame);
   $('menuBtn').addEventListener('click', () => { try { location.reload(); } catch(e) {} });
@@ -1171,6 +1186,8 @@
     get nextShotColor() { return nextColor; },
     get level() { return level; },
     get mode() { return mode; },
+    bestFor(m) { return bestFor(m); },
+    refreshMenuBests() { refreshMenuBests(); },
     get chargeLevel() { return chargeLevel; },
     get specialReady() { return specialReady; },
     get specialType() { return specialType; },
@@ -1221,6 +1238,7 @@
     get COLS_COUNT() { return COLS_COUNT; },
   };
 
+  refreshMenuBests();
   resize(); loop();
 })();
   if ('serviceWorker' in navigator) {
