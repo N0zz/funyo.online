@@ -728,6 +728,7 @@
   window.gamekit.shareRow(document.getElementById('shareRow'), {
     slug: 'flappy', title: 'Meadow Flyer',
     message: () => window.gamekit.shareText({ verb: 'I flew to', score: score, game: 'Meadow Flyer', emoji: '🐤', mode: selectedBird.emoji + ' ' + (selectedBird.id.charAt(0).toUpperCase() + selectedBird.id.slice(1)) }),
+    params: () => ({ bird: selectedBird.id }),
   });
   window.gamekit.nav({ reset: 'flappy_' });
 
@@ -765,6 +766,8 @@
 
   applyModeUI();
   resize(); updateHud(); refreshMenu(); loop();
+  // deep-link ?bird= → preselect that bird (if it's unlocked)
+  { const P = window.gamekit && window.gamekit.param; const pb = P && P('bird'); if (pb && BIRDS.some(b => b.id === pb) && selectBird(pb)) { selectedBird = getSelectedBird(); refreshMenu(); } }
 })();
   window.gamekit.pwa();
 </script>

@@ -260,6 +260,9 @@
     // game-kit shell: top-left nav (Menu reloads the launcher) + top-right sound menu
     // (SFX + Music rows + a Reset-scores entry that clears asteroids_* bests) + PWA auto-update.
     if (KIT) { KIT.nav({ music: true, reset: 'asteroids_' }); KIT.pwa(); }
+
+    // deep-link ?play=<file> → open that level directly (it still shows the level's own start screen)
+    { const P = KIT && KIT.param; const pf = P && P('play'); if (pf) { const lv = (window.LEVELS || []).find(l => l.file === 'levels/' + pf || l.file === pf); if (lv) play(lv.file); } }
   </script>
 </body>
 </html>

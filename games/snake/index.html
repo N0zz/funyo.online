@@ -567,6 +567,7 @@
       if (opts.size !== 'medium') m.push(cap(opts.size));
       return window.gamekit.shareText({ score: score, game: 'Neon Snake', emoji: '🐍', mode: m.join(' · '), extra: ['length ' + (snake ? snake.length : 0)] });
     },
+    params: () => ({ speed: opts.speed, walls: opts.walls, size: opts.size }),
   });
   window.gamekit.nav({ reset: 'snake_' });
 
@@ -575,6 +576,8 @@
   resize();
   initOptBtns();
   syncOptBtns();
+  // deep-link ?walls=&speed=&size= → preselect options
+  { const P = window.gamekit && window.gamekit.param; if (P) { const w = P('walls'), s = P('speed'), z = P('size'); if (w === 'solid' || w === 'wrap') opts.walls = w; if (SPEED_CFG[s]) opts.speed = s; if (GRID_SIZES[z]) opts.size = z; applyGridSize(); syncOptBtns(); best = loadBest(); if (bestEl) bestEl.textContent = best; } }
   best = loadBest();
   if (bestEl) bestEl.textContent = best;
   renderTopScores();

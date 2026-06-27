@@ -302,7 +302,8 @@
       const finalScore = score;
       window.gamekit.shareRow(document.getElementById('shareRow'), {
         slug: 'stacker', title: 'Stack',
-        message: () => window.gamekit.shareText({ verb: 'I stacked', score: finalScore, unit: 'high', game: 'Stack', emoji: '🧊', mode: MODES[mode].label }),
+        message: () => window.gamekit.shareText({ verb: 'I stacked', score: finalScore, unit: 'high', game: 'Stack', emoji: '🧊', mode: MODE_CFG[mode].label }),
+        params: () => ({ mode: mode }),
       });
     }
   }
@@ -344,6 +345,7 @@
   }
   refreshMenuBests();
   selectMode(selectedMode); // make the default-selected mode obvious on load
+  { const pm = window.gamekit && window.gamekit.param && window.gamekit.param('mode'); if (MODE_CFG[pm]) selectMode(pm); } // deep-link ?mode=
 
   // ---- Theme picker UI ----
   function selectTheme(t) {

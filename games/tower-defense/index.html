@@ -1018,6 +1018,7 @@
     window.gamekit.shareRow($('shareRow'), {
       slug: 'tower-defense', title: 'Keep Defender',
       message: () => window.gamekit.shareText({ verb: 'I survived', score: wave, unit: 'waves', game: 'Keep Defender', emoji: '🏰', mode: MAPS[mapIndex].name }),
+      params: () => ({ map: mapIndex }),
     });
   }
 
@@ -1504,6 +1505,8 @@
   };
 
   resize(); loadBest(); buildMapPicker(); applyMap(mapIndex); updateHud(); loop();
+  // deep-link ?map= → preselect that map
+  { const P = window.gamekit && window.gamekit.param; const m = P && parseInt(P('map'), 10); if (m >= 0 && m < MAPS.length) { applyMap(m); loadBest(); buildMapPicker(); } }
 })();
   window.gamekit.pwa();
 </script>

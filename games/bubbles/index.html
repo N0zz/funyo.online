@@ -1070,6 +1070,7 @@
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
     });
   });
+  { const pm = window.gamekit && window.gamekit.param && window.gamekit.param('mode'); if (['arcade', 'endless', 'zen'].indexOf(pm) >= 0) { mode = pm; document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === pm)); } } // deep-link ?mode=
 
   $('startBtn').addEventListener('click', startGame);
   $('goRetry').addEventListener('click', startGame);
@@ -1084,6 +1085,7 @@
   window.gamekit.shareRow(document.getElementById('shareRow'), {
     slug: 'bubbles', title: 'Bubble Pop',
     message: () => window.gamekit.shareText({ score: score, game: 'Bubble Pop', emoji: '🫧', mode: mode.charAt(0).toUpperCase() + mode.slice(1), extra: ['level ' + level] }),
+    params: () => ({ mode: mode }),
   });
   window.gamekit.nav({ reset: 'bubbles_' });
 

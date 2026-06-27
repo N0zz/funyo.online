@@ -684,6 +684,7 @@
   window.gamekit.shareRow(document.getElementById('shareRow'), {
     slug: 'breakout', title: 'Brick Breaker',
     message: () => window.gamekit.shareText({ score: score, game: 'Brick Breaker', emoji: '🧱', mode: gameMode.charAt(0).toUpperCase() + gameMode.slice(1), extra: ['level ' + level] }),
+    params: () => ({ mode: gameMode }),
   });
   window.gamekit.nav({ reset: 'breakout_' });
 
@@ -703,6 +704,7 @@
   }
   modeBtns.forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setActiveMode(b.dataset.mode); }));
   setActiveMode('classic'); // default highlight
+  { const pm = window.gamekit && window.gamekit.param && window.gamekit.param('mode'); if (['classic', 'endless', 'survival'].indexOf(pm) >= 0) setActiveMode(pm); } // deep-link ?mode=
   refreshMenuBests();
 
   // 2× speed toggle (persisted)

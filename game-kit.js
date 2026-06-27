@@ -202,6 +202,12 @@
     return s;
   }
 
+  // read a deep-link query param (so a shared link can preselect a game mode)
+  function param(k, d) {
+    try { var v = (typeof location !== 'undefined') ? new URLSearchParams(location.search).get(k) : null; return (v == null) ? d : v; }
+    catch (e) { return d; }
+  }
+
   function enc(s) { return (typeof encodeURIComponent === 'function') ? encodeURIComponent(s) : String(s); }
   function shareUrls(url, message) {
     return {
@@ -213,7 +219,17 @@
   function shareRow(el, o) {
     if (!el) return;
     o = o || {};
-    var url = o.url || ('https://komyo.online/games/' + (o.slug || '') + '/');
+    var base = o.url || ('https://komyo.online/games/' + (o.slug || '') + '/');
+    // optional o.params (object or fn) → appended as a query string so a shared link
+    // deep-links back to the same mode (the game preselects it on load).
+    function getUrl() {
+      if (!o.params) return base;
+      try {
+        var p = (typeof o.params === 'function') ? o.params() : o.params;
+        var qs = (typeof URLSearchParams !== 'undefined') ? new URLSearchParams(p || {}).toString() : '';
+        return qs ? base + (base.indexOf('?') < 0 ? '?' : '&') + qs : base;
+      } catch (e) { return base; }
+    }
     var title = o.title || 'Komyo Games';
     var getMsg = (typeof o.message === 'function') ? o.message : function () { return o.message || ''; };
     if (el.classList) el.classList.add('gamekit-share');
@@ -224,12 +240,12 @@
       '<button class="sbtn" data-act="copy" type="button" aria-label="Copy" title="Copy">' + SVG.copy + '</button>';
     var q = function (sel) { try { return el.querySelector ? el.querySelector(sel) : null; } catch (e) { return null; } };
     var x = q('[data-act="x"]'), reddit = q('[data-act="reddit"]'), copy = q('[data-act="copy"]'), native = q('[data-act="native"]');
-    var refresh = function () { var u = shareUrls(url, getMsg()); if (x) x.href = u.x; if (reddit) reddit.href = u.reddit; };
+    var refresh = function () { var u = shareUrls(getUrl(), getMsg()); if (x) x.href = u.x; if (reddit) reddit.href = u.reddit; };
     if (x) x.addEventListener('click', refresh);
     if (reddit) reddit.addEventListener('click', refresh);
     refresh();
     if (copy) copy.addEventListener('click', function () {
-      var u = shareUrls(url, getMsg());
+      var u = shareUrls(getUrl(), getMsg());
       try {
         if (navigator.clipboard) navigator.clipboard.writeText(u.copy).then(function () {
           if (copy.classList) copy.classList.add('ok');
@@ -238,34 +254,34 @@
         }).catch(function () {});
       } catch (e) {}
     });
-    // auto-post the score to the Komyo Games Discord when the end-screen share row appears
-    // (fires on every game-over, all games; no button). Per-page dedupe + throttle to curb spam.
-    if (typeof IntersectionObserver !== 'undefined') {
-      try {
-        var lastMsg = '', lastAt = 0;
-        var io = new IntersectionObserver(function (entries) {
-          for (var k = 0; k < entries.length; k++) {
-            var vis = entries[k].isIntersecting;
-            if (vis && el._gkVis === false) {           // transition hidden -> visible = a fresh game-over
-              var msg = getMsg(), now = (typeof Date !== 'undefined' ? Date.now() : 0);
-              if (msg && msg !== lastMsg && now - lastAt > 3000) {
-                var who = (player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous';
-                postDiscord('**' + who + '** — ' + msg + '\n' + url);
-                lastMsg = msg; lastAt = now;
-              }
-            }
-            el._gkVis = vis;
-          }
-        }, { threshold: 0.5 });
-        el._gkVis = true; // baseline so it never fires on the first observation (e.g. if visible at load)
-        io.observe(el);
-      } catch (e) {}
-    }
+    // auto-post the score to the Komyo Games Discord when the end-screen share row is on-screen.
+    // Handles BOTH patterns: built once at init (hidden → shown later) AND rebuilt at game-over
+    // (already visible). Dedupe + 3s throttle; replaces any prior observer on this el.
+    (function () {
+      var lastMsg = '', lastAt = 0;
+      var visible = function () { try { return !!(el.getClientRects && el.getClientRects().length); } catch (e) { return false; } };
+      var maybePost = function () {
+        if (!visible()) return;
+        var msg = getMsg(), now = (typeof Date !== 'undefined' ? Date.now() : 0);
+        if (!msg || msg === lastMsg || now - lastAt <= 3000) return;
+        var who = (player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous';
+        postDiscord('**' + who + '** — ' + msg + '\n' + getUrl());
+        lastMsg = msg; lastAt = now;
+      };
+      if (typeof setTimeout === 'function') setTimeout(maybePost, 0);   // already-visible (built at game-over)
+      if (typeof IntersectionObserver !== 'undefined') {               // hidden → shown later (built at init)
+        try {
+          if (el._gkIO) el._gkIO.disconnect();
+          var io = new IntersectionObserver(function (es) { for (var k = 0; k < es.length; k++) if (es[k].isIntersecting) maybePost(); }, { threshold: 0.5 });
+          el._gkIO = io; io.observe(el);
+        } catch (e) {}
+      }
+    })();
     if (native && typeof navigator !== 'undefined' && navigator.share) {
       if (native.style) native.style.display = '';
       native.addEventListener('click', function (e) {
         if (e && e.preventDefault) e.preventDefault();
-        try { navigator.share({ title: title, text: getMsg(), url: url }).catch(function () {}); } catch (_) {}
+        try { navigator.share({ title: title, text: getMsg(), url: getUrl() }).catch(function () {}); } catch (_) {}
       });
     }
   }
@@ -286,7 +302,7 @@
     if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', register); else register();
   }
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

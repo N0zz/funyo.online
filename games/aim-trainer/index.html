@@ -599,6 +599,14 @@
     });
   });
 
+  // deep-link: ?mode=sprint  or  ?mode=timed&secs=30 → preselect that mode in the menu
+  (function () {
+    const P = window.gamekit && window.gamekit.param; if (!P) return;
+    const pm = P('mode');
+    if (pm === 'sprint') selectMode('sprint', 0);
+    else if (pm === 'timed') { const s = parseInt(P('secs'), 10); if ([10, 20, 30, 60].indexOf(s) >= 0) selectMode('timed', s); }
+  })();
+
   // ---- Moving-targets toggle ----
   function syncMovingToggle() {
     const btn = $('movingToggle');
@@ -650,6 +658,7 @@
         ? window.gamekit.shareText({ verb: 'I sped through', score: '100 targets', game: 'Range', emoji: '🎯', mode: 'Sprint', extra: [(elapsedFrames / 60).toFixed(1) + 's', acc + '% accuracy'] })
         : window.gamekit.shareText({ score: score, game: 'Range', emoji: '🎯', mode: sessionSeconds + 's Timed', extra: [acc + '% accuracy'] });
     },
+    params: () => mode === 'sprint' ? { mode: 'sprint' } : { mode: 'timed', secs: sessionSeconds },
   });
   window.gamekit.nav({ reset: 'aim-trainer_' });
 
