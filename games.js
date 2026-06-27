@@ -10,6 +10,8 @@ window.GAMES = [
     accent: "#9fe8ff",
     tag: "ARCADE",
     badges: ["pick"],
+    added: "2026-06-26",
+    updated: "2026-06-27",
   },
   {
     slug: "tower-defense",
@@ -18,6 +20,8 @@ window.GAMES = [
     icon: "🏰",
     accent: "#e0b25a",
     tag: "STRATEGY",
+    added: "2026-06-26",
+    updated: "2026-06-27",
   },
 
   {
@@ -28,6 +32,7 @@ window.GAMES = [
     accent: "#2ee8c8",
     tag: "PUZZLE",
     added: "2026-06-26",
+    updated: "2026-06-27",
   },
 
   // ---- coming soon ----
@@ -38,6 +43,8 @@ window.GAMES = [
     icon: "🧱",
     accent: "#ff5cc8",
     tag: "ARCADE",
+    added: "2026-06-26",
+    updated: "2026-06-27",
   },
   {
     slug: "invaders",
@@ -73,6 +80,8 @@ window.GAMES = [
     icon: "🧊",
     accent: "#ff9aa2",
     tag: "REFLEX",
+    added: "2026-06-26",
+    updated: "2026-06-27",
   },
   {
     slug: "icy-tower",
@@ -108,6 +117,8 @@ window.GAMES = [
     icon: "🐤",
     accent: "#8fd3a6",
     tag: "CASUAL",
+    added: "2026-06-26",
+    updated: "2026-06-27",
   },
   {
     slug: "aim-trainer",
@@ -116,6 +127,8 @@ window.GAMES = [
     icon: "🎯",
     accent: "#ff7a3c",
     tag: "SKILL",
+    added: "2026-06-26",
+    updated: "2026-06-27",
   },
   {
     slug: "spellcaster",
@@ -133,6 +146,8 @@ window.GAMES = [
     icon: "🐍",
     accent: "#7fffb0",
     tag: "CLASSIC",
+    added: "2026-06-26",
+    updated: "2026-06-27",
   },
 
   // ---- multiplayer (local, single-screen) — coming soon ----

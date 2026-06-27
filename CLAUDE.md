@@ -88,7 +88,10 @@ generated levels; SFX via `funyo.sound`, music gain via `funyo.music.subscribe`,
    run it in the sandbox before the inline script), then drive via `__test`.
 3. Icon: render a 512 color-emoji PNG via Chrome headless, downscale to 192 (`sips`).
 4. `manifest.json` + `sw.js` (network-first; SHELL = the HTML + icons + the two `../../funyo-kit.*` files).
-5. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile).
+5. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile). Set **`added: "YYYY-MM-DD"`**
+   on a new game (drives the auto **NEW** badge for 7 days). **Whenever you ship a notable update to a
+   game (new mode/feature — not every bugfix), bump that game's `updated: "YYYY-MM-DD"`** (drives the
+   **UPDATED** badge for 7 days). Keep these dates accurate — they're the only source for those badges.
 6. Run **all** the suites and keep them green.
 
 ## Testing

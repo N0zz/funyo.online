@@ -94,7 +94,7 @@ show, and it would overcrowd the home page.)*
   elsewhere refers to the **Dino Jump** game's Chrome-browser visual style — a different thing.)
 - **Genre filter chips** — single row (`All · Arcade · Puzzle · Reflex · Logic…`) filtering the grid.
 - **Search box** — defer until ~20 games.
-- **"New" badge auto-applied** to recently-added tiles (the badge system exists; drive it by date).
+- *(done: auto **NEW**/**UPDATED** tile badges, date-driven from `added`/`updated` in `games.js`, 7-day window.)*
 
 ### Cross-device / data
 
