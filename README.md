@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://github.com/sponsors/N0zz"><img src="https://img.shields.io/badge/%E2%99%A5%20Sponsor-ff5d8f?style=for-the-badge" alt="Sponsor"></a>
   <a href="https://buymeacoffee.com/n0zz"><img src="https://img.shields.io/badge/%E2%98%95%20Buy%20me%20a%20coffee-ffce5c?style=for-the-badge&logoColor=000" alt="Buy me a coffee"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-orange?style=for-the-badge" alt="License: PolyForm Noncommercial 1.0.0"></a>
 </p>
 
 ---
@@ -98,3 +99,9 @@ games/<slug>/     each game, standalone (index.html + test.mjs + manifest/sw/ico
 > History note: `games/asteroids/` was imported with `git subtree` so its full
 > commit history is preserved — view per-game history on GitHub via the folder's
 > **History** view (`/commits/main/games/asteroids`).
+
+## License
+
+Source-available under the **PolyForm Noncommercial License 1.0.0** — free to use, copy,
+modify and share for any **noncommercial** purpose; **commercial use is not permitted**.
+See [`LICENSE`](LICENSE). © 2026 funyo.
