@@ -559,7 +559,11 @@
   reset();
   requestAnimationFrame(loop);
 })();
-  if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {} }
+  if ('serviceWorker' in navigator) {
+    var swReloaded = false, hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (swReloaded || !hadController) return; swReloaded = true; location.reload(); });
+    window.addEventListener('load', function () { try { navigator.serviceWorker.register('sw.js').then(function (reg) { reg.update(); setInterval(function () { reg.update(); }, 3600000); }).catch(function () {}); } catch (e) {} });
+  }
 </script>
 </body>
 </html>
