@@ -354,6 +354,8 @@
     armored: { hp: 78,  speed: 0.85, reward: 10,  color: '#6a8a6a', rr: 0.35, leak: 1, armored: true },
     swarm:   { hp: 11,  speed: 1.8,  reward: 1,   color: '#c09040', rr: 0.20, leak: 1 },
   };
+  // Creature emoji drawn centred on each enemy (TASK 2).
+  const ENEMY_ICON = { grunt: '🐀', runner: '🦇', brute: '🧌', boss: '🐉', armored: '🐢', swarm: '🐜' };
 
   // ---- State ----
   let state = 'menu';
@@ -368,16 +370,19 @@
   let bossWarnShown = false;
   let autoWave = false, autoDelay = 0; // auto-start: countdown (frames) before the next wave launches
 
-  // ---- Dynamic difficulty (TASK 4) ----
-  // Sample CHECKPOINTS along the path. While a wave runs, if the early checkpoints stay
-  // clear of enemies (they die instantly) the threat multiplier ramps up: HP, speed and
-  // extra spawns scale, so a fast-spiking buffed build keeps getting challenged.
-  let difficulty = 1;        // global threat multiplier (HP/speed)
-  let clearTicks = 0;        // consecutive ticks early checkpoints stayed clear during a wave
-  let extraSpawnTimer = 0;   // countdown before difficulty injects an extra enemy
-  let leakLockout = 0;       // ticks since a leak — while >0 the player is NOT over-powered, don't ramp
-  const DIFF_CP = [0.18, 0.36, 0.55]; // fractions along the path to watch
-  const DIFF_MAX = 3.0, DIFF_STEP = 0.04, DIFF_CLEAR_TICKS = 90;
+  // ---- Dynamic difficulty (TASK 4) — between-rounds rubber-band ----
+  // Threat is adjusted ONCE per wave, at WAVE END, from how the wave actually went:
+  //   dominated (no leaks AND enemies never reached the early checkpoint) → threat rises a little.
+  //   struggled (any leak OR enemies reached the LATE checkpoint)         → threat falls (faster).
+  //   otherwise (dead-band)                                               → unchanged.
+  // It can therefore go back DOWN over later rounds. Clamped to [1.0, 3.0].
+  let difficulty = 1;          // global threat multiplier (HP/speed)
+  let waveLeaked = false;      // did any enemy reach the keep this wave?
+  let waveMaxFrac = 0;         // furthest path fraction any enemy reached this wave (0..1)
+  const DIFF_CP = [0.25, 0.55, 0.85]; // early / mid / LATE checkpoint fractions to watch
+  const DIFF_MIN = 1.0, DIFF_MAX = 3.0;
+  const DIFF_UP = 0.15, DIFF_DOWN = 0.2;   // rises slowly, drops a touch faster (forgiving)
+  const DIFF_EARLY = DIFF_CP[0], DIFF_LATE = DIFF_CP[2];
 
   function reset() {
     gold = 110; hp = 20; wave = 0; score = 0;
@@ -386,7 +391,7 @@
     selBuild = null; selTower = null;
     victory = false; bossWarnShown = false;
     spawnT = 0; autoWave = false; autoDelay = 0;
-    difficulty = 1; clearTicks = 0; extraSpawnTimer = 0; leakLockout = 0;
+    difficulty = 1; waveLeaked = false; waveMaxFrac = 0;
   }
 
   // Pixel position at a fraction (0..1) along the full waypoint path — used for checkpoints.
@@ -399,6 +404,27 @@
     let want = frac * total;
     for (const s of segs) { if (want <= s.len || s === segs[segs.length - 1]) { const t = s.len ? want / s.len : 0; return { x: s.ax + (s.bx - s.ax) * t, y: s.ay + (s.by - s.ay) * t }; } want -= s.len; }
     return { x: cx(WP[0][0]), y: cy(WP[0][1]) };
+  }
+
+  // Fraction (0..1) along the full waypoint path that an enemy has reached.
+  function pathFracOf(e) {
+    let total = 0; const lens = [];
+    for (let i = 0; i < WP.length - 1; i++) {
+      const len = Math.hypot(cx(WP[i + 1][0]) - cx(WP[i][0]), cy(WP[i + 1][1]) - cy(WP[i][1]));
+      lens.push(len); total += len;
+    }
+    if (total <= 0) return 0;
+    let done = 0;
+    for (let i = 0; i < e.seg && i < lens.length; i++) done += lens[i];
+    const nx = WP[e.seg + 1];
+    if (nx) {
+      const segLen = lens[e.seg] || 0;
+      const tx = cx(nx[0]), ty = cy(nx[1]);
+      const ax = cx(WP[e.seg][0]), ay = cy(WP[e.seg][1]);
+      const along = segLen - Math.hypot(tx - e.x, ty - e.y);
+      done += Math.max(0, Math.min(segLen, along));
+    }
+    return Math.max(0, Math.min(1, done / total));
   }
 
   function startGame() {
@@ -501,6 +527,7 @@
     spawnQ = buildWave(wave);
     spawnT = 0;
     bossWarnShown = false;
+    waveLeaked = false; waveMaxFrac = 0; // per-wave threat signals
     state = 'wave';
     SND.play('wave');
     // keep the player's current build/upgrade selection across wave starts
@@ -508,6 +535,21 @@
     updateHud();
     refreshToolbar();
     announceWave(wave);
+  }
+
+  // Between-rounds threat rubber-band: called once at wave end (TASK 4).
+  function adjustThreat() {
+    const before = difficulty;
+    if (!waveLeaked && waveMaxFrac < DIFF_EARLY) {
+      difficulty = Math.min(DIFF_MAX, difficulty + DIFF_UP);   // dominated → rise
+    } else if (waveLeaked || waveMaxFrac >= DIFF_LATE) {
+      difficulty = Math.max(DIFF_MIN, difficulty - DIFF_DOWN); // struggled → fall (faster)
+    }
+    if (Math.abs(difficulty - before) > 1e-6) {
+      const up = difficulty > before;
+      float(W / 2, 90, (up ? '⚔ Threat rising — ' : '🛡 Threat easing — ') + difficulty.toFixed(1) + '×', up ? '#ff8a3a' : '#7fd0a0');
+    }
+    updateHud();
   }
 
   function spawnEnemy(type) {
@@ -698,6 +740,20 @@
     }
   }
 
+  // Screen-spanning meteor shockwave: stacked expanding rings + a wide spray of embers (TASK 3).
+  function spawnMeteorBlast(x, y, R) {
+    particles.push({ x, y, ring: true, r: R * 0.12, maxR: R, life: 1, decay: 0.022, col: '#fff0c0', lw: 8 });
+    particles.push({ x, y, ring: true, r: R * 0.05, maxR: R * 0.92, life: 1, decay: 0.03, col: '#ff7a3a', lw: 5 });
+    particles.push({ x, y, ring: true, r: R * 0.02, maxR: R * 0.6, life: 1, decay: 0.045, col: '#ffd070', lw: 3 });
+    const n = 40;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.3;
+      const sp = 4 + Math.random() * 7;
+      particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, decay: 0.02 + Math.random() * 0.02, col: i % 2 ? '#ff7a3a' : '#ffd070' });
+    }
+    if (typeof window !== 'undefined' && window.navigator && navigator.vibrate) { try { navigator.vibrate([30, 40, 60]); } catch (e) {} }
+  }
+
   // ---- Map-specific events (TASK 5c) ----
   // Each map has one signature collectible/event. All are clickable drops with a payoff;
   // some also have a side effect (bog spawns an extra mud-beast, freeze chills the field).
@@ -746,7 +802,13 @@
       if (d.amount > 0) { gold += d.amount; score += Math.round(d.amount / 2); float(d.x, d.y, '+' + d.amount + 'g', '#ffe066'); }
       if (d.event === 'rally' || d.event === 'relic') hasteTicks = Math.max(hasteTicks, 360);
       if (d.event === 'freeze') { for (const e of enemies) e.slow = Math.max(e.slow, 150); float(d.x, d.y - 14, '❄ FROZEN!', '#9ee0ff'); }
-      if (d.event === 'meteor') { const R = ts * 2; for (const e of [...enemies]) { if (dist(d.x, d.y, e.x, e.y) <= R) { e.hp -= 40; if (e.hp <= 0) killEnemy(e); } } spawnSplash(d.x, d.y, '#ff7a3a', R, '#ffd070'); }
+      if (d.event === 'meteor') {
+        // Rare, devastating: blast spans the whole board (well over 2/3) and KILLS everything caught.
+        const R = Math.hypot(COLS * ts, ROWS * ts);
+        for (const e of [...enemies]) { if (dist(d.x, d.y, e.x, e.y) <= R) killEnemy(e); }
+        spawnMeteorBlast(d.x, d.y, R);
+        float(d.x, d.y - 22, '☄️ METEOR STRIKE!', '#ff7a3a');
+      }
       if (d.event === 'bog') { spawnBogBeast(); float(d.x, d.y - 14, '🐸 mud-beast!', '#8fbf6f'); }
       spawnParticles(d.x, d.y, ev.col);
     } else if (d.kind === 'gold') { gold += d.amount; score += Math.round(d.amount / 2); float(d.x, d.y, '+' + d.amount + 'g', '#ffe066'); spawnParticles(d.x, d.y, '#ffe066'); }
@@ -773,34 +835,8 @@
         }
       }
 
-      // Adaptive difficulty: if the early checkpoints stay clear (enemies die before
-      // reaching them) while a wave is live, the player is over-powered → ramp threat.
-      if (leakLockout > 0) leakLockout--;
-      const hasPending = enemies.length > 0 || spawnQ.length > 0;
-      if (hasPending && leakLockout === 0) {
-        const watch = DIFF_CP.slice(0, 2).map(f => pathPointAt(f));
-        const reach = ts * 0.7;
-        let clear = true;
-        for (const e of enemies) { for (const w of watch) { if (dist(e.x, e.y, w.x, w.y) <= reach) { clear = false; break; } } if (!clear) break; }
-        if (clear && enemies.length < 3) {
-          clearTicks++;
-          if (clearTicks >= DIFF_CLEAR_TICKS) {
-            clearTicks = 0;
-            const before = difficulty;
-            difficulty = Math.min(DIFF_MAX, difficulty + DIFF_STEP * 4);
-            if (Math.floor(difficulty * 10) !== Math.floor(before * 10)) float(W / 2, 90, '⚔ Threat rising — ' + difficulty.toFixed(1) + '×', '#ff8a3a');
-            // inject extra enemies to keep the path busy
-            if (extraSpawnTimer <= 0 && spawnQ.length < 40) {
-              const extra = difficulty >= 2 ? 'brute' : 'grunt';
-              spawnQ.push({ type: extra, at: spawnT + 6 });
-              extraSpawnTimer = 60;
-            }
-          }
-        } else {
-          clearTicks = Math.max(0, clearTicks - 2);
-        }
-        if (extraSpawnTimer > 0) extraSpawnTimer--;
-      }
+      // Threat signal: track how far down the path enemies get this wave (used at wave end).
+      for (const e of enemies) { const f = pathFracOf(e); if (f > waveMaxFrac) waveMaxFrac = f; }
     }
 
     // wave announce timer
@@ -822,8 +858,7 @@
         e.x = tx; e.y = ty; e.seg++;
         if (e.seg >= WP.length - 1) {
           hp -= e.leak;
-          leakLockout = 240; // a leak means the player is under pressure — pause threat ramp
-          clearTicks = 0;
+          waveLeaked = true; waveMaxFrac = 1; // a leak pushes threat DOWN at wave end
           enemies.splice(i, 1);
           SND.play('leak');
           float(e.x, e.y, '-' + e.leak, '#ff8a8a');
@@ -948,8 +983,11 @@
     if (state === 'wave') {
       if (dropCooldown > 0) dropCooldown--;
       else if (drops.length < 2 && Math.random() < 0.012) {
-        // ~40% chance the drop is this map's signature event, else a generic gold/haste drop
-        if (Math.random() < 0.4) spawnMapEvent(); else spawnDrop();
+        // ~40% chance the drop is this map's signature event, else a generic gold/haste drop.
+        // The Lava meteor is a RARE, devastating event — gated far lower than ordinary drops.
+        const ev = mapDef().event;
+        if (ev === 'meteor') { if (Math.random() < 0.05) spawnMapEvent(); else spawnDrop(); }
+        else if (Math.random() < 0.4) spawnMapEvent(); else spawnDrop();
         dropCooldown = 420 + Math.floor(Math.random() * 300);
       }
     }
@@ -962,6 +1000,7 @@
     if (state === 'wave' && spawnQ.length === 0 && enemies.length === 0) {
       state = 'build';
       autoDelay = 150; // brief breather before auto-start launches the next wave
+      adjustThreat(); // between-rounds rubber-band (TASK 4)
       const base = 6 + Math.round(wave * 1.5);
       const interest = Math.min(25, Math.max(1, Math.round(gold * 0.025)));
       let bonus = 0;
@@ -1133,160 +1172,52 @@
     const tierColors = ['#cd7f32', '#c0c0c0', '#e0b25a']; // bronze, silver, gold
     const tc = tierColors[t.lvl - 1];
 
-    // base platform
+    // subtle base pad: tinted disc in the tower's colour + a tier-coloured rim (readability)
     ctx.fillStyle = '#3a2a17';
-    ctx.beginPath(); ctx.arc(x, y, s * 0.72, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, s * 0.78, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = TOWERS[t.type].color + '55';
+    ctx.beginPath(); ctx.arc(x, y, s * 0.66, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = tc; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, s * 0.66, 0, Math.PI * 2); ctx.stroke();
 
-    switch (t.type) {
-      case 'archer': {
-        // Triangle pointing up
-        ctx.fillStyle = TOWERS.archer.color;
-        ctx.beginPath();
-        ctx.moveTo(x, y - s * 0.6);
-        ctx.lineTo(x + s * 0.5, y + s * 0.4);
-        ctx.lineTo(x - s * 0.5, y + s * 0.4);
-        ctx.closePath(); ctx.fill();
-        // tier accent
-        ctx.strokeStyle = tc; ctx.lineWidth = 2;
-        ctx.stroke();
-        break;
-      }
-      case 'cannon': {
-        // Square body with barrel nub
-        ctx.fillStyle = TOWERS.cannon.color;
-        ctx.fillRect(x - s * 0.42, y - s * 0.42, s * 0.84, s * 0.84);
-        ctx.strokeStyle = tc; ctx.lineWidth = 2;
-        ctx.strokeRect(x - s * 0.42, y - s * 0.42, s * 0.84, s * 0.84);
-        // barrel nub pointing right
-        ctx.fillStyle = '#8a5030';
-        ctx.fillRect(x + s * 0.3, y - s * 0.14, s * 0.4, s * 0.28);
-        break;
-      }
-      case 'frost': {
-        // Diamond / crystal shape
-        ctx.fillStyle = TOWERS.frost.color;
-        ctx.beginPath();
-        ctx.moveTo(x, y - s * 0.62);
-        ctx.lineTo(x + s * 0.46, y);
-        ctx.lineTo(x, y + s * 0.62);
-        ctx.lineTo(x - s * 0.46, y);
-        ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = tc; ctx.lineWidth = 2; ctx.stroke();
-        // inner shine
-        ctx.fillStyle = 'rgba(200,240,255,0.35)';
-        ctx.beginPath();
-        ctx.moveTo(x, y - s * 0.3);
-        ctx.lineTo(x + s * 0.2, y);
-        ctx.lineTo(x, y + s * 0.3);
-        ctx.lineTo(x - s * 0.2, y);
-        ctx.closePath(); ctx.fill();
-        break;
-      }
-      case 'mage': {
-        // Circle with 4 star points
-        ctx.fillStyle = TOWERS.mage.color;
-        ctx.beginPath(); ctx.arc(x, y, s * 0.42, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = tc; ctx.lineWidth = 2; ctx.stroke();
-        // star points
-        ctx.fillStyle = '#d4a8f0';
-        for (let p = 0; p < 4; p++) {
-          const ang = (p / 4) * Math.PI * 2 - Math.PI / 4;
-          const px = x + Math.cos(ang) * s * 0.65;
-          const py = y + Math.sin(ang) * s * 0.65;
-          ctx.beginPath(); ctx.arc(px, py, s * 0.14, 0, Math.PI * 2); ctx.fill();
-        }
-        break;
-      }
-      case 'bard': {
-        // banner/lyre: pentagon body + musical note
-        ctx.fillStyle = TOWERS.bard.color;
-        ctx.beginPath();
-        for (let p = 0; p < 5; p++) {
-          const ang = (p / 5) * Math.PI * 2 - Math.PI / 2;
-          const px = x + Math.cos(ang) * s * 0.52, py = y + Math.sin(ang) * s * 0.52;
-          p === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-        }
-        ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = tc; ctx.lineWidth = 2; ctx.stroke();
-        // note
-        ctx.fillStyle = '#3a2a17';
-        ctx.fillRect(x - s * 0.02, y - s * 0.28, s * 0.06, s * 0.4);
-        ctx.beginPath(); ctx.arc(x - s * 0.08, y + s * 0.14, s * 0.12, 0, Math.PI * 2); ctx.fill();
-        break;
-      }
+    // the tower's emoji ICON IS the body, centred and filling most of the cell (TASK 1)
+    const ic = TOWER_ICON[t.type];
+    if (ic) {
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = Math.round(ts * 0.62) + 'px Georgia,serif';
+      ctx.fillText(ic, x, y + ts * 0.02);
     }
 
     // tier pips
     for (let i = 0; i < t.lvl - 1; i++) {
       ctx.fillStyle = '#e0b25a';
-      ctx.beginPath(); ctx.arc(x - 5 + i * 6, y + s * 0.72 + 3, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x - 5 + i * 6, y + s * 0.78 + 3, 3, 0, Math.PI * 2); ctx.fill();
     }
   }
 
-  // Enemy shapes
+  // Enemies: a creature emoji centred on the mob, scaled to its radius (TASK 2).
   function drawEnemy(e) {
     const rr = e.rr * ts;
     ctx.save();
 
-    if (e.type === 'boss') {
-      // boss: star shape
-      ctx.fillStyle = e.color;
-      ctx.beginPath();
-      for (let p = 0; p < 10; p++) {
-        const ang = (p / 10) * Math.PI * 2 - Math.PI / 2;
-        const r2 = p % 2 === 0 ? rr : rr * 0.55;
-        const ex = e.x + Math.cos(ang) * r2, ey = e.y + Math.sin(ang) * r2;
-        p === 0 ? ctx.moveTo(ex, ey) : ctx.lineTo(ex, ey);
-      }
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#ff8888'; ctx.lineWidth = 2; ctx.stroke();
-    } else if (e.type === 'brute') {
-      // brute: heavy square
-      ctx.fillStyle = e.color;
-      ctx.fillRect(e.x - rr, e.y - rr, rr * 2, rr * 2);
-      ctx.strokeStyle = '#555566'; ctx.lineWidth = 2; ctx.strokeRect(e.x - rr, e.y - rr, rr * 2, rr * 2);
-    } else if (e.type === 'armored') {
-      // armored: hexagon
-      ctx.fillStyle = e.color;
-      ctx.beginPath();
-      for (let p = 0; p < 6; p++) {
-        const ang = (p / 6) * Math.PI * 2;
-        const ex = e.x + Math.cos(ang) * rr, ey = e.y + Math.sin(ang) * rr;
-        p === 0 ? ctx.moveTo(ex, ey) : ctx.lineTo(ex, ey);
-      }
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#aaccaa'; ctx.lineWidth = 2; ctx.stroke();
-      // armor plates
-      ctx.strokeStyle = 'rgba(180,220,180,0.4)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(e.x - rr * 0.3, e.y - rr * 0.5); ctx.lineTo(e.x + rr * 0.3, e.y - rr * 0.5); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(e.x - rr * 0.3, e.y); ctx.lineTo(e.x + rr * 0.3, e.y); ctx.stroke();
-    } else if (e.type === 'swarm') {
-      // swarm: tiny diamond
-      ctx.fillStyle = e.color;
-      ctx.beginPath();
-      ctx.moveTo(e.x, e.y - rr);
-      ctx.lineTo(e.x + rr, e.y);
-      ctx.lineTo(e.x, e.y + rr);
-      ctx.lineTo(e.x - rr, e.y);
-      ctx.closePath(); ctx.fill();
-    } else if (e.type === 'runner') {
-      // runner: elongated oval
-      ctx.fillStyle = e.color;
-      ctx.scale(1.4, 0.8);
-      ctx.beginPath(); ctx.arc(e.x / 1.4, e.y / 0.8, rr, 0, Math.PI * 2); ctx.fill();
-      ctx.restore(); ctx.save();
-    } else {
-      // grunt: circle
-      ctx.fillStyle = e.color;
-      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#2a1c10'; ctx.lineWidth = 2; ctx.stroke();
-    }
+    // soft body disc behind the glyph (tinted by type colour) so it reads on any terrain
+    ctx.fillStyle = e.color + '66';
+    ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
 
-    // slow ring
+    // chilled/frozen tint: cool halo when slowed (status readability)
     if (e.slow > 0) {
-      ctx.strokeStyle = 'rgba(150,230,255,0.8)'; ctx.lineWidth = 2;
+      ctx.fillStyle = 'rgba(150,230,255,0.30)';
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr + 2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(150,230,255,0.85)'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(e.x, e.y, rr + 3, 0, Math.PI * 2); ctx.stroke();
     }
+
+    const ic = ENEMY_ICON[e.type] || '🐀';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = Math.round(rr * 2.0) + 'px Georgia,serif';
+    if (e.slow > 0) ctx.globalAlpha = 0.85; // frosted look
+    ctx.fillText(ic, e.x, e.y + rr * 0.05);
+    ctx.globalAlpha = 1;
 
     ctx.restore();
 
@@ -1380,15 +1311,8 @@
       ctx.beginPath(); ctx.arc(t.x, t.y, auraRadius(t), 0, Math.PI * 2); ctx.fill();
     }
 
-    // towers
+    // towers — emoji icon centred ON the cell as the body (TASK 1)
     for (const t of towers) drawTowerShape(t);
-    // tower-type icon above each tower so types read at a glance (TASK 1)
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = Math.round(ts * 0.34) + 'px Georgia,serif';
-    for (const t of towers) {
-      const ic = TOWER_ICON[t.type]; if (!ic) continue;
-      ctx.fillText(ic, t.x, t.y - ts * 0.5);
-    }
     // buffed glow on towers within an aura
     for (const t of towers) {
       if (!t.buffed) continue;
@@ -1460,7 +1384,7 @@
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, p.life);
       if (p.ring) {
-        ctx.strokeStyle = p.col; ctx.lineWidth = 3;
+        ctx.strokeStyle = p.col; ctx.lineWidth = p.lw || 3;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.stroke();
       } else {
         ctx.fillStyle = p.col;
@@ -1608,9 +1532,13 @@
     get geom() { return { ts, ox, oy, W, H }; },
     // dynamic difficulty (TASK 4)
     get difficulty() { return difficulty; },
-    setDifficulty(d) { difficulty = d; },
-    get clearTicks() { return clearTicks; },
+    setDifficulty(d) { difficulty = d; updateHud(); },
     get checkpoints() { return DIFF_CP.map(f => pathPointAt(f)); },
+    // per-wave threat signals + the wave-end adjustment (between-rounds rubber-band)
+    get waveLeaked() { return waveLeaked; },
+    get waveMaxFrac() { return waveMaxFrac; },
+    pathFrac(i) { const e = enemies[i]; return e ? pathFracOf(e) : null; },
+    adjustThreat() { return adjustThreat(); },
     // map mechanics (TASK 5)
     get surface() { return surfaceMul(); },
     towerMapMod(type) { return towerMapMod(type); },

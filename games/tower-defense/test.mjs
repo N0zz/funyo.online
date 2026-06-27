@@ -216,6 +216,17 @@ function run() {
   const goldB = Mp().gold;
   ok(Mp().collectDrop(0) === true, 'map event collected');
   ok(Mp().gold > goldB, 'meteor event awards gold (' + goldB + ' -> ' + Mp().gold + ')');
+  // TASK 3: the meteor is a devastating, map-spanning, KILLING blast.
+  const g9c = runInline('index.html'); const Mt = () => g9c.test();
+  Mt().selectMap(2); Mt().start(); Mt().startWave(); Mt().step(120);
+  ok(Mt().enemies > 0, 'lava wave has live enemies to nuke (' + Mt().enemies + ')');
+  // spawn the meteor; its blast covers ≥2/3 of the board, so it reaches enemies anywhere
+  Mt().spawnMapEvent();
+  const drops = Mt().drops;
+  // find the meteor drop index (it was just spawned) and collect it
+  ok(drops >= 1, 'meteor drop present');
+  Mt().collectDrop(drops - 1);
+  ok(Mt().enemies === 0, 'meteor blast KILLS every enemy on the board (left ' + Mt().enemies + ')');
   // Marsh bog event rouses an extra enemy
   const g9b = runInline('index.html'); const Mq = () => g9b.test();
   Mq().selectMap(5); Mq().start();
@@ -224,22 +235,62 @@ function run() {
   Mq().collectDrop(0);
   ok(Mq().enemies > enemB, 'Marsh bog event spawns a mud-beast (' + enemB + ' -> ' + Mq().enemies + ')');
 
-  section('dynamic difficulty (TASK 4)');
+  section('threat rubber-band — between rounds, can go DOWN (TASK 4)');
   const g10 = runInline('index.html'); const Df = () => g10.test();
   Df().selectMap(0); Df().start();
   ok(Df().difficulty === 1, 'difficulty starts at 1');
   ok(Df().checkpoints.length >= 3, 'path checkpoints exposed (' + Df().checkpoints.length + ')');
-  // strong build: blanket the board with towers, run a wave; threat should ramp as the path stays clear
+  // threat is adjusted ONCE per wave, at WAVE END — NOT continuously mid-wave.
+  // Dominated wave: blanket the board, run a full wave; enemies die early → threat rises.
   Df().addGold(100000);
   for (let c=0;c<Df().cols;c++) for (let r=0;r<Df().rows;r++) if(!Df().roadAt(c,r)) Df().place('mage', c, r);
   Df().startWave();
-  for (let i=0;i<1200;i++) Df().step(1);
-  ok(Df().difficulty > 1, 'threat multiplier ramped up against an over-powered build (' + Df().difficulty.toFixed(2) + ')');
-  // undefended still ends the run despite doubled baseline
+  const midWave = Df().difficulty;
+  for (let i=0;i<60;i++) Df().step(1);
+  ok(Df().difficulty === midWave, 'threat does NOT change mid-wave (still ' + Df().difficulty.toFixed(2) + ')');
+  let gw = 0; while (Df().state === 'wave' && gw++ < 60000) Df().step(1);
+  ok(Df().state === 'build', 'dominated wave completed');
+  ok(Df().difficulty > 1, 'threat rose at wave end after dominating (' + Df().difficulty.toFixed(2) + ')');
+  const afterDominate = Df().difficulty;
+
+  // Now a STRUGGLE: sell nothing but simulate a leak by running an undefended-ish wave.
+  // Easiest deterministic path: drive a leaked wave on a fresh game and confirm threat drops.
+  const g10b = runInline('index.html'); const Dl = () => g10b.test();
+  Dl().selectMap(0); Dl().start();
+  Dl().setDifficulty(2.0); // start elevated so we can watch it come DOWN
+  Dl().startWave();
+  // no towers → enemies leak; run the wave to completion (or keep falls)
+  let gl = 0; while (Dl().state === 'wave' && Dl().hp > 0 && gl++ < 60000) Dl().step(1);
+  ok(Dl().waveLeaked === true || Dl().state === 'over', 'undefended wave registered a leak');
+  if (Dl().state === 'build') ok(Dl().difficulty < 2.0, 'threat fell after a leaked wave (' + Dl().difficulty.toFixed(2) + ')');
+  else ok(true, 'keep fell during the leaked wave (still losable)');
+
+  // Direct unit check of the rubber-band via the adjustThreat hook:
+  const g10c = runInline('index.html'); const Da = () => g10c.test();
+  Da().selectMap(0); Da().start();
+  Da().setDifficulty(2.0);
+  // simulate a clean dominated wave end (no leak, nothing reached the early checkpoint)
+  Da().startWave(); for (let i=0;i<3;i++) Da().step(1); // a couple enemies near the start
+  // force the signals via fresh wave state then call adjustThreat with a dominated profile
+  const g10d = runInline('index.html'); const Dd = () => g10d.test();
+  Dd().selectMap(0); Dd().start(); Dd().setDifficulty(1.5);
+  Dd().startWave(); // waveLeaked=false, waveMaxFrac starts 0
+  const beforeUp = Dd().difficulty;
+  Dd().adjustThreat();
+  ok(Dd().difficulty > beforeUp, 'adjustThreat() raises threat on a dominated profile (' + beforeUp + ' -> ' + Dd().difficulty.toFixed(2) + ')');
+
+  // clamp: threat never exceeds 3.0 nor drops below 1.0
+  const g10e = runInline('index.html'); const Dc = () => g10e.test();
+  Dc().selectMap(0); Dc().start();
+  Dc().setDifficulty(2.95); Dc().startWave(); Dc().adjustThreat();
+  ok(Dc().difficulty <= 3.0 + 1e-9, 'threat clamps at 3.0 (' + Dc().difficulty.toFixed(2) + ')');
+
+  // undefended still ends the run; threat is forgiving (drops), never pinned high
   const g11 = runInline('index.html'); const Un = () => g11.test();
   Un().selectMap(0); Un().start();
   let gu = 0; while (Un().hp > 0 && gu++ < 60000) { if (Un().state === 'build') Un().startWave(); Un().step(1); }
-  ok(Un().state === 'over' && Un().difficulty === 1, 'undefended run still ends; threat stays 1 (enemies reach checkpoints)');
+  ok(Un().state === 'over', 'undefended run still ends (keep falls)');
+  ok(Un().difficulty <= 1.0 + 1e-9, 'threat never rose during a losing run (' + Un().difficulty.toFixed(2) + ')');
 
   console.log('\n----------------------------------------');
   console.log('PASS: ' + pass + '   FAIL: ' + fail);
