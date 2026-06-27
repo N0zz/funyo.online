@@ -13,7 +13,7 @@
   body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:5;
     background:repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0px, rgba(0,0,0,0.16) 1px, transparent 2px, transparent 3px); opacity:0.3; }
   .hud { position:fixed; z-index:6; pointer-events:none; user-select:none; text-shadow:0 0 8px rgba(120,200,255,0.6); }
-  #topHud { top:8px; left:50%; transform:translateX(-50%); z-index:6; display:flex; gap:28px; flex-wrap:wrap; justify-content:center; align-items:center; max-width:calc(100vw - 240px); padding:5px 18px; border-radius:10px; background:rgba(8,12,20,0.55); border:1px solid rgba(120,200,255,0.22); pointer-events:none; user-select:none; text-align:center; text-shadow:0 0 8px rgba(120,200,255,0.6); }
+  #topHud { position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:6; display:flex; gap:28px; flex-wrap:wrap; justify-content:center; align-items:center; max-width:calc(100vw - 240px); padding:5px 18px; border-radius:10px; background:rgba(8,12,20,0.55); border:1px solid rgba(120,200,255,0.22); pointer-events:none; user-select:none; text-align:center; text-shadow:0 0 8px rgba(120,200,255,0.6); }
   #hudL { font-size:20px; letter-spacing:2px; }
   #hudL .label { opacity:0.55; font-size:12px; letter-spacing:2px; }
   #hudL #wave { margin-top:4px; font-size:14px; color:#9fe8ff; }
