@@ -66,10 +66,29 @@
   .map-btn { font-family:inherit; cursor:pointer; font-size:13px; padding:7px 14px; border-radius:8px;
     color:var(--parch); background:linear-gradient(180deg,#6a4a2c,#4a3220); border:2px solid #2c1d10; }
   .map-btn.active { border-color:var(--gold); box-shadow:0 0 8px rgba(224,178,90,0.5); }
+  .map-btn .tick { color:var(--gold); margin-right:4px; opacity:0; }
+  .map-btn.active .tick { opacity:1; }
+
+  .share { display:flex; gap:9px; justify-content:center; flex-wrap:wrap; align-items:center; margin-top:4px; }
+  .share .lbl { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; opacity:0.6; margin-right:2px; }
+  .share .sbtn { appearance:none; -webkit-appearance:none; font:inherit; margin:0; line-height:0;
+    display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; padding:0; cursor:pointer;
+    color:var(--parch); background:linear-gradient(180deg,#6a4a2c,#4a3220); border:2px solid #2c1d10; border-radius:9px; text-decoration:none; }
+  .share .sbtn svg { width:18px; height:18px; fill:currentColor; display:block; }
+  .share .sbtn:hover { color:var(--gold); border-color:var(--gold); }
+  .share .sbtn.ok { color:#9ee89e; border-color:#9ee89e; }
   #waveAnnounce { position:fixed; top:62px; left:50%; transform:translateX(-50%); z-index:7; pointer-events:none;
     font-size:22px; font-weight:bold; color:var(--gold); text-shadow:0 2px 4px rgba(0,0,0,0.7);
     letter-spacing:2px; opacity:0; transition:opacity 0.3s; }
   #waveAnnounce.show { opacity:1; }
+
+  /* Portrait: the nav (‹ Menu / funyo ›) sits at the top-left; drop the HUD onto its own
+     row below the nav so the stats never hide behind the nav buttons. */
+  @media (orientation: portrait) {
+    #top { top:42px; height:auto; min-height:44px; padding:6px 10px; padding-left:10px;
+      gap:12px; flex-wrap:wrap; font-size:14px; }
+    #waveAnnounce { top:96px; }
+  }
 </style>
 </head>
 <body>
@@ -108,9 +127,9 @@
   <p class="hint">Pick a tower below, tap a grass tile to build &middot; tap a tower to upgrade/sell &middot; Start Wave when ready.</p>
   <p style="font-size:13px;opacity:0.7;margin-top:4px;">Choose a map:</p>
   <div class="map-picker">
-    <button class="map-btn active" data-map="0">Classic</button>
-    <button class="map-btn" data-map="1">Zigzag</button>
-    <button class="map-btn" data-map="2">Spiral</button>
+    <button class="map-btn active" data-map="0"><span class="tick">✓</span>Classic</button>
+    <button class="map-btn" data-map="1"><span class="tick">✓</span>Zigzag</button>
+    <button class="map-btn" data-map="2"><span class="tick">✓</span>Spiral</button>
   </div>
   <button id="startGameBtn" style="margin-top:6px;">Begin</button>
 </div>
@@ -211,14 +230,39 @@
   function cy(r) { return oy + r * ts + ts / 2; }
 
   let W, H;
+  // pixel <-> grid-cell conversion using the CURRENT geometry; entities keep their
+  // position in fractional cell space so a resize/rotation re-derives correct pixels.
+  function pxToGX(px) { return (px - ox) / ts - 0.5; }
+  function pxToGY(py) { return (py - oy) / ts - 0.5; }
+  function gxToPx(gx) { return ox + (gx + 0.5) * ts; }
+  function gyToPy(gy) { return oy + (gy + 0.5) * ts; }
+
+  function reflowEntities() {
+    // re-derive every entity's pixel position from its stored grid-cell coords.
+    for (const t of towers) { t.x = cx(t.c); t.y = cy(t.r); }
+    for (const e of enemies) {
+      if (e.gx !== undefined) { e.x = gxToPx(e.gx); e.y = gyToPy(e.gy); }
+    }
+    for (const s of shots) {
+      if (s.gx !== undefined) { s.x = gxToPx(s.gx); s.y = gyToPy(s.gy); }
+      // refresh cached target/aim pixels from the live target (or its last grid coords)
+      if (s.tgt) { s.tx = s.tgt.x; s.ty = s.tgt.y; }
+    }
+  }
+
   function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
-    ts = Math.floor(Math.min(W / COLS, (H - 60 - 92) / ROWS));
+    const portrait = H > W;
+    // reserve more top room in portrait so the HUD clears the wrapped nav bar
+    const topGap = portrait ? 96 : 60;
+    ts = Math.floor(Math.min(W / COLS, (H - topGap - 92) / ROWS));
     ox = Math.floor((W - COLS * ts) / 2);
-    oy = 58 + Math.floor(((H - 60 - 92) - ROWS * ts) / 2);
+    oy = (topGap - 2) + Math.floor(((H - topGap - 92) - ROWS * ts) / 2);
+    reflowEntities();
   }
   window.addEventListener('resize', resize);
+  if (typeof window.addEventListener === 'function') window.addEventListener('orientationchange', resize);
 
   // ---- Tower configs ----
   const TOWERS = {
@@ -358,6 +402,7 @@
       armored: b.armored || false,
       seg: 0, slow: 0,
       x: cx(WP[0][0]), y: cy(WP[0][1]),
+      gx: WP[0][0], gy: WP[0][1],
     };
     enemies.push(e);
   }
@@ -482,6 +527,7 @@
         e.x += (tx - e.x) / d * sp;
         e.y += (ty - e.y) / d * sp;
       }
+      e.gx = pxToGX(e.x); e.gy = pxToGY(e.y);
     }
 
     // towers fire
@@ -508,7 +554,7 @@
         let any = false;
         for (const e of enemies) {
           if (dist(t.x, t.y, e.x, e.y) <= R) {
-            shots.push({ x: t.x, y: t.y, tx: e.x, ty: e.y, tgt: e, dmg: t.dmg, kind: 'mage', splash: t.splash, slow: t.slow || 0.3, col: TOWERS.mage.color, t: 0, src: t });
+            shots.push({ x: t.x, y: t.y, gx: t.c, gy: t.r, tx: e.x, ty: e.y, tgt: e, dmg: t.dmg, kind: 'mage', splash: t.splash, slow: t.slow || 0.3, col: TOWERS.mage.color, t: 0, src: t });
             any = true;
           }
         }
@@ -519,7 +565,7 @@
       let tgt = null, best = -1;
       for (const e of enemies) { if (dist(t.x, t.y, e.x, e.y) <= R && e.seg > best) { best = e.seg; tgt = e; } }
       if (tgt) {
-        shots.push({ x: t.x, y: t.y, tx: tgt.x, ty: tgt.y, tgt, dmg: t.dmg, kind: t.kind, splash: t.splash, col: TOWERS[t.type].color, t: 0, src: t });
+        shots.push({ x: t.x, y: t.y, gx: t.c, gy: t.r, tx: tgt.x, ty: tgt.y, tgt, dmg: t.dmg, kind: t.kind, splash: t.splash, col: TOWERS[t.type].color, t: 0, src: t });
         t.cd = t.fireCd;
         SND.play('shoot');
       }
@@ -563,6 +609,7 @@
       } else {
         s.x += (aimx - s.x) / d * sp;
         s.y += (aimy - s.y) / d * sp;
+        s.gx = pxToGX(s.x); s.gy = pxToGY(s.y);
       }
     }
 
@@ -614,14 +661,45 @@
     refreshToolbar();
   }
 
+  const SHARE_URL = 'https://funyo.online/games/tower-defense/';
+  function shareText() { return 'I survived ' + wave + ' waves in Keep Defender 🏰'; }
+  const ICON_NATIVE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>';
+  const ICON_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
+  const ICON_REDDIT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12c-.688 0-1.25.561-1.25 1.25 0 .687.562 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.688-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>';
+  const ICON_COPY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>';
+
   function gameOver() {
     state = 'over';
     saveBest();
     SND.play('over');
     enemies = []; shots = []; spawnQ = [];
-    overlay.innerHTML = '<h1>THE KEEP HAS FALLEN</h1><p>Wave reached: <b>' + wave + '</b></p><p>Score: <b>' + score + '</b> &nbsp;|&nbsp; Best: <b>' + bestScore + '</b></p><button id="againBtn">Defend again</button>';
+    const enc = (typeof encodeURIComponent === 'function') ? encodeURIComponent : (s => String(s));
+    const u = enc(SHARE_URL), t = enc(shareText());
+    overlay.innerHTML =
+      '<h1>THE KEEP HAS FALLEN</h1>' +
+      '<p>Waves survived: <b>' + wave + '</b></p>' +
+      '<p>Score: <b>' + score + '</b> &nbsp;|&nbsp; Best: <b>' + bestScore + '</b></p>' +
+      '<button id="againBtn">Play again</button>' +
+      '<div class="share">' +
+        '<span class="lbl">Share</span>' +
+        '<a class="sbtn" id="shareNative" href="#" style="display:none" aria-label="Share…" title="Share…">' + ICON_NATIVE + '</a>' +
+        '<a class="sbtn" id="shareX" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X" href="https://twitter.com/intent/tweet?text=' + t + '&url=' + u + '">' + ICON_X + '</a>' +
+        '<a class="sbtn" id="shareReddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit" href="https://www.reddit.com/submit?url=' + u + '&title=' + t + '">' + ICON_REDDIT + '</a>' +
+        '<button class="sbtn" id="shareCopy" type="button" aria-label="Copy link" title="Copy link">' + ICON_COPY + '</button>' +
+      '</div>';
     overlay.classList.remove('hidden');
     const ab = $('againBtn'); if (ab) ab.addEventListener('click', startGame);
+
+    const cp = $('shareCopy');
+    if (cp) cp.addEventListener('click', () => {
+      const done = () => { cp.classList.add('ok'); cp.title = 'Copied!'; setTimeout(() => { cp.classList.remove('ok'); cp.title = 'Copy link'; }, 1500); };
+      try { navigator.clipboard.writeText(shareText() + '\n' + SHARE_URL).then(done).catch(() => {}); } catch (e) {}
+    });
+    const ns = $('shareNative');
+    if (ns && typeof navigator !== 'undefined' && navigator.share) {
+      ns.style.display = '';
+      ns.addEventListener('click', (e) => { e.preventDefault(); navigator.share({ title: 'Keep Defender', text: shareText(), url: SHARE_URL }).catch(() => {}); });
+    }
   }
 
   // ---- Render helpers ----
@@ -1027,6 +1105,12 @@
     rows: ROWS,
     selectMap(i) { mapIndex = i; applyMap(i); },
     get mapIdx() { return mapIndex; },
+    resizeTo(w, h) { window.innerWidth = w; window.innerHeight = h; resize(); },
+    // geometry + entity probes (used by the resize/orientation reflow test)
+    cellPx(c, r) { return { x: cx(c), y: cy(r) }; },
+    towerPx(i) { const t = towers[i]; return t ? { x: t.x, y: t.y, c: t.c, r: t.r } : null; },
+    enemyPx(i) { const e = enemies[i]; return e ? { x: e.x, y: e.y } : null; },
+    get geom() { return { ts, ox, oy, W, H }; },
   };
 
   resize(); loadBest(); updateHud(); loop();
