@@ -13,14 +13,16 @@
   body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:5;
     background:repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0px, rgba(0,0,0,0.16) 1px, transparent 2px, transparent 3px); opacity:0.3; }
   .hud { position:fixed; z-index:6; pointer-events:none; user-select:none; text-shadow:0 0 8px rgba(120,200,255,0.6); }
-  #hudL { top:16px; left:20px; font-size:20px; letter-spacing:2px; }
+  #topHud { top:8px; left:50%; transform:translateX(-50%); z-index:6; display:flex; gap:28px; flex-wrap:wrap; justify-content:center; align-items:center; max-width:calc(100vw - 240px); padding:5px 18px; border-radius:10px; background:rgba(8,12,20,0.55); border:1px solid rgba(120,200,255,0.22); pointer-events:none; user-select:none; text-align:center; text-shadow:0 0 8px rgba(120,200,255,0.6); }
+  #hudL { font-size:20px; letter-spacing:2px; }
   #hudL .label { opacity:0.55; font-size:12px; letter-spacing:2px; }
-  #hudL #wave { margin-top:6px; font-size:14px; color:#9fe8ff; }
-  #hudL #credits { margin-top:6px; font-size:14px; color:#ffd166; }
-  #hudR { top:16px; right:20px; text-align:right; }
+  #hudL #wave { margin-top:4px; font-size:14px; color:#9fe8ff; }
+  #hudL #credits { margin-top:4px; font-size:14px; color:#ffd166; }
+  #hudR { text-align:center; }
   #hp { font-size:22px; letter-spacing:3px; color:#ff7b7b; text-shadow:0 0 8px rgba(255,120,120,0.6); }
   #shield { font-size:16px; letter-spacing:3px; color:#7fd0ff; margin-top:4px; }
   #timer { top:14px; left:50%; transform:translateX(-50%); font-size:24px; letter-spacing:3px; color:#ffd166; text-shadow:0 0 10px rgba(255,209,102,0.7); display:none; text-align:center; }
+  @media (max-width:560px) { #topHud { top:50px; max-width:calc(100vw - 16px); gap:8px 20px; } }
   #timer .goal { font-size:11px; opacity:0.6; letter-spacing:2px; }
   #xpwrap { left:50%; transform:translateX(-50%); bottom:18px; width:min(620px,70vw); }
   #xpbar { height:10px; border:1px solid rgba(180,140,255,0.5); border-radius:6px; background:rgba(40,20,70,0.5); overflow:hidden; }
@@ -76,14 +78,13 @@
   .tc-knob { position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px; border-radius:50%; background:rgba(159,232,255,0.55); box-shadow:0 0 16px rgba(120,200,255,0.6); }
   .tc-fire { position:absolute; right:24px; bottom:34px; width:96px; height:96px; border-radius:50%; border:2px solid rgba(255,150,150,0.6); background:rgba(80,20,20,0.45); color:#ffc0c0; font:bold 15px "Courier New",monospace; letter-spacing:2px; pointer-events:auto; touch-action:none; display:flex; align-items:center; justify-content:center; opacity:0.5; }
   .tc-pause { position:absolute; right:16px; top:14px; width:46px; height:46px; border-radius:10px; border:1px solid rgba(120,200,255,0.4); background:rgba(10,16,30,0.6); color:#cfe8ff; font:bold 15px "Courier New",monospace; pointer-events:auto; }
-  body.touch #hudR, body.touch #lives { top: 60px; }
+  body.touch #topHud { top: 52px; }
   body.touch #xpwrap { bottom: 172px; width: min(420px, 60vw); }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div class="hud" id="hudL"><div class="label">SCORE</div><div id="score">0</div><div id="wave">WAVE 1</div><div id="credits" style="display:none">◈ 0</div></div>
-<div class="hud" id="hudR"><div id="hp">♥♥♥</div><div id="shield"></div></div>
+<div id="topHud"><div id="hudL"><div class="label">SCORE</div><div id="score">0</div><div id="wave">WAVE 1</div><div id="credits" style="display:none">◈ 0</div></div><div id="hudR"><div id="hp">♥♥♥</div><div id="shield"></div></div></div>
 <div class="hud" id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div>
 <div class="hud" id="xpwrap"><div id="xpbar"><div id="xpfill"></div></div><div id="xplabel">LV 1</div></div>
 <div id="flash"></div>
@@ -148,7 +149,7 @@
   if (PROGRESSION==='levelup'){ modeTitle.textContent='ROGUELITE — AUTO LEVEL-UP'; modeHint.textContent='Destroy enemies, collect XP gems, level up and pick upgrades. Survive the waves.'; }
   if (PROGRESSION==='milestones'){ modeTitle.textContent='ROGUELITE — SCORE MILESTONES'; modeHint.textContent='Cross score milestones to pick upgrades. Survive the waves.'; xpwrap.style.display='none'; }
   if (PROGRESSION==='shop'){ modeTitle.textContent='ROGUELITE — WAVE SHOP'; modeHint.textContent='Earn credits, then spend them in the shop between waves. Survive.'; xpwrap.style.display='none'; creditsEl.style.display='block'; }
-  if (SPEEDRUN){ timerEl.style.display='block'; timerGoal.textContent='GOAL: CLEAR WAVE '+SR_TARGET_WAVE; modeHint.textContent='SPEEDRUN — clear wave '+SR_TARGET_WAVE+' (first boss) as fast as you can.'; }
+  if (SPEEDRUN){ timerEl.style.display='block'; timerGoal.textContent='GOAL: CLEAR WAVE '+SR_TARGET_WAVE; modeHint.textContent='SPEEDRUN — clear wave '+SR_TARGET_WAVE+' (first boss) as fast as you can.'; const th=document.getElementById('topHud'); if(th) th.style.top='56px'; }
 
   let W,H;
   function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S); buildStars(); }

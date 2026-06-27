@@ -14,21 +14,26 @@
     font-family: "Courier New", monospace; color: #cfe8ff;
   }
   #game { display: block; width: 100vw; height: 100vh; }
-  #hud {
-    position: fixed; top: 18px; left: 22px; font-size: 22px; letter-spacing: 2px;
-    text-shadow: 0 0 8px rgba(120,200,255,0.6); pointer-events: none; user-select: none;
+  #topHud {
+    position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5;
+    display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; align-items: center;
+    max-width: calc(100vw - 240px); padding: 5px 18px; border-radius: 10px;
+    background: rgba(8,12,20,0.55); border: 1px solid rgba(120,200,255,0.22);
+    text-shadow: 0 0 8px rgba(120,200,255,0.6); pointer-events: none; user-select: none; text-align: center;
   }
+  #hud { font-size: 22px; letter-spacing: 2px; }
   #hud .label { opacity: 0.6; font-size: 13px; }
   #lives {
-    position: fixed; top: 18px; right: 22px; font-size: 22px; letter-spacing: 4px;
-    color: #7fffb0; text-shadow: 0 0 8px rgba(120,255,170,0.6); pointer-events: none; user-select: none;
+    font-size: 22px; letter-spacing: 4px;
+    color: #7fffb0; text-shadow: 0 0 8px rgba(120,255,170,0.6);
   }
   #timer {
     position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
     font-size: 26px; letter-spacing: 3px; color: #ffd166;
     text-shadow: 0 0 10px rgba(255,209,102,0.7); pointer-events: none; user-select: none;
-    display: none;
+    display: none; z-index: 5;
   }
+  @media (max-width: 560px) { #topHud { top: 50px; max-width: calc(100vw - 16px); gap: 8px 18px; } }
   #timer .goal { font-size: 11px; opacity: 0.6; letter-spacing: 2px; text-align: center; }
   #overlay {
     position: fixed; inset: 0; display: flex; flex-direction: column;
@@ -61,14 +66,12 @@
   .tc-knob { position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px; border-radius:50%; background:rgba(159,232,255,0.55); box-shadow:0 0 16px rgba(120,200,255,0.6); }
   .tc-fire { position:absolute; right:24px; bottom:34px; width:96px; height:96px; border-radius:50%; border:2px solid rgba(255,150,150,0.6); background:rgba(80,20,20,0.45); color:#ffc0c0; font:bold 15px "Courier New",monospace; letter-spacing:2px; pointer-events:auto; touch-action:none; display:flex; align-items:center; justify-content:center; opacity:0.5; }
   .tc-pause { position:absolute; right:16px; top:14px; width:46px; height:46px; border-radius:10px; border:1px solid rgba(120,200,255,0.4); background:rgba(10,16,30,0.6); color:#cfe8ff; font:bold 15px "Courier New",monospace; pointer-events:auto; }
-  body.touch #hudR, body.touch #lives { top: 60px; }
-  body.touch #xpwrap { bottom: 172px; width: min(420px, 60vw); }
+  body.touch #topHud { top: 52px; }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div class="label">SCORE</div><div id="score">0</div></div>
-<div id="lives"></div>
+<div id="topHud"><div id="hud"><div class="label">SCORE</div><div id="score">0</div></div><div id="lives"></div></div>
 <div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div>
 
 <div id="overlay">
@@ -113,6 +116,7 @@
     timerEl.style.display = 'block';
     timerGoal.textContent = 'GOAL: ' + SR_TARGET_SCORE + ' PTS';
     modeHint.textContent = 'SPEEDRUN — reach ' + SR_TARGET_SCORE + ' points as fast as you can.';
+    const th = document.getElementById('topHud'); if (th) th.style.top = '58px';
   }
 
 
