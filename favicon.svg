@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="13" fill="#0a0c14"/>
-  <!-- funyo mascot (matches the hero header logo) -->
+  <!-- komyo mascot (matches the hero header logo) -->
   <path d="M13 24 L17 5 L31 16 Z" fill="#e8632a"/>
   <path d="M51 24 L47 5 L33 16 Z" fill="#e8632a"/>
   <path d="M17 19 L19 9 L26 15 Z" fill="#ffd9b0"/>

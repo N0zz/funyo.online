@@ -1,19 +1,19 @@
-# funyo
+# komyo
 
 > A small catalogue of free, self-contained browser games. No ads, no payments, no subscriptions — plays in any modern browser, installable as a PWA, and works offline. Source-available under PolyForm Noncommercial 1.0.0.
 
-funyo is a hobby project. Each game is a single self-contained HTML/Canvas + vanilla-JS page following the same flow: menu (pick a mode) → play → scoreboard (with share). Scores and progress stay on the player's device; the only analytics is Google Analytics, loaded only if the visitor accepts the cookie banner.
+komyo is a hobby project. Each game is a single self-contained HTML/Canvas + vanilla-JS page following the same flow: menu (pick a mode) → play → scoreboard (with share). Scores and progress stay on the player's device; the only analytics is Google Analytics, loaded only if the visitor accepts the cookie banner.
 
 ## Games
 
-- [Asteroids](https://funyo.online/games/asteroids/): Fly, shoot, survive — classic arcade plus roguelite modes with upgrades.
-- [Keep Defender](https://funyo.online/games/tower-defense/): Fixed-path tower defense — build towers, spend gold, hold the keep wave after wave.
-- [Bubble Pop](https://funyo.online/games/bubbles/): Bubble shooter — match groups of 3+, with Arcade, Endless and Zen modes.
-- [Brick Breaker](https://funyo.online/games/breakout/): Paddle-and-ball brick breaker with power-ups and escalating levels (synthwave theme).
-- [Stack](https://funyo.online/games/stacker/): One-tap tower stacker — time the drop, chain perfect placements.
-- [Meadow Flyer](https://funyo.online/games/flappy/): One-tap flyer through a soft storybook meadow.
-- [Range](https://funyo.online/games/aim-trainer/): Timed flick-aim target practice on a tactical range.
-- [Neon Snake](https://funyo.online/games/snake/): The classic grid snake, in glowing neon.
+- [Asteroids](https://komyo.online/games/asteroids/): Fly, shoot, survive — classic arcade plus roguelite modes with upgrades.
+- [Keep Defender](https://komyo.online/games/tower-defense/): Fixed-path tower defense — build towers, spend gold, hold the keep wave after wave.
+- [Bubble Pop](https://komyo.online/games/bubbles/): Bubble shooter — match groups of 3+, with Arcade, Endless and Zen modes.
+- [Brick Breaker](https://komyo.online/games/breakout/): Paddle-and-ball brick breaker with power-ups and escalating levels (synthwave theme).
+- [Stack](https://komyo.online/games/stacker/): One-tap tower stacker — time the drop, chain perfect placements.
+- [Meadow Flyer](https://komyo.online/games/flappy/): One-tap flyer through a soft storybook meadow.
+- [Range](https://komyo.online/games/aim-trainer/): Timed flick-aim target practice on a tactical range.
+- [Neon Snake](https://komyo.online/games/snake/): The classic grid snake, in glowing neon.
 
 ## Optional
 

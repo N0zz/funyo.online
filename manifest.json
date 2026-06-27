@@ -1,6 +1,6 @@
 {
-  "name": "funyo",
-  "short_name": "funyo",
+  "name": "komyo",
+  "short_name": "komyo",
   "description": "A little catalogue of self-contained browser games — playable offline.",
   "start_url": ".",
   "scope": ".",
@@ -13,6 +13,6 @@
   ],
   "prefer_related_applications": false,
   "related_applications": [
-    { "platform": "webapp", "url": "https://funyo.online/manifest.json" }
+    { "platform": "webapp", "url": "https://komyo.online/manifest.json" }
   ]
 }

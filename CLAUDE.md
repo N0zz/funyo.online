@@ -1,11 +1,11 @@
-# CLAUDE.md — funyo
+# CLAUDE.md — komyo
 
 Guidance for working in this repo. Read before editing.
 
 ## What this is
 
-**funyo** — a small catalogue of **self-contained** browser games. Live at
-**https://funyo.online** (GitHub Pages, repo `N0zz/funyo.online`, cloned at `~/arcade`).
+**komyo** — a small catalogue of **self-contained** browser games. Live at
+**https://komyo.online** (GitHub Pages, repo `N0zz/funyo.online`, cloned at `~/arcade`).
 `index.html` is the catalogue; each game is one folder under `games/`. No build step.
 
 ## Layout
@@ -34,7 +34,7 @@ games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, icon-19
   deterministic so the headless harness can drive it. Harmless in normal play.
 - **Headless-safe:** guard `AudioContext` (lazy, inert if absent), `navigator.vibrate` (only
   if present), `matchMedia`; `ctx.roundRect` fallback. Must boot in a mocked DOM without throwing.
-- **Shell comes from funyo-kit** (see "Shared kit"): the top-left nav (‹ Menu · funyo ›), the
+- **Shell comes from funyo-kit** (see "Shared kit"): the top-left nav (‹ Menu · komyo ›), the
   top-right **sound menu** (SFX + Music + reset-scores), the sound engine, the end-screen share row,
   and PWA registration are all `funyo.*` calls — do NOT re-implement them per game. Put the score/best
   HUD in a **`.funyo-hud`** container (center-top; clears the left nav and right sound menu).
@@ -61,7 +61,7 @@ API on `window.funyo`:
 - `funyo.music` — **Music** channel (settings + UI only; `funyo_music_muted`/`funyo_music_vol`). A game
   with music keeps its own music engine and does `funyo.music.subscribe(s => applyGain(s.gain))`
   (`s.gain` is 0 when muted). Only asteroids uses this today.
-- `funyo.nav({ music, reset, onMenu })` — injects the top-left `‹ Menu · funyo ›` bar **and** the
+- `funyo.nav({ music, reset, onMenu })` — injects the top-left `‹ Menu · komyo ›` bar **and** the
   top-right **sound menu** (🔊 SFX mute+slider, ♪ Music mute+slider when `music:true`). `reset` is a
   localStorage **prefix** (e.g. `'snake_'`) → adds a scoped "↺ Reset scores" entry. `onMenu` overrides
   the Menu button's default `location.reload()` (asteroids levels post to the parent instead).
@@ -93,7 +93,7 @@ generated levels; SFX via `funyo.sound`, music gain via `funyo.music.subscribe`,
    game (new mode/feature — not every bugfix), bump that game's `updated: "YYYY-MM-DD"`** (drives the
    **UPDATED** badge for 7 days). Keep these dates accurate — they're the only source for those badges.
    Also **add a `CHANGELOG` bullet** in `index.html` for the change (see Catalogue specifics).
-   When a game goes **live** (not `soon`), add its `https://funyo.online/games/<slug>/` URL to
+   When a game goes **live** (not `soon`), add its `https://komyo.online/games/<slug>/` URL to
    both `sitemap.xml` and `llms.txt`. `robots.txt` allows all crawlers (search + AI/LLM) and points
    at the sitemap; `llms.txt` is a curated markdown map of the site for LLMs.
 6. Run **all** the suites and keep them green.
@@ -116,19 +116,19 @@ generated levels; SFX via `funyo.sound`, music gain via `funyo.music.subscribe`,
 - **Batch pushes.** GitHub Pages soft-limits builds (~10/hr) and every push triggers a build +
   Action run, so commit per topic locally but **push several commits together**, not after each one.
 - Hosting: **GitHub Pages from `main`** (built-in Fastly CDN — no Cloudflare). Custom domain
-  `funyo.online` via the root `CNAME` file + **OVH DNS** (4 GitHub A records on the apex) + Enforce HTTPS.
+  `komyo.online` via the root `CNAME` file + **OVH DNS** (4 GitHub A records on the apex) + Enforce HTTPS.
   Don't delete `CNAME` (Pages would reset the domain). Edge cache can serve stale for ~minutes
   after deploy → version changed assets (e.g. `og-image.png?v=2`).
 
 ## Catalogue specifics
 
-- **GA4** (`G-FCZMM2CQLW`) is **consent-gated**: `analytics.js` loads gtag only after the cookie
+- **GA4** (`G-S4JQPYNDNM`) is **consent-gated**: `analytics.js` loads gtag only after the cookie
   banner's *Accept* (stored in `localStorage.funyo_consent`, shared across the origin so per-game
   pages track too). Footer says **"no ads · no payments · plays offline."**
 - **OG/Twitter** meta + `og-image.png` (1200×630, a letterboxed page screenshot). Regenerate it on
   rebrands and bump `?v=` so scrapers refetch; re-scrape via the FB Sharing Debugger.
 - **Newsletter:** Kit. The inline Subscribe modal POSTs to Kit form **9615603**; sending domain
-  `funyo.online` is DKIM/DMARC-verified (records in OVH), default from `news@funyo.online`.
+  `komyo.online` is DKIM/DMARC-verified (records in OVH), default from `news@komyo.online`.
 - **Catalogue layout:** tiles render from `games.js` into two sections — **Single player** and
   **Multiplayer** (`mp: true`) — split by centered horizontal dividers; within each, order is
   favorites → available → coming-soon (`soon: true`, greyed). MP tiles show a `players` pill

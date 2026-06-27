@@ -154,10 +154,10 @@ function testKit() {
   ok(F && F.sound && F.music && F.nav && F.audioMenu && F.resetScores && F.shareRow && F.shareUrls && F.pwa,
     'kit exposes sound/music/nav/audioMenu/resetScores/shareRow/shareUrls/pwa');
   if (!F) return;
-  const u = F.shareUrls('https://funyo.online/games/snake/', 'I scored 42 in Neon Snake 🐍');
+  const u = F.shareUrls('https://komyo.online/games/snake/', 'I scored 42 in Neon Snake 🐍');
   ok(u.x.indexOf('twitter.com/intent/tweet') >= 0 && u.x.indexOf('&url=') >= 0, 'shareUrls.x is an X intent with url');
   ok(u.reddit.indexOf('reddit.com/submit') >= 0, 'shareUrls.reddit is a reddit submit');
-  ok(u.copy.indexOf('I scored 42') === 0 && u.copy.indexOf('funyo.online/games/snake') >= 0, 'shareUrls.copy = message + newline + url');
+  ok(u.copy.indexOf('I scored 42') === 0 && u.copy.indexOf('komyo.online/games/snake') >= 0, 'shareUrls.copy = message + newline + url');
   // SFX channel
   ok(F.sound.isMuted() === false, 'SFX starts unmuted');
   F.sound.toggle();

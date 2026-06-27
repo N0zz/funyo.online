@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="logo-512.png" alt="funyo logo" width="116" height="116">
+  <img src="logo-512.png" alt="komyo logo" width="116" height="116">
 </p>
 
-<h1 align="center">funyo</h1>
+<h1 align="center">komyo</h1>
 
 <p align="center">
-  <a href="https://funyo.online/">
-    <img src="https://img.shields.io/badge/%E2%96%B6%20%20OPEN%20FUNYO-1f6feb?style=for-the-badge" alt="Open funyo" height="64">
+  <a href="https://komyo.online/">
+    <img src="https://img.shields.io/badge/%E2%96%B6%20%20OPEN%20KOMYO-1f6feb?style=for-the-badge" alt="Open komyo" height="64">
   </a>
 </p>
 
 <p align="center">
   <a href="https://github.com/sponsors/N0zz"><img src="https://img.shields.io/badge/%E2%99%A5%20Sponsor-ff5d8f?style=for-the-badge" alt="Sponsor"></a>
-  <a href="https://buymeacoffee.com/n0zz"><img src="https://img.shields.io/badge/%E2%98%95%20Buy%20me%20a%20coffee-ffce5c?style=for-the-badge&logoColor=000" alt="Buy me a coffee"></a>
+  <a href="https://buymeacoffee.com/komyo.online"><img src="https://img.shields.io/badge/%E2%98%95%20Buy%20me%20a%20coffee-ffce5c?style=for-the-badge&logoColor=000" alt="Buy me a coffee"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-orange?style=for-the-badge" alt="License: PolyForm Noncommercial 1.0.0"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 A little **catalogue** of self-contained browser games. Each game is its
 own folder of static HTML/Canvas + vanilla JS — no build step, no dependencies, no
-external assets — and gets a tile on the home page plus a top-left **‹ Menu** / **funyo ›**
+external assets — and gets a tile on the home page plus a top-left **‹ Menu** / **komyo ›**
 nav. Every game follows the same flow: **menu (pick a mode) → play → scoreboard (with share
 buttons)**. The home page groups tiles into **Single player** and **Multiplayer** sections.
 
@@ -89,9 +89,9 @@ games.js          catalogue manifest
 analytics.js      consent-gated GA4 loader
 funyo-kit.js      shared game shell (sound+mute, nav, share row, PWA auto-update)
 funyo-kit.css     shared shell styles
-favicon.svg       funyo icon
+favicon.svg       komyo icon
 manifest.json     PWA manifest      sw.js   service worker (offline)
-CNAME             custom domain (funyo.online)   .nojekyll   serve files as-is on GitHub Pages
+CNAME             custom domain (komyo.online)   .nojekyll   serve files as-is on GitHub Pages
 test.mjs          catalogue + Keep Defender harness
 games/<slug>/     each game, standalone (index.html + test.mjs + manifest/sw/icons)
 ```
@@ -104,4 +104,4 @@ games/<slug>/     each game, standalone (index.html + test.mjs + manifest/sw/ico
 
 Source-available under the **PolyForm Noncommercial License 1.0.0** — free to use, copy,
 modify and share for any **noncommercial** purpose; **commercial use is not permitted**.
-See [`LICENSE`](LICENSE). © 2026 funyo.
+See [`LICENSE`](LICENSE). © 2026 komyo.

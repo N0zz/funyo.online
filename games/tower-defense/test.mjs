@@ -116,8 +116,8 @@ function run() {
   ok(/id="shareRow"/.test(ov.innerHTML), 'END screen has a funyo-kit share row mount');
   const sr = g2.getEl('shareRow');
   ok(/data-act="x"/.test(sr.innerHTML) && /data-act="reddit"/.test(sr.innerHTML) && /data-act="copy"/.test(sr.innerHTML), 'share row has X / Reddit / Copy buttons');
-  const su = g2.win.funyo.shareUrls('https://funyo.online/games/tower-defense/', 'I survived 3 waves in Keep Defender 🏰');
-  ok(/funyo\.online(%2F|\/)games(%2F|\/)tower-defense/.test(su.x) && /tower-defense/.test(su.copy), 'share links point at the game URL');
+  const su = g2.win.funyo.shareUrls('https://komyo.online/games/tower-defense/', 'I survived 3 waves in Keep Defender 🏰');
+  ok(/komyo\.online(%2F|\/)games(%2F|\/)tower-defense/.test(su.x) && /tower-defense/.test(su.copy), 'share links point at the game URL');
 
   section('maps (≥5 distinct layouts)');
   const g3 = runInline('index.html'); const M = () => g3.test();

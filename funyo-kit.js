@@ -1,5 +1,5 @@
-/* funyo-kit — shared shell for funyo games: audio (SFX + Music channels) with a top-right
-   sound menu + per-channel mute & volume, top-left nav (‹ Menu · funyo ›), end-screen share
+/* funyo-kit — shared shell for komyo games: audio (SFX + Music channels) with a top-right
+   sound menu + per-channel mute & volume, top-left nav (‹ Menu · komyo ›), end-screen share
    row, PWA auto-update, and a standard center-top HUD style (see funyo-kit.css).
    Loaded via <script src="../../funyo-kit.js"></script> in <head> (before the game's inline
    script). Exposes window.funyo / global `funyo`. Headless-safe: every browser API is guarded. */
@@ -143,13 +143,13 @@
     audioUIs.push(u); syncAudioUI();
   }
 
-  // ---------- top-left nav: ‹ Menu · funyo › (+ injects the top-right sound menu) ----------
+  // ---------- top-left nav: ‹ Menu · komyo › (+ injects the top-right sound menu) ----------
   function nav(opts) {
     opts = opts || {};
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'funyo-nav';
       wrap.innerHTML = '<button class="funyo-back" id="funyoMenu" type="button">&#x2039; Menu</button>'
-        + '<a class="funyo-back" id="funyoHome" target="_top" href="' + (opts.home || '../../') + '">funyo &#x203A;</a>';
+        + '<a class="funyo-back" id="funyoHome" target="_top" href="' + (opts.home || '../../') + '">komyo &#x203A;</a>';
       document.body.appendChild(wrap);
       var menu = document.getElementById('funyoMenu');
       if (menu) menu.addEventListener('click', function () {
@@ -185,8 +185,8 @@
   function shareRow(el, o) {
     if (!el) return;
     o = o || {};
-    var url = o.url || ('https://funyo.online/games/' + (o.slug || '') + '/');
-    var title = o.title || 'funyo';
+    var url = o.url || ('https://komyo.online/games/' + (o.slug || '') + '/');
+    var title = o.title || 'komyo';
     var getMsg = (typeof o.message === 'function') ? o.message : function () { return o.message || ''; };
     if (el.classList) el.classList.add('funyo-share');
     el.innerHTML =
