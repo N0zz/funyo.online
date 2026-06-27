@@ -367,8 +367,8 @@ section('per-mode best isolation: different timed durations use different keys')
 
 section('portrait HUD clearance: targets spawn below nav + HUD band');
 {
-  // Portrait viewport (taller than wide): HUD sits below the 48px nav, so the
-  // playfield must clear 48 (nav) + 48 (HUD) = 96px, plus the 80px spawn pad = 176.
+  // Portrait viewport (taller than wide): the center-top HUD pill drops below the nav
+  // to top:50px, so the playfield must clear ~92px of headroom, plus the 80px spawn pad = 172.
   const gp = runGame('index.html', { w: 400, h: 900 });
   const Tp = () => gp.test();
   ok(gp.bootErr === null, 'portrait boots without error: ' + gp.bootErr);
@@ -377,7 +377,7 @@ section('portrait HUD clearance: targets spawn below nav + HUD band');
   Tp().step(2);
   const ys = Tp().targets.map(t => t.y);
   ok(ys.length >= 1, 'portrait has a target after start');
-  ok(ys.every(y => y >= 96 + 80), 'portrait targets clear nav + HUD (min y=' + Math.min(...ys) + ', need ≥176)');
+  ok(ys.every(y => y >= 92 + 80), 'portrait targets clear nav + HUD (min y=' + Math.min(...ys) + ', need ≥172)');
 }
 
 section('moving targets: API surface');

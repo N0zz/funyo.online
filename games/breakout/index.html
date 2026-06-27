@@ -20,19 +20,10 @@
   html,body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:#fff;
     font-family: 'Courier New', Courier, monospace; user-select:none; touch-action:none; }
   #game { display:block; width:100vw; height:100vh; }
-  #hud { position:fixed; top:0; left:0; right:0; height:44px; z-index:5; display:flex; align-items:center;
-    gap:22px; padding:0 14px; padding-left:210px; font-size:14px; letter-spacing:2px;
-    background:rgba(10,0,16,0.85); border-bottom:1px solid rgba(255,0,255,0.3); }
-  #hud .lbl { opacity:0.5; font-size:10px; letter-spacing:2px; display:block; }
+  /* Position/background/font come from the shared .funyo-hud (center-top pill). Keep only
+     the synthwave value colors. */
   #hud .val { color:var(--cy); text-shadow:0 0 8px var(--cy); }
   #hud .hrt { color:var(--mg); text-shadow:0 0 8px var(--mg); }
-  /* Portrait phones: the nav (‹ Menu / funyo ›) sits on its own row, so drop the HUD
-     below it and let the stats wrap to a second line instead of colliding. */
-  @media (orientation:portrait) and (max-width:560px) {
-    #hud { height:auto; min-height:40px; top:44px; padding:6px 10px; gap:12px 18px; flex-wrap:wrap;
-      font-size:12px; letter-spacing:1px; }
-    #hud .lbl { font-size:9px; }
-  }
   #overlay, #endOverlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:16px; background:rgba(10,0,16,0.88); padding:24px; }
   #overlay.hidden, #endOverlay.hidden { display:none; }
@@ -61,7 +52,7 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud">
+<div id="hud" class="funyo-hud">
   <div class="stat"><span class="lbl">SCORE</span><span class="val" id="scoreEl">0</span></div>
   <div class="stat"><span class="lbl">BEST</span><span class="val" id="bestEl">0</span></div>
   <div class="stat"><span class="lbl">LIVES</span><span class="hrt" id="livesEl">♥♥♥</span></div>
@@ -146,17 +137,10 @@
   function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
-    // Clear the top nav (‹ Menu / funyo ›) + HUD. In landscape the HUD shares the 44px
-    // nav bar; in portrait it drops below the nav and may wrap, so measure it live.
-    let hudBottom = 44;
-    try {
-      const hud = document.getElementById('hud');
-      const r = hud && hud.getBoundingClientRect && hud.getBoundingClientRect();
-      // Only trust a plausible HUD bar (a wrapped portrait HUD is well under 200px). A rect
-      // reporting near full-viewport height is a stub/odd layout — fall back to the 44px nav.
-      if (r && r.height && r.height < 200) hudBottom = Math.ceil(r.top + r.height);
-    } catch (e) {}
-    topMargin = Math.max(44, hudBottom);
+    // Reserve headroom so the playfield clears the shared center-top .funyo-hud pill.
+    // Landscape: pill at top:8px → ~48px. Portrait (≤560px): pill drops to top:50px → ~92px.
+    const portrait = H > W || W <= 560;
+    topMargin = portrait ? 92 : 48;
     brickW = Math.floor((W - BRICK_GAP * (BRICK_COLS + 1)) / BRICK_COLS);
     brickH = Math.max(12, Math.floor(brickW * 0.32));
     brickOffX = Math.floor((W - (brickW + BRICK_GAP) * BRICK_COLS + BRICK_GAP) / 2);
@@ -700,7 +684,7 @@
     slug: 'breakout', title: 'Brick Breaker',
     message: () => 'I scored ' + score + ' in Brick Breaker 🧱',
   });
-  window.funyo.nav({ mute: true });
+  window.funyo.nav({ reset: 'breakout_' });
 
   // Menu: per-mode best scores (refreshed when the menu is shown)
   function refreshMenuBests() {

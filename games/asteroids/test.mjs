@@ -95,6 +95,10 @@ function runGame(file, { search = '' } = {}) {
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
 
+  // preload the shared funyo-kit so window.funyo exists before the game's inline script (mirrors the <head> load order)
+  try { vm.runInContext(fs.readFileSync(path.join(DIR, '..', '..', 'funyo-kit.js'), 'utf8'), ctx, { filename: 'funyo-kit.js' }); }
+  catch (e) { errors.push('kit boot: ' + e.message); }
+
   try { vm.runInContext(code, ctx, { filename: file }); }
   catch (e) { errors.push('boot: ' + e.message); }
 
@@ -482,13 +486,17 @@ function testLauncher() {
   const documentMock = { getElementById: getEl, createElement: t => makeEl('new-' + t), addEventListener: () => {} };
   const store = {};
   const sandbox = { window: win, document: documentMock, location: { search: '' },
-    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
+    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; },
+      get length() { return Object.keys(store).length; }, key: i => Object.keys(store)[i] ?? null },
     requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setInterval: () => 0, clearInterval: () => {},
     Math, JSON, String, Number, Array, Object, parseInt, parseFloat, console, URLSearchParams };
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
   let bootErr = null;
-  try { vm.runInContext(verCode, ctx, { filename: 'levels.js' }); vm.runInContext(m[1], ctx, { filename: 'index.html' }); }
+  try {
+    vm.runInContext(fs.readFileSync(path.join(DIR, '..', '..', 'funyo-kit.js'), 'utf8'), ctx, { filename: 'funyo-kit.js' });
+    vm.runInContext(verCode, ctx, { filename: 'levels.js' }); vm.runInContext(m[1], ctx, { filename: 'index.html' });
+  }
   catch (e) { bootErr = e.message; }
   ok(bootErr === null, 'launcher boots: ' + bootErr);
   ok(Array.isArray(win.LEVELS) && win.LEVELS.length === 5, 'levels.js exposes 5 versions (got ' + (win.LEVELS && win.LEVELS.length) + ')');
@@ -516,12 +524,16 @@ function testLauncher() {
   (winHandlers['message'] || []).forEach(fn => fn({ data: 'asteroids:menu' }));
   ok(frame.src === 'about:blank', 'in-game Quit-to-menu clears the iframe');
   ok(getEl('select').style.display === 'flex', 'in-game Quit-to-menu returns to menu');
-  // reset best scores: seed some bests, click reset, verify cleared
+  // reset best scores: the bespoke reset button is gone — the launcher wires the funyo-kit
+  // sound menu's Reset entry via funyo.nav({ reset: 'asteroids_' }), which clears asteroids_* keys.
   const fb = (win.LEVELS[0].file).split('/').pop();
   store['asteroids_score_' + fb] = '1234';
   store['asteroids_best_' + fb] = '9999';
-  getEl('resetBtn').fire('click');
-  ok(store['asteroids_score_' + fb] == null && store['asteroids_best_' + fb] == null, 'reset button clears saved bests');
+  store['unrelated_key'] = 'keep';
+  ok(typeof win.funyo === 'object' && typeof win.funyo.resetScores === 'function', 'funyo-kit loaded with resetScores');
+  win.funyo.resetScores('asteroids_');
+  ok(store['asteroids_score_' + fb] == null && store['asteroids_best_' + fb] == null, 'kit resetScores clears saved asteroids_ bests');
+  ok(store['unrelated_key'] === 'keep', 'kit resetScores leaves unrelated keys');
 }
 
 // ---------------- Run ----------------

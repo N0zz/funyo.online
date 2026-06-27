@@ -562,7 +562,7 @@
     slug: 'snake', title: 'Neon Snake',
     message: () => 'I scored ' + score + ' in Neon Snake 🐍',
   });
-  window.funyo.nav({ mute: true });
+  window.funyo.nav({ reset: 'snake_' });
 
   loadOpts();
   applyGridSize();

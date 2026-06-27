@@ -11,6 +11,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Asteroids">
 <link rel="apple-touch-icon" href="favicon.svg">
+<link rel="stylesheet" href="../../funyo-kit.css">
+<script src="../../funyo-kit.js"></script>
 <script src="../../analytics.js" defer></script>
 <style>
   html, body {
@@ -55,13 +57,6 @@
   }
   #modeToggle:hover { transform: translateY(-1px); }
   .modehint { font-size: 11px; opacity: 0.45; letter-spacing: 1px; min-height: 14px; }
-  .audiobar { display: flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: 2px; flex-wrap: wrap; justify-content: center; }
-  .audiobar .lbl { opacity: 0.6; }
-  .audiobar button { font-family: inherit; font-size: 12px; letter-spacing: 2px; padding: 6px 14px; border-radius: 18px; cursor: pointer; border: 1px solid rgba(120,200,255,0.4); background: rgba(20,30,50,0.4); color: #cfe8ff; }
-  .audiobar button:hover { border-color: #9fe8ff; }
-  .audiobar button.off { opacity: 0.45; }
-  .audiobar .vol { opacity: 0.7; }
-  .audiobar .vol input { vertical-align: middle; }
 
   #cards { display: flex; flex-direction: column; gap: 12px; align-items: center; max-width: 1100px; }
   .row-label { font-size: 12px; letter-spacing: 3px; opacity: 0.45; margin-top: 8px; }
@@ -95,17 +90,7 @@
 
   #frameWrap { position: fixed; inset: 0; display: none; background: #05060a; z-index: 60; }
   #frameWrap iframe { width: 100%; height: 100%; border: 0; display: block; }
-  .resetbtn {
-    font-family: inherit; font-size: 11px; letter-spacing: 2px;
-    padding: 6px 14px; border-radius: 16px; cursor: pointer;
-    border: 1px solid rgba(255,120,120,0.35); background: transparent; color: rgba(255,150,150,0.7);
-  }
-  .resetbtn:hover { border-color: #ff8f8f; color: #ff8f8f; box-shadow: 0 0 12px rgba(255,120,120,0.3); }
   .footer { font-size: 11px; opacity: 0.35; letter-spacing: 2px; }
-  .arcade-back { position:fixed; top:14px; left:16px; z-index:9; font-family:inherit; font-size:12px; letter-spacing:2px;
-    color:#cfe8ff; text-decoration:none; background:rgba(10,16,30,0.7); border:1px solid rgba(120,200,255,0.4);
-    border-radius:8px; padding:7px 12px; }
-  .arcade-back:hover { border-color:#9fe8ff; box-shadow:0 0 12px rgba(120,200,255,0.4); }
   /* in landscape the viewport is short and the title sits near the top — pad the
      menu down so the fixed top-left nav never overlaps the ASTEROIDS logo */
   @media (orientation: landscape) and (max-height: 520px) {
@@ -116,7 +101,6 @@
 </head>
 <body>
   <canvas id="stars"></canvas>
-  <a class="arcade-back" href="../../">‹ funyo</a>
   <div id="select">
     <h1>ASTEROIDS</h1>
 
@@ -126,16 +110,7 @@
     </div>
     <div class="modehint" id="modehint">Endless — survive and rack up the highest score.</div>
 
-    <div class="audiobar">
-      <span class="lbl">AUDIO</span>
-      <button id="sfxToggle">SFX: ON</button>
-      <label class="vol">SFX <input type="range" id="sfxVol" min="0" max="1" step="0.05" value="0.6"></label>
-      <button id="musicToggle">MUSIC: ON</button>
-      <label class="vol">MUS <input type="range" id="musVol" min="0" max="1" step="0.05" value="0.5"></label>
-    </div>
-
     <div class="cards" id="cards"></div>
-    <button id="resetBtn" class="resetbtn">RESET BEST SCORES</button>
     <div class="footer">↑/W thrust · ←→/A D rotate · SPACE shoot · ESC pause</div>
   </div>
 
@@ -170,27 +145,24 @@
     }
     resizeSky(); drawSky();
 
-    // ---- audio (same procedural engine as the games; powers menu music) ----
+    // ---- menu music (procedural; master gain driven by the funyo-kit Music channel) ----
+    const KIT = (typeof window !== 'undefined' && window.funyo) ? window.funyo : null;
     const SND = (() => {
-      let ac, master, sfxG, musG, mt=null;
-      function num(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:parseFloat(v); }catch(e){ return d; } }
-      const opt = {
-        get music(){ try{ return localStorage.getItem('asteroids_music')!=='0'; }catch(e){ return true; } },
-        get musvol(){ return num('asteroids_musvol',0.5); },
-      };
+      let ac, master, musG, mt=null;
       function ensure(){ if(ac!==undefined) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC){ ac=null; return; }
-        ac=new AC(); master=ac.createGain(); master.gain.value=1; master.connect(ac.destination); musG=ac.createGain(); musG.gain.value=opt.musvol; musG.connect(master); }
+        ac=new AC(); master=ac.createGain(); master.gain.value=1; master.connect(ac.destination); musG=ac.createGain(); musG.gain.value=(KIT?KIT.music.gain():0.5); musG.connect(master); }
       const scale=[220,277.18,329.63,440,329.63,277.18]; let step=0;
-      function mtick(){ if(!ac||!opt.music) return; const f=scale[step%scale.length]*(Math.floor(step/6)%2?0.5:1); const o=ac.createOscillator(),v=ac.createGain(); o.type='triangle'; o.frequency.value=f; v.gain.value=0; v.gain.linearRampToValueAtTime(0.16,ac.currentTime+0.03); v.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.4); o.connect(v); v.connect(musG); o.start(); o.stop(ac.currentTime+0.45); step++; }
+      function mtick(){ if(!ac) return; const f=scale[step%scale.length]*(Math.floor(step/6)%2?0.5:1); const o=ac.createOscillator(),v=ac.createGain(); o.type='triangle'; o.frequency.value=f; v.gain.value=0; v.gain.linearRampToValueAtTime(0.16,ac.currentTime+0.03); v.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.4); o.connect(v); v.connect(musG); o.start(); o.stop(ac.currentTime+0.45); step++; }
       return {
         startMusic(){ ensure(); if(!ac||mt) return; if(ac.state==='suspended') ac.resume(); mt=setInterval(mtick,250); },
         stopMusic(){ if(mt){ clearInterval(mt); mt=null; } },
-        refresh(){ ensure(); if(musG) musG.gain.value=opt.musvol; if(!opt.music) this.stopMusic(); },
-        opt,
+        setGain(g){ ensure(); if(musG) musG.gain.value=g; },
       };
     })();
+    // the kit's top-right Music control drives the menu-music gain (0 when muted)
+    if (KIT) KIT.music.subscribe(s => SND.setGain(s.gain));
     let gestured = false;
-    function kickMenuMusic() { if (gestured) return; gestured = true; if (SND.opt.music) SND.startMusic(); }
+    function kickMenuMusic() { if (gestured) return; gestured = true; SND.startMusic(); }
     window.addEventListener('pointerdown', kickMenuMusic);
     window.addEventListener('keydown', kickMenuMusic);
 
@@ -275,45 +247,8 @@
       frameWrap.style.display = 'none';
       select.style.display = 'flex';
       renderCards(); // refresh best stats
-      if (gestured && SND.opt.music) SND.startMusic();
+      if (gestured) SND.startMusic();
     }
-
-    // ---- audio settings (shared localStorage; games read these on load) ----
-    const sfxToggle = document.getElementById('sfxToggle');
-    const musicToggle = document.getElementById('musicToggle');
-    const sfxVol = document.getElementById('sfxVol');
-    const musVol = document.getElementById('musVol');
-    function getS(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }
-    function setS(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-    function refreshAudioUI() {
-      const sfx = getS('asteroids_sfx', '1') !== '0';
-      const music = getS('asteroids_music', '1') !== '0';
-      sfxToggle.textContent = 'SFX: ' + (sfx ? 'ON' : 'OFF'); sfxToggle.classList.toggle('off', !sfx);
-      musicToggle.textContent = 'MUSIC: ' + (music ? 'ON' : 'OFF'); musicToggle.classList.toggle('off', !music);
-      sfxVol.value = getS('asteroids_sfxvol', '0.6');
-      musVol.value = getS('asteroids_musvol', '0.5');
-    }
-    sfxToggle.addEventListener('click', () => { setS('asteroids_sfx', getS('asteroids_sfx','1') !== '0' ? '0' : '1'); refreshAudioUI(); });
-    musicToggle.addEventListener('click', () => {
-      const on = getS('asteroids_music','1') !== '0';
-      setS('asteroids_music', on ? '0' : '1'); refreshAudioUI();
-      if (on) SND.stopMusic(); else { gestured = true; SND.startMusic(); }
-    });
-    sfxVol.addEventListener('input', () => setS('asteroids_sfxvol', sfxVol.value));
-    musVol.addEventListener('input', () => { setS('asteroids_musvol', musVol.value); SND.refresh(); });
-    refreshAudioUI();
-
-    // ---- reset all saved bests (times, scores, waves) ----
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      if (!window.confirm('Reset all best scores and times for every version?')) return;
-      (window.LEVELS || []).forEach(v => {
-        const b = base(v.file);
-        ['asteroids_best_', 'asteroids_score_', 'asteroids_wave_'].forEach(p => {
-          try { localStorage.removeItem(p + b); } catch (e) {}
-        });
-      });
-      renderCards();
-    });
 
     modeToggle.addEventListener('click', () => setMode(!speedrun));
     // in-game "Quit to menu" buttons post this message from inside the iframe
@@ -321,13 +256,9 @@
 
     setMode(false);
 
-    // PWA: register the service worker (installable + offline). Guarded for the harness.
-    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-      let swReloaded = false;
-      const hadController = !!navigator.serviceWorker.controller;
-      navigator.serviceWorker.addEventListener('controllerchange', () => { if (swReloaded || !hadController) return; swReloaded = true; location.reload(); });
-      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').then(reg => { reg.update(); setInterval(() => reg.update(), 3600000); }).catch(() => {}));
-    }
+    // funyo-kit shell: top-left nav (Menu reloads the launcher) + top-right sound menu
+    // (SFX + Music rows + a Reset-scores entry that clears asteroids_* bests) + PWA auto-update.
+    if (KIT) { KIT.nav({ music: true, reset: 'asteroids_' }); KIT.pwa(); }
   </script>
 </body>
 </html>

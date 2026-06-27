@@ -20,12 +20,8 @@
   html,body { margin:0; height:100%; overflow:hidden; background:var(--sky); color:var(--ink);
     font-family: Georgia, "Times New Roman", serif; user-select:none; touch-action:none; }
   #game { display:block; width:100vw; height:100vh; }
-  #hud { position:fixed; top:10px; right:14px; z-index:5; text-align:right; pointer-events:none; left:170px; }
-  /* Portrait: nav stacks tighter to the left but the bar still owns the top — drop the HUD
-     below the nav so the score never overlaps the ‹ Menu / funyo › buttons. */
-  @media (orientation:portrait) {
-    #hud { left:0; top:52px; right:14px; }
-  }
+  /* HUD is positioned center-top by the shared kit (.funyo-hud); keep only the score/best
+     colour variants here so the kit owns layout and the sound menu never collides. */
   #hud .score { font-size:28px; font-weight:bold; color:#3a2a17; text-shadow:0 1px 0 rgba(255,255,255,0.6); }
   #hud .best  { font-size:12px; color:#7a6050; letter-spacing:1px; }
   #hud.night .score { color:#fdf6e3; text-shadow:0 1px 4px rgba(0,0,0,0.5); }
@@ -78,7 +74,7 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud">
+<div id="hud" class="funyo-hud">
   <div class="score" id="scoreEl">0</div>
   <div class="best"  id="bestEl">BEST 0</div>
 </div>
@@ -179,6 +175,7 @@
 
   // ---- State ----
   let W, H;
+  let topInset = 48; // headroom reserved for the center-top kit HUD (see resize)
   let state = 'ready'; // ready | playing | over
   let score = 0;
   let obsSpeed = OBS_SPEED_DAY;
@@ -263,16 +260,22 @@
   function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
-    bird.y = H * 0.42;
+    // Reserve headroom so the playfield clears the center-top HUD. The kit drops the HUD to
+    // top:50px on narrow/portrait screens (CSS max-width:560px), so reserve more there.
+    topInset = (W <= 560) ? 92 : 48;
+    bird.y = startY();
     initParallax();
   }
   window.addEventListener('resize', resize);
+
+  // Bird spawns at the center of the playable band (below the HUD headroom, above the ground).
+  function startY() { const groundH = 28; return topInset + (H - groundH - topInset) * 0.5; }
 
   // ---- Init ----
   function resetGame() {
     score = 0;
     frame = 0;
-    bird.y = H * 0.42;
+    bird.y = startY();
     bird.vy = 0;
     bird.flapAnim = 0;
     bird.wobble = 0;
@@ -375,7 +378,7 @@
   function spawnObstacle() {
     const gap = currentGap();
     const margin = H * 0.12;
-    const lo = margin, hi = H - margin - gap;
+    const lo = Math.max(margin, topInset), hi = H - margin - gap;
     let gapY;
     if (pendingGapY !== null) { gapY = pendingGapY; }
     else {
@@ -439,9 +442,9 @@
     bird.flapAnim = Math.max(0, bird.flapAnim - 0.08);
     bird.wobble = Math.sin(frame * 0.18) * 0.04;
 
-    // boundary — ground check uses groundH so bird hits the visual ground
+    // boundary — ceiling sits below the HUD headroom; ground check uses groundH
     const groundH = 28;
-    if (bird.y - BIRD_R <= 0 || bird.y + BIRD_R >= H - groundH) { gameOver(); return; }
+    if (bird.y - BIRD_R <= topInset || bird.y + BIRD_R >= H - groundH) { gameOver(); return; }
 
     // spawn obstacles
     if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < W - OBS_INTERVAL + OBS_W) {
@@ -724,7 +727,7 @@
     slug: 'flappy', title: 'Meadow Flyer',
     message: () => 'I flew to ' + score + ' in Meadow Flyer 🐤',
   });
-  window.funyo.nav({ mute: true });
+  window.funyo.nav({ reset: 'flappy_' });
 
   // ---- Test hook ----
   window.__test = {

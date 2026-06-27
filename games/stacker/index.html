@@ -18,11 +18,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #b8d4f0; font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
   #game { display: block; width: 100vw; height: 100vh; }
-  #hud { position: fixed; top: 0; left: 0; right: 0; height: 48px; z-index: 5; display: flex; align-items: center;
-    gap: 22px; padding: 0 14px 0 210px; background: rgba(255,255,255,0.45); backdrop-filter: blur(6px);
-    border-bottom: 1px solid rgba(200,180,240,0.35); font-size: 15px; color: #4a3070; }
   #hud .stat b { color: #8a4fbf; font-size: 18px; }
-  #hud .lbl { opacity: 0.65; font-size: 11px; letter-spacing: 1px; display: block; }
   #combo { position: fixed; top: 56px; left: 50%; transform: translateX(-50%); z-index: 5;
     font-size: 13px; color: #e06ab0; font-weight: bold; letter-spacing: 2px; opacity: 0; transition: opacity 0.2s; }
   #overlay { position: fixed; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center;
@@ -53,16 +49,15 @@
     opacity: 0.7; margin-top: 3px; }
   #shareRow { --funyo-accent: #a064f0; }
 
-  /* Portrait: nav buttons stack/clear the HUD — push HUD content below the nav bar */
-  @media (orientation: portrait) {
-    #hud { height: auto; min-height: 48px; padding: 52px 14px 8px 14px; flex-wrap: wrap; gap: 16px; }
+  /* Portrait: kit HUD drops to top:50px — push the combo banner below it */
+  @media (max-width: 560px) {
     #combo { top: 100px; }
   }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud">
+<div id="hud" class="funyo-hud">
   <div class="stat"><span class="lbl">SCORE</span> <b id="score">0</b></div>
   <div class="stat"><span class="lbl">BEST</span> <b id="best">0</b></div>
   <div class="stat"><span class="lbl">HEIGHT</span> <b id="height">0</b></div>
@@ -144,6 +139,7 @@
   let W = 0, H = 0;
   // playfield offset + width (centered, capped)
   let PF_X = 0, PF_W = 0; // updated in resize()
+  let TOP_PAD = 48;       // headroom reserved for the kit center-top HUD (orientation-aware, see resize)
 
   // Time Attack
   let timeLeft = 0;      // seconds remaining (float)
@@ -247,9 +243,14 @@
     blocks.push({ x: placedX, w: placedW, y: mover.y });
     saveBest();
 
-    // Update camera: keep top of tower visible with some headroom
+    // Update camera: keep top of tower visible with some headroom, and never let the
+    // tower top rise into the kit's center-top HUD band (reserve at least TOP_PAD up top).
+    // worldToCanvas(topWorldY) = H - BLOCK_H - (topWorldY - cameraY) must stay >= TOP_PAD,
+    // which requires cameraY >= topWorldY - (H - BLOCK_H - TOP_PAD).
     const topWorldY = mover.y + BLOCK_H;
-    targetCameraY = Math.max(0, topWorldY - H * 0.35);
+    const desired = topWorldY - H * 0.35;
+    const minCam = topWorldY - (H - BLOCK_H - TOP_PAD);
+    targetCameraY = Math.max(0, desired, minCam);
 
     // Spawn next mover — starts from a random edge of the play column
     const level = blocks.length - 1;
@@ -495,6 +496,8 @@
     // Constrain play column so block traversal feels snappy
     PF_W = Math.max(340, Math.min(Math.round(W * 0.27), MAX_PLAY_W, W));
     PF_X = (W - PF_W) / 2;
+    // Reserve headroom for the kit center-top HUD: top:8px landscape, top:50px portrait (≤560px)
+    TOP_PAD = W <= 560 ? 92 : 48;
   }
   window.addEventListener('resize', resize);
 
@@ -541,7 +544,7 @@
     menuBest(m) { const el = document.getElementById('mbest-' + m); return el ? el.textContent : null; },
   };
 
-  window.funyo.nav({ mute: true });
+  window.funyo.nav({ reset: 'stacker_' });
 
   resize();
   updateHud();

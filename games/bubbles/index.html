@@ -25,24 +25,9 @@
     color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; user-select:none; touch-action:none; }
   #game { display:block; width:100vw; height:100vh; }
 
-  #hud { position:fixed; top:0; left:0; right:0; height:48px; z-index:5; display:flex;
-    align-items:center; gap:20px; padding:0 14px; padding-left:200px;
-    background:linear-gradient(180deg,rgba(13,31,45,0.95),rgba(13,31,45,0.7));
-    border-bottom:1px solid var(--border); }
-  /* Portrait / narrow: the nav buttons sit above the stats so the HUD grows
-     taller and the score row clears the top `‹ Menu` / `funyo ›` nav. */
-  @media (max-width:560px), (orientation:portrait) {
-    #hud { height:auto; min-height:74px; flex-wrap:wrap; align-items:flex-end;
-      padding:34px 12px 6px; gap:14px; }
-    .stat .val { font-size:16px; }
-    #modeBadge { margin-bottom:1px; }
-  }
-  .stat { display:flex; flex-direction:column; }
-  .stat .lbl { font-size:9px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; }
-  .stat .val { font-size:18px; font-weight:700; color:var(--aqua); line-height:1; }
-  #modeBadge { margin-left:auto; font-size:11px; letter-spacing:1.5px;
-    background:rgba(46,232,200,0.15); border:1px solid var(--border);
-    border-radius:6px; padding:3px 8px; color:var(--aqua2); }
+  /* Position/background/font come from the shared .funyo-hud (center-top pill).
+     Keep only the aqua value color. */
+  #hud .val { color:var(--aqua); }
   #chargeMeter { position:fixed; right:10px; top:56px; bottom:auto; height:120px; z-index:5;
     width:12px; border-radius:6px; border:1px solid var(--border);
     background:rgba(13,31,45,0.7); overflow:hidden; }
@@ -115,19 +100,18 @@
     background:rgba(255,224,102,0.18); border:1px solid #ffe066; border-radius:8px;
     color:#ffe066; display:none; white-space:nowrap; pointer-events:none; }
   @media (max-width:560px), (orientation:portrait) {
-    #specialIndicator { top:82px; font-size:12px; padding:4px 11px; }
-    /* Taller portrait HUD (min-height 74px) — push the charge meter below it. */
-    #chargeMeter, #chargeLabel { top:82px; }
+    #specialIndicator { top:96px; font-size:12px; padding:4px 11px; }
+    /* Portrait HUD pill drops to top:50px and is taller — push these below it. */
+    #chargeMeter, #chargeLabel { top:96px; }
   }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud">
+<div id="hud" class="funyo-hud">
   <div class="stat"><span class="lbl">Score</span><span class="val" id="scoreEl">0</span></div>
   <div class="stat"><span class="lbl">Best</span><span class="val" id="bestEl">0</span></div>
   <div class="stat"><span class="lbl">Level</span><span class="val" id="levelEl">1</span></div>
-  <span id="modeBadge">ARCADE</span>
 </div>
 <div id="chargeMeter">
   <div id="chargeFill" style="height:0%;margin-top:auto;"></div>
@@ -206,6 +190,9 @@
 
   // ---- State ----
   let W, H;
+  // Headroom so the playfield/bubbles clear the shared center-top .funyo-hud pill.
+  // Landscape: pill at top:8px → ~48px. Portrait (≤560px): pill drops to top:50px → ~92px.
+  let topMargin = 48;
   let state = 'ready'; // 'ready'|'playing'|'over'|'won'
   let mode = 'arcade';
   let score = 0, bestScore = 0, level = 1;
@@ -240,6 +227,8 @@
     // always fits the viewport width — otherwise narrow / zoomed screens clip columns.
     R = Math.max(9, Math.min(18, Math.floor((W - 24) / (2 * (COLS_COUNT + 1)))));
     ROW_H = R * 1.73;
+    const portrait = H > W || W <= 560;
+    topMargin = portrait ? 92 : 48;
   }
   window.addEventListener('resize', resize);
 
@@ -251,7 +240,7 @@
     return startX + col * R * 2 + offset;
   }
   function gridY(row) {
-    return 56 + gridOffsetY + row * ROW_H + R + 2;
+    return topMargin + gridOffsetY + row * ROW_H + R + 2;
   }
 
   // ---- Color helpers ----
@@ -344,7 +333,6 @@
     $('scoreEl').textContent = score;
     $('bestEl').textContent = bestScore;
     $('levelEl').textContent = level;
-    $('modeBadge').textContent = mode.toUpperCase();
     const pct = Math.round(chargeLevel * 100);
     const fill = $('chargeFill');
     if (fill) {
@@ -615,7 +603,7 @@
       if (x <= left) { x = left; vx = Math.abs(vx); }
       if (x >= right) { x = right; vx = -Math.abs(vx); }
       points.push([x, y]);
-      if (y < 70) break;
+      if (y < topMargin + R) break;
     }
     return points;
   }
@@ -771,8 +759,8 @@
       if (shotBubble.x >= W - R) { shotBubble.x = W - R; shotBubble.vx = -Math.abs(shotBubble.vx); }
 
       // Hit ceiling
-      if (shotBubble.y <= 56 + R) {
-        landBubble(shotBubble.x, 56 + R);
+      if (shotBubble.y <= topMargin + R) {
+        landBubble(shotBubble.x, topMargin + R);
         return;
       }
 
@@ -1096,7 +1084,7 @@
     slug: 'bubbles', title: 'Bubble Pop',
     message: () => 'I scored ' + score + ' in Bubble Pop 🫧',
   });
-  window.funyo.nav({ mute: true });
+  window.funyo.nav({ reset: 'bubbles_' });
 
   // ---- __test API ----
   window.__test = {

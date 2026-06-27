@@ -20,11 +20,9 @@
   html,body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
     font-family:'Courier New',Courier,monospace; user-select:none; touch-action:none; }
   #game { display:block; width:100vw; height:100vh; cursor:none; }
-  #hud { position:fixed; top:0; left:0; right:0; height:48px; z-index:5; display:flex; align-items:center;
-    gap:22px; padding:0 16px; padding-left:210px; background:rgba(13,17,23,0.82); border-bottom:1px solid #1e2d3a; }
-  #hud .stat .lbl { opacity:0.5; font-size:10px; letter-spacing:2px; }
-  #hud .stat b { color:var(--accent); font-size:15px; }
-  #hud .stat b.warn { color:#ff3c3c; }
+  /* .funyo-hud (shared kit) provides center-top placement, pill, wrap + font; keep only item colors. */
+  #hud .stat b { color:var(--accent); }
+  #hud #hTime.warn { color:#ff3c3c; }
   #overlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:14px; background:rgba(13,17,23,0.88); padding:24px; }
   #overlay.hidden { display:none; }
@@ -62,19 +60,15 @@
   #endScreen button#restartBtn { font-family:inherit; cursor:pointer; font-size:13px; letter-spacing:2px; padding:9px 24px;
     border-radius:6px; color:var(--fg); background:var(--accent); border:none; }
   #shareRow { --funyo-accent:#ff7a3c; }
-  @media (orientation:portrait) {
-    /* HUD sits below the top nav bar in portrait so SCORE/TIME don't collide with ‹ Menu / funyo › */
-    #hud { top:48px; padding-left:16px; }
-  }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud">
-  <div class="stat"><div class="lbl">SCORE</div><b id="hScore">0</b></div>
-  <div class="stat"><div class="lbl">ACC</div><b id="hAcc">--%</b></div>
-  <div class="stat"><div id="hTimeLbl" class="lbl">TIME</div><b id="hTime">30</b></div>
-  <div class="stat"><div id="hBestLbl" class="lbl">BEST</div><b id="hBest">0</b></div>
+<div id="hud" class="funyo-hud">
+  <div class="stat"><span class="lbl">SCORE</span><b id="hScore">0</b></div>
+  <div class="stat"><span class="lbl">ACC</span><b id="hAcc">--%</b></div>
+  <div class="stat"><span id="hTimeLbl" class="lbl">TIME</span><b id="hTime">30</b></div>
+  <div class="stat"><span id="hBestLbl" class="lbl">BEST</span><b id="hBest">0</b></div>
 </div>
 
 <div id="overlay">
@@ -118,13 +112,14 @@
   const $ = id => document.getElementById(id);
   const canvas = $('game'), ctx = canvas.getContext('2d');
   const overlay = $('overlay'), endScreen = $('endScreen');
-  const NAV_H = 48, HUD_BAR_H = 48;
-  // Bottom of the HUD in canvas coords. Landscape: HUD overlaps the nav (one 48px bar).
-  // Portrait: HUD sits below the nav, so playfield must clear nav + HUD (96px).
+  // Top headroom the playfield must reserve for the kit's center-top .funyo-hud pill.
+  // Landscape: pill at top:8px → clears ~48px. Portrait (≤560px): pill drops to top:50px
+  // below the nav → clears ~92px.
+  const HUD_LANDSCAPE = 48, HUD_PORTRAIT = 92;
   function isPortrait() {
     try { return window.innerHeight >= window.innerWidth; } catch (e) { return false; }
   }
-  function hudBottom() { return isPortrait() ? NAV_H + HUD_BAR_H : HUD_BAR_H; }
+  function hudBottom() { return isPortrait() ? HUD_PORTRAIT : HUD_LANDSCAPE; }
   let HUD_H = hudBottom();
 
   // ---- Audio (funyo-kit shared engine + global mute) ----
@@ -647,7 +642,7 @@
     slug: 'aim-trainer', title: 'Range',
     message: () => 'I scored ' + score + ' on the Range 🎯',
   });
-  window.funyo.nav({ mute: true });
+  window.funyo.nav({ reset: 'aim-trainer_' });
 
   // ---- Test hook ----
   window.__test = {
