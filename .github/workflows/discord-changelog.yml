@@ -1,0 +1,28 @@
+name: Discord push notice
+
+# Posts a message to the Discord changelog channel on every push to main.
+# The webhook lives in a repo SECRET (never in this public file): add it at
+# Settings → Secrets and variables → Actions → New repository secret
+#   name:  DISCORD_CHANGELOG_WEBHOOK
+#   value: <the changelog webhook URL>
+# If the secret is missing, the job skips quietly.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post commit to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+          ACTOR: ${{ github.actor }}
+          MSG: ${{ github.event.head_commit.message }}
+          URL: ${{ github.event.compare }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then echo "DISCORD_CHANGELOG_WEBHOOK not set — skipping."; exit 0; fi
+          payload=$(jq -Rn --arg t "🚀 New push to **Komyo Games** by $ACTOR" --arg m "$MSG" --arg u "$URL" \
+            '{username:"Komyo Games", content: ($t + "\n```\n" + $m + "\n```\n" + $u)}')
+          curl -sS -H "Content-Type: application/json" -d "$payload" "$WEBHOOK"
