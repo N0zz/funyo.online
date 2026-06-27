@@ -721,16 +721,30 @@
   const _update = update;
   // (pollKeys called inline in loop)
 
-  // Override loop to include key polling
-  function loop2() {
+  // Override loop to include key polling.
+  // Frame-rate-INDEPENDENT fixed timestep: physics advances at a constant 60 steps/sec of
+  // game-time regardless of the display's refresh rate (60/90/120 Hz). We accumulate real
+  // elapsed time and drain it in fixed STEP chunks, calling update() once per chunk; render
+  // happens once per frame. 2× speed simply scales accumulated time by speedMult, so it is
+  // exactly twice real-time on every screen. update()'s per-step physics is unchanged — only
+  // how often the loop calls it. (High-refresh mobile previously ran update() per frame, which
+  // made the sim run 1.5–2× too fast; 2× compounded it.)
+  const STEP = 1000 / 60;        // ms of game-time per physics step
+  const MAX_FRAME = 100;         // clamp dt to avoid spiral-of-death after a tab stall
+  let lastT = null, acc = 0;
+  function loop2(now) {
     requestAnimationFrame(loop2);
     try {
       pollKeys();
-      // 2× speed = run the fixed-step update twice per frame (sub-stepping). This keeps every
-      // collision check at the normal per-step resolution (no tunnelling) and reuses the same
-      // hot loops, so it doesn't regress the multiball perf work.
-      const steps = state === 'playing' ? speedMult : 1;
-      for (let i = 0; i < steps; i++) update();
+      if (now === undefined) now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      if (lastT === null) lastT = now;
+      let dt = now - lastT;
+      lastT = now;
+      if (dt > MAX_FRAME) dt = MAX_FRAME;
+      if (dt < 0) dt = 0;
+      const mult = state === 'playing' ? speedMult : 1;
+      acc += dt * mult;
+      while (acc >= STEP) { update(); acc -= STEP; }
       render();
     } catch (e) { if (window.console) console.error(e); }
   }
