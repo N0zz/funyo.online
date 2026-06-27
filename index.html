@@ -7,6 +7,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#0b0f17">
 <link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="funyo">
@@ -29,6 +30,8 @@
 <meta name="twitter:image" content="https://funyo.online/og-image.png?v=2">
 <!-- Analytics: GA4, loaded only after cookie consent (see analytics.js) -->
 <script src="analytics.js" defer></script>
+<link rel="stylesheet" href="funyo-kit.css">
+<script src="funyo-kit.js"></script>
 <style>
   :root {
     --bg:#0b0f17; --surface:#161c28; --surface-2:#1e2738; --border:#2a3446;
@@ -233,7 +236,8 @@
       <a class="coffee" href="https://buymeacoffee.com/n0zz">☕ Buy me a coffee</a> &nbsp;·&nbsp;
       <a class="ghlink" href="https://github.com/N0zz/funyo.online" target="_blank" rel="noopener" aria-label="funyo on GitHub" title="View source on GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.39 1.24-3.23-.12-.31-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.87.12 3.18.77.84 1.24 1.92 1.24 3.23 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z"/></svg>
-        GitHub</a>
+        GitHub</a> &nbsp;·&nbsp;
+      <a class="ghlink" id="resetAll" href="#" title="Clear all saved scores &amp; progress for every game">↺ Reset all data</a>
     </footer>
   </div>
 
@@ -502,6 +506,27 @@
       const a = document.getElementById('cbAccept'), d = document.getElementById('cbDecline');
       if (a) a.addEventListener('click', () => { decide('granted'); if (window.funyoLoadGA) window.funyoLoadGA(); });
       if (d) d.addEventListener('click', () => decide('denied'));
+    })();
+
+    // ---- Reset all game data (every game's scores/progress + favorites; keeps consent + audio prefs) ----
+    (function () {
+      const btn = document.getElementById('resetAll');
+      if (!btn) return;
+      const KEEP = { funyo_consent: 1, funyo_sfx_muted: 1, funyo_sfx_vol: 1, funyo_music_muted: 1, funyo_music_vol: 1 };
+      const wipe = () => {
+        try {
+          const keys = [];
+          for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && !KEEP[k]) keys.push(k); }
+          keys.forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+        } catch (e) {}
+        try { location.reload(); } catch (e) {}
+      };
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const msg = 'Reset your saved scores, progress & favorites for ALL games? This cannot be undone.';
+        if (window.funyo && window.funyo.confirm) window.funyo.confirm(msg, wipe);
+        else if (typeof confirm !== 'function' || confirm(msg)) wipe();
+      });
     })();
 
     if ('serviceWorker' in navigator) {

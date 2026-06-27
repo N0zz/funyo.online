@@ -53,7 +53,7 @@ function runInline(file, extraSandbox = {}) {
 function testCatalogue() {
   section('index.html (catalogue)');
   const games = fs.readFileSync(path.join(DIR, 'games.js'), 'utf8');
-  const g = runInline('index.html', { __preCode: games });
+  const g = runInline('index.html', { __preCode: KIT + '\n' + games });
   ok(g.bootErr === null, 'catalogue boots: ' + g.bootErr);
   const GAMES = g.win.GAMES;
   ok(Array.isArray(GAMES) && GAMES.length >= 2, 'games.js exposes games (got ' + (GAMES && GAMES.length) + ')');
