@@ -75,11 +75,13 @@
   .badge { position:relative; }
   .badge b { font-style:normal; font-family:var(--mono); font-size:12px; font-weight:800; letter-spacing:2px;
     background-size:220% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:badgeShine 2.2s linear infinite; }
-  .badge-new b  { background-image:linear-gradient(90deg,#fff6c2,#ffd24d,#fff,#ffd24d,#fff6c2); filter:drop-shadow(0 0 5px rgba(255,195,60,0.95)); }
-  .badge-pick b { background-image:linear-gradient(90deg,#ead4ff,#b98cff,#fff,#b98cff,#ead4ff); filter:drop-shadow(0 0 5px rgba(160,100,255,0.95)); }
+  .badge-new b     { background-image:linear-gradient(90deg,#fff6c2,#ffd24d,#fff,#ffd24d,#fff6c2); filter:drop-shadow(0 0 5px rgba(255,195,60,0.95)); }
+  .badge-updated b { background-image:linear-gradient(90deg,#bfefff,#4db6ff,#fff,#4db6ff,#bfefff); filter:drop-shadow(0 0 5px rgba(70,160,255,0.95)); }
+  .badge-pick b    { background-image:linear-gradient(90deg,#ead4ff,#b98cff,#fff,#b98cff,#ead4ff); filter:drop-shadow(0 0 5px rgba(160,100,255,0.95)); }
   .badge .spk { position:absolute; width:3px; height:3px; border-radius:50%; opacity:0; }
-  .badge-new .spk  { background:#fff3b0; box-shadow:0 0 6px 1px rgba(255,210,90,0.95); }
-  .badge-pick .spk { background:#ecdcff; box-shadow:0 0 6px 1px rgba(170,115,255,0.95); }
+  .badge-new .spk     { background:#fff3b0; box-shadow:0 0 6px 1px rgba(255,210,90,0.95); }
+  .badge-updated .spk { background:#d6f0ff; box-shadow:0 0 6px 1px rgba(90,170,255,0.95); }
+  .badge-pick .spk    { background:#ecdcff; box-shadow:0 0 6px 1px rgba(170,115,255,0.95); }
   .badge .spk:nth-child(2){ left:88%; top:-3px; animation:spk 1.8s ease-in-out infinite; }
   .badge .spk:nth-child(3){ left:-5px; top:5px; animation:spk 2.3s .6s ease-in-out infinite; }
   .badge .spk:nth-child(4){ left:42%; top:13px; animation:spk 2s 1.1s ease-in-out infinite; }
@@ -306,12 +308,20 @@
     function toggleFav(slug) { const a = favs(), i = a.indexOf(slug); if (i >= 0) a.splice(i, 1); else a.push(slug); setFavs(a); render(); }
     // tile badges — add a type here (label + css class) and reference it from a game's `badges: [...]`
     const BADGES = {
-      new:  { label: 'NEW',     cls: 'badge-new' },
-      pick: { label: 'POPULAR', cls: 'badge-pick' },
+      new:     { label: 'NEW',     cls: 'badge-new' },
+      updated: { label: 'UPDATED', cls: 'badge-updated' },
+      pick:    { label: 'POPULAR', cls: 'badge-pick' },
     };
+    // badges stack (vertical, top-left). Auto NEW/UPDATED from dates (≤7 days) sit on top;
+    // manual badges (e.g. "pick") follow. NEW wins over UPDATED; duplicates are de-duped.
     function badgesHtml(g, soon) {
-      if (soon || !Array.isArray(g.badges)) return '';
-      const items = g.badges.map(k => BADGES[k]).filter(Boolean).map(b =>
+      if (soon) return '';
+      const keys = Array.isArray(g.badges) ? g.badges.slice() : [];
+      const daysSince = d => { const t = d ? Date.parse(d) : NaN; return isFinite(t) ? (Date.now() - t) / 86400000 : Infinity; };
+      if (daysSince(g.added) <= 7) keys.unshift('new');
+      else if (daysSince(g.updated) <= 7) keys.unshift('updated');
+      const seen = {};
+      const items = keys.filter(k => BADGES[k] && !seen[k] && (seen[k] = 1)).map(k => BADGES[k]).map(b =>
         '<span class="badge ' + b.cls + '"><b>' + b.label + '</b><i class="spk"></i><i class="spk"></i><i class="spk"></i></span>').join('');
       return items ? '<span class="badges">' + items + '</span>' : '';
     }

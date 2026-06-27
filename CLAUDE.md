@@ -125,9 +125,11 @@ generated levels; SFX via `funyo.sound`, music gain via `funyo.music.subscribe`,
 - **Catalogue layout:** tiles render from `games.js` into two sections — **Single player** and
   **Multiplayer** (`mp: true`) — split by centered horizontal dividers; within each, order is
   favorites → available → coming-soon (`soon: true`, greyed). MP tiles show a `players` pill
-  (👥 2P / 2–4P) and keep their genre tag. **Badges** come from the `BADGES` map in `index.html`
-  (`badges: ["new"]` gold, `["pick"]` purple) rendered as a shimmer+sparkle mark, top-left —
-  add a type by adding one map entry + a color rule. Header carries a **mascot placeholder**
+  (👥 2P / 2–4P) and keep their genre tag. **Badges** (shimmer+sparkle marks, top-left, stackable
+  vertically) come from the `BADGES` map in `index.html`: **NEW** (gold) and **UPDATED** (blue) are
+  auto-applied from a game's `added` / `updated` date in `games.js` (within 7 days; NEW wins over
+  UPDATED); **POPULAR** (purple, `badges: ["pick"]`) is manual. Add a type = one map entry + a color
+  rule. Header carries a **mascot placeholder**
   (chibi fox-girl inline SVG — swap for real art later).
 - Monetization is optional only: **Buy Me a Coffee** (footer) + GitHub Sponsors (README badge
   only — the footer Sponsor link was removed; footer = coffee + a GitHub-icon repo link).

@@ -27,7 +27,7 @@ window.GAMES = [
     icon: "🫧",
     accent: "#2ee8c8",
     tag: "PUZZLE",
-    badges: ["new"],
+    added: "2026-06-26",
   },
 
   // ---- coming soon ----
