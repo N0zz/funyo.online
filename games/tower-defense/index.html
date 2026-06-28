@@ -1426,7 +1426,11 @@
     });
     // desktop hover tooltip with the tower's stats (TASK 2). Headless-safe: handlers
     // simply never fire in the mocked DOM; getBoundingClientRect is guarded.
+    // Skip on touch / no-hover devices: there the synthetic mouseenter would pop this
+    // opaque card over the map and leave it there (no mouseleave on touch), covering the
+    // tiles you're trying to build on. Cost is shown on the button itself, so no loss.
     b.addEventListener('mouseenter', () => {
+      try { if (window.matchMedia && window.matchMedia('(hover: none)').matches) return; } catch (e) {}
       let r = { left: 0, top: 0, width: 84 };
       try { r = b.getBoundingClientRect(); } catch (e) {}
       showTipFor(t, r.left + r.width / 2, r.top);
