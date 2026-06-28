@@ -100,6 +100,43 @@
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
   }
 
+  // ---------- embed modal (iframe snippet) — used by the per-game nav button + catalogue menu ----------
+  function embedSnippet(slug, title) {
+    var t = String(title || 'Komyo Games').replace(/"/g, '&quot;');
+    return '<iframe src="https://komyo.online/games/' + slug + '/" width="480" height="720" loading="lazy" style="max-width:100%;border:0;border-radius:12px" title="' + t + ' — Komyo Games"></iframe>';
+  }
+  // opts: { slug, title } for one game, OR { games: [{slug,title}, …] } for a picker.
+  function embedModal(opts) {
+    opts = opts || {};
+    if (typeof document === 'undefined' || !document.body) return;
+    var games = opts.games || (opts.slug ? [{ slug: opts.slug, title: opts.title || (typeof document !== 'undefined' && document.title) || opts.slug }] : []);
+    if (!games.length) return;
+    var ov = document.createElement('div'); ov.className = 'gamekit-embed';
+    var picker = games.length > 1 ? '<select class="gamekit-embed-sel" aria-label="Pick a game">' + games.map(function (g, i) { return '<option value="' + i + '">' + (g.title || g.slug) + '</option>'; }).join('') + '</select>' : '';
+    ov.innerHTML = '<div class="gamekit-embed-box"><button class="gamekit-embed-x" type="button" aria-label="Close">✕</button>'
+      + '<h3>Embed ' + (games.length > 1 ? 'a game' : 'this game') + '</h3>'
+      + '<p>Paste this where you want the game on your site or blog — it runs right there, free, no account, no ads.</p>'
+      + picker
+      + '<textarea class="gamekit-embed-code" readonly rows="4"></textarea>'
+      + '<button class="gamekit-embed-copy" type="button">Copy code</button></div>';
+    document.body.appendChild(ov);
+    var sel = ov.querySelector ? ov.querySelector('.gamekit-embed-sel') : null;
+    var code = ov.querySelector ? ov.querySelector('.gamekit-embed-code') : null;
+    var copy = ov.querySelector ? ov.querySelector('.gamekit-embed-copy') : null;
+    var setCode = function () { var g = games[(sel ? (sel.value | 0) : 0)] || games[0]; if (code) code.value = embedSnippet(g.slug, g.title); };
+    setCode();
+    if (sel) sel.addEventListener('change', setCode);
+    var close = function () { try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} };
+    var xb = ov.querySelector ? ov.querySelector('.gamekit-embed-x') : null; if (xb) xb.addEventListener('click', close);
+    ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
+    if (copy) copy.addEventListener('click', function () {
+      try {
+        if (code && code.select) code.select();
+        if (navigator.clipboard) navigator.clipboard.writeText(code ? code.value : '').then(function () { copy.textContent = 'Copied!'; setTimeout(function () { copy.textContent = 'Copy code'; }, 1500); })['catch'](function () {});
+      } catch (e) {}
+    });
+  }
+
   // ---------- reset scores (per-game; clears only keys starting with `prefix`) ----------
   function resetScores(prefix) {
     if (!prefix || typeof localStorage === 'undefined' || typeof localStorage.key !== 'function') return;
@@ -207,12 +244,18 @@
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
       wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">&#x2039; Menu</button>'
-        + '<a class="gamekit-back" id="gamekitHome" target="_top" href="' + (opts.home || '../../') + '">Komyo Games &#x203A;</a>';
+        + '<a class="gamekit-back" id="gamekitHome" target="_top" href="' + (opts.home || '../../') + '">Komyo Games &#x203A;</a>'
+        + '<button class="gamekit-back gamekit-embed-btn" id="gamekitEmbed" type="button" aria-label="Embed this game" title="Embed this game">&#x29C9;</button>';
       document.body.appendChild(wrap);
       var menu = document.getElementById('gamekitMenu');
       if (menu) menu.addEventListener('click', function () {
         if (typeof opts.onMenu === 'function') { try { opts.onMenu(); } catch (e) {} }
         else { try { location.reload(); } catch (e) {} }
+      });
+      var eb = document.getElementById('gamekitEmbed');
+      if (eb) eb.addEventListener('click', function () {
+        var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
+        embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
       });
     }
     audioMenu({ music: !!opts.music, reset: opts.reset });
@@ -467,7 +510,7 @@
     __emit: function (w, h) { try { if (typeof window !== 'undefined') { if (w != null) window.innerWidth = w; if (h != null) window.innerHeight = h; } } catch (e) {} fireLayout(); },
   };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

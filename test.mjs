@@ -59,6 +59,8 @@ function testCatalogue() {
   ok(typeof g.win.__renderChallenges === 'function', 'challenges panel render is wired');
   let cerr = null; try { g.win.__renderChallenges(); } catch (e) { cerr = e.message; }
   ok(cerr === null, 'rendering challenges does not throw: ' + cerr);
+  const eb = g.getEl('embedBtn'); let ebErr = null; try { eb.fire('click'); } catch (e) { ebErr = e.message; }
+  ok(ebErr === null, 'Embed-a-game menu opens without throwing: ' + ebErr);
   const GAMES = g.win.GAMES;
   ok(Array.isArray(GAMES) && GAMES.length >= 2, 'games.js exposes games (got ' + (GAMES && GAMES.length) + ')');
   const grid = g.getEl('grid');
@@ -199,6 +201,9 @@ function testKit() {
   // score card (Level 2): headless has no canvas.toBlob → resolves null without throwing
   let cardOk = false; F.scoreCard({ title: 'Neon Snake', score: 42 }).then(b => { cardOk = (b === null); }).catch(() => {});
   ok(typeof F.scoreCard === 'function', 'kit exposes scoreCard builder');
+  // embed modal (single + picker)
+  let embErr = null; try { F.embedModal({ slug: 'snake', title: 'Neon Snake' }); F.embedModal({ games: [{ slug: 'a', title: 'A' }, { slug: 'b', title: 'B' }] }); } catch (e) { embErr = e.message; }
+  ok(embErr === null && typeof F.embedModal === 'function', 'embedModal builds (single + picker) headless: ' + embErr);
   // headless-safe (incl. the audio menu + reset + music flag)
   let threw = null;
   try { F.nav({ music: true, reset: 'snake_' }); F.shareRow(doc.getElementById('sr'), { slug: 'snake', message: () => 'x' }); F.pwa(); F.resetScores('snake_'); } catch (e) { threw = e.message; }

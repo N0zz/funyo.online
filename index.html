@@ -418,6 +418,7 @@
         <button class="ditem" id="feedback" type="button"><span class="di">💬</span> Feedback</button>
         <button class="ditem" id="newsletter" type="button"><span class="di">📬</span> Subscribe</button>
         <a class="ditem" href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener"><span class="di">🎮</span> Discord</a>
+        <button class="ditem" id="embedBtn" type="button"><span class="di">🔗</span> Embed a game</button>
       </div>
       <div class="dgrp">
         <div class="dl">Support</div>
@@ -1085,6 +1086,16 @@
       }
       window.__renderChallenges = render;
       render(); // initialise on load (no-op headless / when challenges.js absent)
+    })();
+
+    // ---- Embed a game (Connect menu → kit embed modal with a game picker) ----
+    (function () {
+      const btn = document.getElementById('embedBtn');
+      if (!btn || !window.gamekit || !window.gamekit.embedModal) return;
+      btn.addEventListener('click', () => {
+        const games = (window.GAMES || []).filter(g => g && !g.soon).map(g => ({ slug: g.slug, title: g.title || g.slug }));
+        window.gamekit.embedModal({ games });
+      });
     })();
 
     // ---- "Your data" help toggle (hamburger) ----
