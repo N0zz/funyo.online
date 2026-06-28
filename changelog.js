@@ -17,6 +17,7 @@ window.CHANGELOG = [
     'New: Bubble Pop modes — Arcade and Endless now build pressure as you shoot rather than on a clock, with a new Speedrun mode that keeps the timer. Your loaded bubble also auto-swaps if its color is no longer on the board.',
     'Fix: games now re-fit correctly when you rotate your phone between portrait and landscape — Stack stays centered, Brick Breaker keeps room to react, Bubble Pop sticks to portrait on phones, Tower Defense’s menu and keep fit the screen, Asteroids’ end screen fits in landscape.',
     'Fix: Brick Breaker — the paddle now moves instantly and stops the moment you let go; in portrait the top bricks no longer hide under the score bar.',
+    'Fix: Brick Breaker — the paddle waits centered until you launch, and the on-screen ◀ ▶ move hints now show in portrait too (not just landscape).',
     'Fix: Asteroids & Asteroids+ — a mode is preselected so Play works right away, and picking a mode now works on phones.',
     'Fix: the Filter panel now fits the screen on phones in landscape — it no longer runs off the edge, and the genre list scrolls.',
     'Fix: Range’s "race to 100" progress bar now tracks targets hit, not points.',
