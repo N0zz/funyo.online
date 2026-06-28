@@ -105,6 +105,13 @@ function run() {
   tp = T().towerPx(0); cp = T().cellPx(cell.c, cell.r);
   ok(Math.abs(tp.x - cp.x) < 0.5 && Math.abs(tp.y - cp.y) < 0.5, 'tower realigns after rotating back');
 
+  section('upgrade button greys out when unaffordable');
+  T().addGold(-T().gold);              // drain to 0
+  T().selectTowerAt(cell.c, cell.r);
+  ok(T().upBtnDisabled() === true, "upgrade button disabled when you can't afford it");
+  T().addGold(1000);                   // refund → refreshToolbar re-enables it live
+  ok(T().upBtnDisabled() === false, 'upgrade button pops in once affordable');
+
   section('END screen + share row');
   const g2 = runInline('index.html'); const U = () => g2.test();
   U().start();

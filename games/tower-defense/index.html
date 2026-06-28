@@ -69,6 +69,7 @@
   #panelTower .pr { display:flex; gap:8px; justify-content:center; }
   #panelTower button { font-family:inherit; cursor:pointer; padding:6px 10px; border-radius:8px; color:var(--parch);
     background:linear-gradient(180deg,#6a4a2c,#4a3220); border:2px solid #2c1d10; font-size:12px; }
+  #panelTower button:disabled { opacity:0.4; cursor:default; }
 
   #overlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:14px; background:rgba(20,12,6,0.82); padding:24px; }
@@ -453,6 +454,7 @@
     if (spd) { spd.textContent = gameSpeed === 1 ? '⚡2x' : '⚡3x'; spd.classList.toggle('fast', gameSpeed === 2); }
     const ab = $('autoBtn');
     if (ab) { ab.textContent = 'Auto: ' + (autoWave ? 'On' : 'Off'); ab.classList.toggle('on', autoWave); }
+    refreshUpBtn(); // keep the open tower panel's upgrade button affordability live as gold changes
   }
   function float(x, y, txt, col) { floats.push({ x, y, txt, col: col || '#fff', life: 1 }); }
 
@@ -604,6 +606,14 @@
     $('upBtn').textContent = t.lvl >= 3 ? 'Maxed' : ('Upgrade ' + upgradeCost(t) + 'g');
     $('sellBtn').textContent = 'Sell +' + Math.round(t.spent * 0.7) + 'g';
     const pk = $('ptKills'); if (pk) pk.textContent = 'Kills: ' + t.kills;
+    refreshUpBtn();
+  }
+  // Grey out (disable) the upgrade button when it's maxed or unaffordable; it "pops in" once you
+  // can afford it (refreshToolbar runs on every gold change, e.g. each kill).
+  function refreshUpBtn() {
+    const b = $('upBtn'); if (!b || !selTower) return;
+    const canUpgrade = selTower.lvl < 3 && gold >= upgradeCost(selTower);
+    b.disabled = !canUpgrade;
   }
 
   // ---- Tower info / tooltips (TASK 2) ----
@@ -1467,6 +1477,8 @@
     addGold(n) { gold += n; updateHud(); refreshToolbar(); },
     killAll() { [...enemies].forEach(killEnemy); },
     upgradeAt(c, r) { const t = towerAt(c, r); if (t) { selectPanel(t); upgradeTower(t); } },
+    selectTowerAt(c, r) { const t = towerAt(c, r); if (t) selectPanel(t); },
+    upBtnDisabled() { return !!$('upBtn').disabled; },
     sellAt(c, r) { const t = towerAt(c, r); if (t) sellTower(t); },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
     roadAt(c, r) { return !!road[c][r]; },
