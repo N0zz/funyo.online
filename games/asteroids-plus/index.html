@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Asteroids+</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<meta name="theme-color" content="#9fe8ff">
+<meta name="theme-color" content="#b98cff">
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -55,6 +55,7 @@
   #overlay .hint { opacity:0.55; font-size:13px; }
   .blink { animation:blink 1.1s steps(2,start) infinite; }
   @keyframes blink { to { opacity:0.25; } }
+  .touchonly { display:none; } body.touch .touchonly { display:block; }
   @media (max-height: 540px) { #overlay { gap: 8px; overflow-y: auto; } #overlay h1 { font-size: 34px; letter-spacing: 5px; } #overlay p { font-size: 13px; line-height: 1.4; } }
   .cards { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; max-width:840px; }
   /* compact grid for the wave shop, which lists many upgrades — fits without fullscreen */
@@ -116,6 +117,7 @@
   <p id="modeTitle">ROGUELITE — GEM LEVEL-UP</p>
   <p><strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause</p>
   <p class="hint" id="modeHint">Destroy enemies, collect XP gems, level up and pick upgrades. Survive the waves.</p>
+  <p class="hint touchonly">📱 Phone: drag the left side to steer &amp; thrust &middot; tap FIRE to shoot</p>
   <p class="blink">press ENTER or SPACE to start</p>
 </div>
 
@@ -297,7 +299,7 @@
   ];
   function showModePicker(){
     state='menu'; SND.stopMusic();
-    let selProg = null, selSR = new URLSearchParams(location.search).has('speedrun');
+    let selProg = 'levelup', selSR = new URLSearchParams(location.search).has('speedrun'); // default mode preselected (Play ready)
     function render(){
       const cur = PICK_PROGS.find(p => p[0] === selProg);
       overlay.innerHTML = '<h1>ASTEROIDS+</h1>'

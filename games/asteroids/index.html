@@ -29,13 +29,14 @@
   @media (max-height:560px) { #topHud { padding:2px 12px; gap:14px; } #hud { font-size:16px; } #hud .label { font-size:9px; } #weapon { font-size:10px; margin-top:1px; } #lives { font-size:16px; } }
   #timer .goal { display:none; }
   #flash { position:fixed; top:30%; left:0; right:0; text-align:center; font-size:30px; letter-spacing:6px; color:#ffc878; text-shadow:0 0 18px rgba(255,200,120,0.8); pointer-events:none; user-select:none; opacity:0; transition:opacity 0.3s ease; }
-  #overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:radial-gradient(circle at center, rgba(10,14,26,0.6), rgba(5,6,10,0.92)); gap:14px; user-select:none; }
+  #overlay { position:fixed; inset:0; z-index:9; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:radial-gradient(circle at center, rgba(10,14,26,0.6), rgba(5,6,10,0.92)); gap:14px; user-select:none; }
   #overlay h1 { margin:0; font-size:64px; letter-spacing:10px; color:#cfe8ff; text-shadow:0 0 22px rgba(120,200,255,0.7); }
   #overlay h1.win { color:#ffd166; text-shadow:0 0 22px rgba(255,209,102,0.8); }
   #overlay p { margin:4px; font-size:16px; opacity:0.85; line-height:1.7; }
   #overlay .hint { opacity:0.55; font-size:14px; }
   .blink { animation:blink 1.1s steps(2,start) infinite; }
   @keyframes blink { to { opacity:0.25; } }
+  .touchonly { display:none; } body.touch .touchonly { display:block; }
   @media (max-height: 540px) { #overlay { gap: 8px; overflow-y: auto; } #overlay h1 { font-size: 34px; letter-spacing: 5px; } #overlay p { font-size: 13px; line-height: 1.4; } }
   .btn { font-family:inherit; font-size:14px; letter-spacing:2px; padding:10px 22px; border-radius:10px; cursor:pointer; border:1px solid rgba(120,200,255,0.5); background:rgba(20,30,50,0.6); color:#cfe8ff; margin:4px; }
   .btn:hover { border-color:#9fe8ff; box-shadow:0 0 14px rgba(120,200,255,0.4); }
@@ -72,6 +73,7 @@
   <h1>ASTEROIDS</h1>
   <p id="ctrlLine"><strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause</p>
   <p class="hint" id="modeHint">Fly around them or blast them apart. Score to upgrade your weapon.</p>
+  <p class="hint touchonly">📱 Phone: drag the left side to steer &amp; thrust &middot; tap FIRE to shoot</p>
   <p class="blink" id="startHint">press ENTER or SPACE to start</p>
 </div>
 
@@ -174,7 +176,7 @@
   const PICK_MODES = [['classic', 'CLASSIC'], ['enh', 'CLASSIC+']];
   function showModePicker(){
     state='menu'; SND.stopMusic();
-    let selV = null, selSR = new URLSearchParams(location.search).has('speedrun');
+    let selV = 'classic', selSR = new URLSearchParams(location.search).has('speedrun'); // default mode preselected (Play ready)
     function render(){
       overlay.innerHTML = '<h1>ASTEROIDS</h1>'
         + '<div class="psec">1 · RUN</div>'
