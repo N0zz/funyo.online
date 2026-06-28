@@ -302,7 +302,55 @@
     if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', register); else register();
   }
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord };
+  // ---------- layout: orientation + debounced relayout (resize / orientationchange / visualViewport) ----------
+  // Games register a relayout callback with gamekit.layout.on(fn); the kit fires it (coalesced into
+  // one rAF) on resize, orientationchange AND visualViewport changes — so rotation actually re-lays-
+  // out (most games previously listened only for `resize`, which fires late/stale on rotate). It does
+  // NOT fire on registration: every game already calls its own resize() at boot, so this is purely
+  // additive. `hudTop()` is the one source for the center HUD headroom (clears nav + sound menu).
+  var layoutCbs = [], layoutWired = false, layoutRaf = 0;
+  function vw() { try { return (typeof window !== 'undefined' && window.innerWidth) || 0; } catch (e) { return 0; } }
+  function vh() { try { return (typeof window !== 'undefined' && window.innerHeight) || 0; } catch (e) { return 0; } }
+  function isPortrait() { return vh() > vw(); }
+  function isNarrow() { var w = vw(); return isPortrait() || (w > 0 && w <= 560); }
+  function layoutState() { return { w: vw(), h: vh(), portrait: isPortrait(), landscape: !isPortrait(), narrow: isNarrow(), hudTop: isNarrow() ? 92 : 48 }; }
+  function fireLayout() { var st = layoutState(); for (var i = 0; i < layoutCbs.length; i++) { try { layoutCbs[i](st); } catch (e) {} } }
+  function scheduleLayout() {
+    if (typeof requestAnimationFrame === 'function') { if (layoutRaf) return; layoutRaf = requestAnimationFrame(function () { layoutRaf = 0; fireLayout(); }); }
+    else fireLayout();
+  }
+  function wireLayout() {
+    if (layoutWired || typeof window === 'undefined' || !window.addEventListener) return;
+    layoutWired = true;
+    window.addEventListener('resize', scheduleLayout);
+    window.addEventListener('orientationchange', scheduleLayout);
+    try { var vv = window.visualViewport; if (vv && vv.addEventListener) { vv.addEventListener('resize', scheduleLayout); vv.addEventListener('scroll', scheduleLayout); } } catch (e) {}
+  }
+  var layout = {
+    get w() { return vw(); }, get h() { return vh(); },
+    get portrait() { return isPortrait(); }, get landscape() { return !isPortrait(); }, get narrow() { return isNarrow(); },
+    hudTop: function () { return isNarrow() ? 92 : 48; },
+    state: layoutState,
+    on: function (cb) { if (typeof cb === 'function') { layoutCbs.push(cb); wireLayout(); } return layout; },
+    // Lock-and-inform: show a "rotate your phone" overlay when the orientation isn't what the game
+    // needs (for the few games that can't do both). Returns true when the wanted orientation is met.
+    requireOrientation: function (want) {
+      if (!want || typeof document === 'undefined' || !document.body) return true;
+      var ok = (want === 'portrait') ? isPortrait() : !isPortrait();
+      var el = document.getElementById('gamekitRotate');
+      if (!ok && !el && document.createElement) {
+        el = document.createElement('div'); el.id = 'gamekitRotate'; el.className = 'gamekit-rotate';
+        el.innerHTML = '<div class="gamekit-rotate-box"><div class="gamekit-rotate-ico">↻</div><div>Rotate your phone to play</div></div>';
+        document.body.appendChild(el);
+      }
+      if (el && el.classList) el.classList.toggle('show', !ok);
+      return ok;
+    },
+    // test hook: set mocked dims (guarded — innerWidth is read-only in real browsers) + relayout now.
+    __emit: function (w, h) { try { if (typeof window !== 'undefined') { if (w != null) window.innerWidth = w; if (h != null) window.innerHeight = h; } } catch (e) {} fireLayout(); },
+  };
+
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

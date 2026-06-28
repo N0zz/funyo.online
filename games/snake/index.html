@@ -227,7 +227,7 @@
     offX = Math.floor((W - COLS * cell) / 2);
     offY = hud + Math.floor((H - hud - ROWS * cell) / 2);
   }
-  window.addEventListener('resize', resize);
+  window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
   function cx(c) { return offX + c * cellW; }
   function cy(r) { return offY + r * cellH; }

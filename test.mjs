@@ -130,6 +130,10 @@ function testLiveGames() {
     const g = runInline('games/' + slug + '/index.html', { __preCode: KIT });
     ok(g.bootErr === null, slug + ' boots headless: ' + g.bootErr);
     ok(g.test() != null, slug + ' exposes window.__test');
+    // rotation: relayout to landscape then portrait must not throw (kit fires the game's resize)
+    let rerr = null;
+    try { g.win.gamekit.layout.__emit(900, 500); g.win.gamekit.layout.__emit(420, 840); } catch (e) { rerr = e.message; }
+    ok(rerr === null, slug + ' relayouts on rotation without throwing: ' + rerr);
   }
 }
 
@@ -173,6 +177,14 @@ function testKit() {
   ok(F.music.isMuted() === true && store['gamekit_music_muted'] === '1' && F.music.gain() === 0, 'music mute persists + gain 0 when muted');
   F.music.setMuted(false); F.music.volume(0.4);
   ok(F.music.gain() === 0.4 && store['gamekit_music_vol'] === '0.4', 'music volume = gain when unmuted');
+  // layout: orientation + hudTop + on()/__emit relayout
+  ok(F.layout && typeof F.layout.on === 'function' && typeof F.layout.hudTop === 'function', 'kit exposes layout (on/hudTop)');
+  let lay = null; F.layout.on(s => { lay = s; });
+  sandbox.window.innerWidth = 900; sandbox.window.innerHeight = 500; F.layout.__emit(900, 500);
+  ok(lay && lay.landscape === true && lay.hudTop === 48, 'landscape → hudTop 48 (' + (lay && lay.hudTop) + ')');
+  F.layout.__emit(420, 840);
+  ok(lay && lay.portrait === true && lay.narrow === true && lay.hudTop === 92, 'portrait → narrow, hudTop 92 (' + (lay && lay.hudTop) + ')');
+  ok(F.layout.requireOrientation('') === true, 'requireOrientation falsy → satisfied (no lock)');
   // headless-safe (incl. the audio menu + reset + music flag)
   let threw = null;
   try { F.nav({ music: true, reset: 'snake_' }); F.shareRow(doc.getElementById('sr'), { slug: 'snake', message: () => 'x' }); F.pwa(); F.resetScores('snake_'); } catch (e) { threw = e.message; }

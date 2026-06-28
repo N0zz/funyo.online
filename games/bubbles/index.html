@@ -231,7 +231,7 @@
     const portrait = H > W || W <= 560;
     topMargin = portrait ? 92 : 48;
   }
-  window.addEventListener('resize', resize);
+  window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
   // ---- Grid geometry ----
   function gridX(col, row) {

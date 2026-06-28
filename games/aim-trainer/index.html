@@ -198,7 +198,7 @@
     H = canvas.height = window.innerHeight;
     HUD_H = hudBottom();
   }
-  window.addEventListener('resize', resize);
+  window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
   function updateHud() {
     const acc = hits + misses > 0 ? Math.round(hits / (hits + misses) * 100) : null;

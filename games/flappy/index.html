@@ -268,7 +268,7 @@
     bird.y = startY();
     initParallax();
   }
-  window.addEventListener('resize', resize);
+  window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
   // Bird spawns at the center of the playable band (below the HUD headroom, above the ground).
   function startY() { const groundH = 28; return topInset + (H - groundH - topInset) * 0.5; }

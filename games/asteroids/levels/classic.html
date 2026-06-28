@@ -146,7 +146,7 @@
 
   let W, H;
   function resize() { const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; W = canvas.width = Math.round(window.innerWidth*S); H = canvas.height = Math.round(window.innerHeight*S); buildStars(); }
-  window.addEventListener('resize', resize);
+  (window.gamekit && window.gamekit.layout) ? window.gamekit.layout.on(resize) : window.addEventListener('resize', resize);
 
   let stars = [];
   function buildStars() {

@@ -300,8 +300,7 @@
     oy = (topGap - 2) + Math.floor(((H - topGap - botGap) - ROWS * ts) / 2);
     reflowEntities();
   }
-  window.addEventListener('resize', resize);
-  if (typeof window.addEventListener === 'function') window.addEventListener('orientationchange', resize);
+  window.gamekit.layout.on(resize); // kit: resize + orientationchange + visualViewport, debounced (was hand-wired here)
 
   // ---- Tower configs ----
   const TOWERS = {

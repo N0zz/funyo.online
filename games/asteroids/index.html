@@ -138,7 +138,7 @@
       for (let i = 0; i < n; i++) stars.push({ x: Math.random()*SW, y: Math.random()*SH, r: Math.random()*1.4+0.2, a: Math.random()*0.6+0.2, tw: Math.random()*Math.PI*2, ts: Math.random()*0.04+0.01 });
     }
     function resizeSky() { SW = sky.width = window.innerWidth; SH = sky.height = window.innerHeight; buildStars(); }
-    window.addEventListener('resize', resizeSky);
+    (window.gamekit && window.gamekit.layout) ? window.gamekit.layout.on(resizeSky) : window.addEventListener('resize', resizeSky);
     function drawSky() {
       sctx.clearRect(0, 0, SW, SH);
       for (const s of stars) { s.tw += s.ts; const a = s.a*(0.6+0.4*Math.sin(s.tw)); sctx.fillStyle = 'rgba(200,225,255,'+a+')'; sctx.beginPath(); sctx.arc(s.x, s.y, s.r, 0, Math.PI*2); sctx.fill(); }

@@ -532,7 +532,7 @@
     // Reserve headroom for the kit center-top HUD: top:8px landscape, top:50px portrait (≤560px)
     TOP_PAD = W <= 560 ? 92 : 48;
   }
-  window.addEventListener('resize', resize);
+  window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
   // ---- Input ----
   function handleDrop() { if (state === 'playing') drop(); else if (state === 'ready' || state === 'over') startGameMode(selectedMode); }

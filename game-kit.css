@@ -64,3 +64,12 @@
 .gamekit-share .sbtn.ok { color: #7fe0a0 !important; border-color: #7fe0a0 !important; }
 .gamekit-share .sbtn[data-act="discord"]:hover { color: #fff !important; border-color: #5865F2 !important; background: #5865F2 !important; }
 .gamekit-share .sbtn:disabled { opacity: 0.55 !important; cursor: default !important; }
+
+/* "rotate your phone" overlay (gamekit.layout.requireOrientation) — for games locked to one orientation */
+.gamekit-rotate { position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center;
+  background: rgba(6, 9, 15, 0.96); color: #eaf2fb; text-align: center; padding: 24px; }
+.gamekit-rotate.show { display: flex; }
+.gamekit-rotate-box { font-size: 17px; line-height: 1.5; max-width: 280px; }
+.gamekit-rotate-ico { font-size: 46px; margin-bottom: 10px; animation: gamekit-rot 1.6s ease-in-out infinite; }
+@keyframes gamekit-rot { 0%,100% { transform: rotate(-12deg); } 50% { transform: rotate(78deg); } }
+@media (prefers-reduced-motion: reduce) { .gamekit-rotate-ico { animation: none; } }

@@ -149,7 +149,7 @@
     paddleW = Math.floor(W * 0.14);
     if (!paddleX) paddleX = W / 2;
   }
-  window.addEventListener('resize', () => { resize(); if (ballStuck && balls.length) snapBallToPaddle(); });
+  window.gamekit.layout.on(() => { resize(); if (ballStuck && balls.length) snapBallToPaddle(); }); // + orientationchange/visualViewport
   if (typeof window.matchMedia !== 'undefined') { /* guard */ }
 
   // ---- Brick grid ----
