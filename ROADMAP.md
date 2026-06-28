@@ -90,6 +90,11 @@ wipes progress — lean on Export/Import), timestamp-based offline accrual (not 
 
 ### Catalogue / kit
 
+- **Compact / cozy tile density toggle** — an **opt-in** view that shrinks tiles to **icon + name** so
+  ~3–4 fit per row and 3–5 rows show on mobile (far less scrolling, no need to search). **Cozy (current
+  full tiles) stays the default;** a small toggle (header or Filter ▾) flips to **Compact** and persists
+  (localStorage). Mostly CSS: a `.grid.compact` variant (hide blurb/pills, keep icon + name + badge +
+  favorite star); render() applies the class from the saved pref. Low effort, good mobile QoL.
 - **Kit menu framework (v3)** *(undecided)* — promote the asteroids-style mode tiles + option-group rows
   into a reusable `gamekit.menu` (declarative config → consistent menus, less per-game markup). Only
   worth it if per-game menu boilerplate starts to hurt as games scale. Decide before the next batch.
