@@ -231,6 +231,7 @@
     x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
     reddit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12c-.688 0-1.25.561-1.25 1.25 0 .687.562 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.688-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>',
     copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>',
+    card: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>',
     discord: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3.2a.074.074 0 0 0-.079.037c-.34.6-.71 1.39-.97 2.01a18.3 18.3 0 0 0-5.02 0 12.6 12.6 0 0 0-.98-2.01.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C1.533 8.02.943 11.58 1.51 15.09a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.371-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.009c.12.099.245.198.372.292a.077.077 0 0 1-.006.127c-.598.349-1.225.645-1.873.892a.076.076 0 0 0-.04.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-4.06-.838-7.59-3.549-10.695a.06.06 0 0 0-.031-.028zM8.02 12.95c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg>',
   };
   // build a consistent share sentence from structured parts (so every game reads the same):
@@ -257,6 +258,65 @@
       copy: message + '\n' + url,
     };
   }
+  // ---------- score card (Level 2): a branded PNG the player shares ----------
+  // Draws a 1200×630 card (brand bg + mascot + big score + game title + komyo.online) on an
+  // offscreen canvas and resolves a PNG Blob. Mascot = the in-repo favicon.svg (placeholder until
+  // real art); falls back to a 🦊 glyph if it can't load. Headless-safe → resolves null.
+  function buildScoreCard(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      try {
+        if (typeof document === 'undefined' || !document.createElement) return resolve(null);
+        var c = document.createElement('canvas'); c.width = 1200; c.height = 630;
+        var x = c.getContext && c.getContext('2d'); if (!x) return resolve(null);
+        var accent = opts.accent || '#9fe8ff', W = 1200, H = 630;
+        var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0b1018'); g.addColorStop(1, '#131c2b');
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        x.strokeStyle = accent; x.globalAlpha = 0.9; x.lineWidth = 10; x.strokeRect(24, 24, W - 48, H - 48); x.globalAlpha = 1;
+        x.textAlign = 'left';
+        x.fillStyle = accent; x.font = '700 34px system-ui, sans-serif'; x.fillText('KOMYO GAMES', 80, 110);
+        x.fillStyle = '#eaf2fb'; x.font = '600 56px system-ui, sans-serif'; x.fillText(String(opts.title || 'Komyo Games'), 80, 215);
+        x.fillStyle = accent; x.font = '800 200px system-ui, sans-serif';
+        x.fillText(String(opts.scoreText != null ? opts.scoreText : (opts.score || 0)), 76, 430);
+        if (opts.sub) { x.fillStyle = '#9fb2c8'; x.font = '400 36px system-ui, sans-serif'; x.fillText(String(opts.sub), 80, 500); }
+        x.fillStyle = '#7a8aa0'; x.font = '500 34px system-ui, sans-serif'; x.fillText('komyo.online', 80, 575);
+        var finish = function () { try { if (c.toBlob) c.toBlob(function (b) { resolve(b || null); }, 'image/png'); else resolve(null); } catch (e) { resolve(null); } };
+        var mascot = function (img) { try { x.drawImage(img, W - 360, 150, 280, 280); } catch (e) {} finish(); };
+        try {
+          var im = new Image(); var done = false;
+          im.onload = function () { if (done) return; done = true; mascot(im); };
+          im.onerror = function () { if (done) return; done = true; try { x.font = '220px system-ui, sans-serif'; x.textAlign = 'center'; x.fillText('🦊', W - 220, 400); } catch (e) {} finish(); };
+          im.src = opts.mascot || '../../favicon.svg';
+        } catch (e) { finish(); }
+      } catch (e) { resolve(null); }
+    });
+  }
+  function downloadBlob(blob, name) {
+    try {
+      var u = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = u; a.download = name; (document.body || document.documentElement).appendChild(a); a.click();
+      setTimeout(function () { try { URL.revokeObjectURL(u); if (a.parentNode) a.parentNode.removeChild(a); } catch (e) {} }, 1000);
+    } catch (e) {}
+  }
+  // share the card: native file-share on mobile → copy-as-image → download. Returns nothing.
+  function shareCardBlob(blob, opts) {
+    if (!blob) return;
+    opts = opts || {};
+    var name = (opts.slug || 'komyo') + '-score.png';
+    try {
+      var file = (typeof File !== 'undefined') ? new File([blob], name, { type: 'image/png' }) : null;
+      if (file && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+        navigator.share({ files: [file], title: opts.title || 'Komyo Games' })['catch'](function () {}); return;
+      }
+    } catch (e) {}
+    try {
+      if (typeof ClipboardItem !== 'undefined' && typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
+        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () {}, function () { downloadBlob(blob, name); }); return;
+      }
+    } catch (e) {}
+    downloadBlob(blob, name);
+  }
+
   function shareRow(el, o) {
     if (!el) return;
     o = o || {};
@@ -278,9 +338,10 @@
       '<a class="sbtn" data-act="native" href="#" style="display:none" aria-label="Share" title="Share">' + SVG.native + '</a>' +
       '<a class="sbtn" data-act="x" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X">' + SVG.x + '</a>' +
       '<a class="sbtn" data-act="reddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit">' + SVG.reddit + '</a>' +
-      '<button class="sbtn" data-act="copy" type="button" aria-label="Copy" title="Copy">' + SVG.copy + '</button>';
+      '<button class="sbtn" data-act="copy" type="button" aria-label="Copy" title="Copy">' + SVG.copy + '</button>' +
+      '<button class="sbtn" data-act="card" type="button" aria-label="Score card image" title="Score card image">' + SVG.card + '</button>';
     var q = function (sel) { try { return el.querySelector ? el.querySelector(sel) : null; } catch (e) { return null; } };
-    var x = q('[data-act="x"]'), reddit = q('[data-act="reddit"]'), copy = q('[data-act="copy"]'), native = q('[data-act="native"]');
+    var x = q('[data-act="x"]'), reddit = q('[data-act="reddit"]'), copy = q('[data-act="copy"]'), native = q('[data-act="native"]'), cardBtn = q('[data-act="card"]');
     var refresh = function () { var u = shareUrls(getUrl(), getMsg()); if (x) x.href = u.x; if (reddit) reddit.href = u.reddit; };
     if (x) x.addEventListener('click', refresh);
     if (reddit) reddit.addEventListener('click', refresh);
@@ -294,6 +355,21 @@
           setTimeout(function () { if (copy.classList) copy.classList.remove('ok'); copy.title = prev; }, 1500);
         }).catch(function () {});
       } catch (e) {}
+    });
+    // 📷 score card (Level 2): render a branded PNG and share/copy/download it. Score/mode come
+    // from the game's last recorded result (recordResult), so no per-game wiring is needed; a game
+    // may still pass o.card ({score, sub, accent, mascot} or a fn) to customise.
+    if (cardBtn) cardBtn.addEventListener('click', function () {
+      var lr = lastResult(o.slug) || {};
+      var extra = (typeof o.card === 'function') ? (o.card() || {}) : (o.card || {});
+      var score = (extra.score != null) ? extra.score : (lr.score || 0);
+      var opts = {
+        title: o.title || 'Komyo Games', slug: o.slug,
+        accent: extra.accent || o.accent, mascot: extra.mascot || o.mascot,
+        score: score, scoreText: (typeof score === 'number' && score.toLocaleString) ? score.toLocaleString() : String(score),
+        sub: (extra.sub != null) ? extra.sub : (lr.mode || ''),
+      };
+      buildScoreCard(opts).then(function (b) { shareCardBlob(b, opts); });
     });
     // auto-post the score to the Komyo Games Discord when the end-screen share row is on-screen.
     // Handles BOTH patterns: built once at init (hidden → shown later) AND rebuilt at game-over
@@ -391,7 +467,7 @@
     __emit: function (w, h) { try { if (typeof window !== 'undefined') { if (w != null) window.innerWidth = w; if (h != null) window.innerHeight = h; } } catch (e) {} fireLayout(); },
   };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

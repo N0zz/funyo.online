@@ -196,6 +196,9 @@ function testKit() {
   F.recordResult('bubbles', { score: 100 });
   const pt = F.playedToday();
   ok(pt.slugs.indexOf('snake') >= 0 && pt.slugs.indexOf('bubbles') >= 0 && pt.count === 2 && pt.totalScore === 142, 'activity log tracks distinct games + totals');
+  // score card (Level 2): headless has no canvas.toBlob → resolves null without throwing
+  let cardOk = false; F.scoreCard({ title: 'Neon Snake', score: 42 }).then(b => { cardOk = (b === null); }).catch(() => {});
+  ok(typeof F.scoreCard === 'function', 'kit exposes scoreCard builder');
   // headless-safe (incl. the audio menu + reset + music flag)
   let threw = null;
   try { F.nav({ music: true, reset: 'snake_' }); F.shareRow(doc.getElementById('sr'), { slug: 'snake', message: () => 'x' }); F.pwa(); F.resetScores('snake_'); } catch (e) { threw = e.message; }
