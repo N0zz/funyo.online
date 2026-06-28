@@ -126,8 +126,13 @@
   <div class="mode-btns">
     <button class="mode-btn active" data-mode="arcade">
       <div class="m-title">Arcade</div>
-      <div class="m-desc">Clear board to advance<br>Grid descends over time</div>
+      <div class="m-desc">Clear board to advance<br>Grid descends as you shoot</div>
       <div class="m-best" data-best="arcade">best: 0</div>
+    </button>
+    <button class="mode-btn" data-mode="speedrun">
+      <div class="m-title">Speedrun</div>
+      <div class="m-desc">Clear board to advance<br>Grid descends on a timer — race it</div>
+      <div class="m-best" data-best="speedrun">best: 0</div>
     </button>
     <button class="mode-btn" data-mode="endless">
       <div class="m-title">Endless</div>
@@ -212,8 +217,11 @@
   let fallingBubbles = []; // { x, y, vy, colorIdx }
   let descentTimer = 0;
   let shotsThisLevel = 0;
+  let shotsSinceDescent = 0; // arcade (default): grid descends every N shots, not on a timer
   let endlessRowTimer = 0;
 
+  // Arcade descent cadence: drop a row every this-many shots (fewer as levels climb)
+  const ARCADE_SHOTS_PER_DESCENT = 6;
   // How many rows in initial grid per level
   const GRID_ROWS_START = 8;
   const CHARGE_PER_POP = 0.07;
@@ -257,6 +265,15 @@
     const active = getActiveColors();
     if (active.length === 0) return randColorIdx();
     return active[Math.floor(Math.random() * active.length)];
+  }
+  // a pop can wipe a color off the board — if the loaded / on-deck shot is now a dead color,
+  // swap it for one that's actually still there.
+  function ensureLiveColors() {
+    const active = getActiveColors();
+    if (!active.length) return;
+    if (active.indexOf(shotColor) < 0) shotColor = active[Math.floor(Math.random() * active.length)];
+    if (active.indexOf(nextColor) < 0) nextColor = active[Math.floor(Math.random() * active.length)];
+    updateHud();
   }
 
   // ---- Grid initialization ----
@@ -310,6 +327,7 @@
     descentTimer = 0;
     endlessRowTimer = 0;
     shotsThisLevel = 0;
+    shotsSinceDescent = 0;
     chargeLevel = 0;
     specialReady = false;
     specialType = null;
@@ -631,6 +649,17 @@
     isShooting = true;
     SND.play('shoot');
     shotsThisLevel++;
+    // Shot-driven pressure (only Speedrun is time-based): Arcade descends the grid every N shots,
+    // Endless pushes a fresh row in every N shots.
+    if (mode === 'arcade') {
+      shotsSinceDescent++;
+      const per = Math.max(3, ARCADE_SHOTS_PER_DESCENT - (level - 1));
+      if (shotsSinceDescent >= per) { shotsSinceDescent = 0; descentStep(); }
+    } else if (mode === 'endless') {
+      shotsSinceDescent++;
+      const per = Math.max(3, 7 - Math.floor(score / 3000));
+      if (shotsSinceDescent >= per) { shotsSinceDescent = 0; addEndlessRow(); level = Math.max(level, 1 + Math.floor(score / 2000)); }
+    }
     shotColor = nextColor;
     nextColor = pickShotColor();
     updateHud();
@@ -656,6 +685,7 @@
 
     isShooting = false;
     shotBubble = null;
+    ensureLiveColors(); // a pop may have removed the loaded/next color from the board
 
     checkLose();
     if (state === 'playing') {
@@ -686,9 +716,9 @@
     $('gameOver').classList.remove('hidden');
   }
 
-  // ---- Win condition (arcade: clear board) ----
+  // ---- Win condition (arcade / speedrun: clear board to advance) ----
   function checkWin() {
-    if (mode !== 'arcade') return;
+    if (mode !== 'arcade' && mode !== 'speedrun') return;
     if (countBubbles() === 0) {
       if (level >= 5) {
         state = 'won';
@@ -702,6 +732,7 @@
         gridOffsetY = 0;
         descentTimer = 0;
         shotsThisLevel = 0;
+        shotsSinceDescent = 0;
         grid = makeGrid(GRID_ROWS_START + level, Math.min(COLORS.length, 4 + level));
         shotColor = pickShotColor();
         nextColor = pickShotColor();
@@ -733,21 +764,13 @@
   function update() {
     if (state !== 'playing') return;
 
-    // Descent timers
-    if (mode === 'arcade') {
+    // Time-based descent — Speedrun only (Arcade & Endless are now shot-driven; see shoot()).
+    if (mode === 'speedrun') {
       descentTimer++;
       const interval = Math.max(60, DESCENT_INTERVAL_BASE - (level - 1) * 20 - Math.floor(shotsThisLevel / 10) * 5);
       if (descentTimer >= interval) {
         descentTimer = 0;
         descentStep();
-      }
-    } else if (mode === 'endless') {
-      endlessRowTimer++;
-      const interval = Math.max(120, ENDLESS_ROW_INTERVAL - (level - 1) * 30);
-      if (endlessRowTimer >= interval) {
-        endlessRowTimer = 0;
-        addEndlessRow();
-        level = Math.max(level, 1 + Math.floor(score / 2000));
       }
     }
 
@@ -1084,7 +1107,7 @@
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
     });
   });
-  { const pm = window.gamekit && window.gamekit.param && window.gamekit.param('mode'); if (['arcade', 'endless', 'zen'].indexOf(pm) >= 0) { mode = pm; document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === pm)); } } // deep-link ?mode=
+  { const pm = window.gamekit && window.gamekit.param && window.gamekit.param('mode'); if (['arcade', 'speedrun', 'endless', 'zen'].indexOf(pm) >= 0) { mode = pm; document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === pm)); } } // deep-link ?mode=
 
   $('startBtn').addEventListener('click', startGame);
   $('goRetry').addEventListener('click', startGame);
