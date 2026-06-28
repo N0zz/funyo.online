@@ -3,10 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Classic Asteroids — Enhanced</title>
-<link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="../../../game-kit.css">
-<script src="../../../game-kit.js"></script>
+<title>Asteroids</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#9fe8ff">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Asteroids">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../game-kit.js"></script>
 <style>
   html, body { margin:0; padding:0; height:100%; background:#05060a; overflow:hidden; font-family:"Courier New",monospace; color:#cfe8ff; }
   #game { display:block; width:100vw; height:100vh; }
@@ -15,11 +23,11 @@
   #hud .label { opacity:0.6; font-size:13px; }
   #weapon { font-size:13px; margin-top:4px; color:#ffc878; opacity:0.85; }
   #lives { font-size:22px; letter-spacing:4px; color:#7fffb0; text-shadow:0 0 8px rgba(120,255,170,0.6); }
-  #timer { position:fixed; top:16px; left:50%; transform:translateX(-50%); font-size:26px; letter-spacing:3px; color:#ffd166; text-shadow:0 0 10px rgba(255,209,102,0.7); pointer-events:none; user-select:none; display:none; z-index:5; }
+  #timer { font-size:18px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); display:none; }
   @media (max-width:560px) { #topHud { top:50px; max-width:calc(100vw - 16px); gap:8px 18px; } }
   /* short screens (landscape phones): slim the HUD so it doesn't eat the playfield */
   @media (max-height:560px) { #topHud { padding:2px 12px; gap:14px; } #hud { font-size:16px; } #hud .label { font-size:9px; } #weapon { font-size:10px; margin-top:1px; } #lives { font-size:16px; } }
-  #timer .goal { font-size:11px; opacity:0.6; letter-spacing:2px; text-align:center; }
+  #timer .goal { display:none; }
   #flash { position:fixed; top:30%; left:0; right:0; text-align:center; font-size:30px; letter-spacing:6px; color:#ffc878; text-shadow:0 0 18px rgba(255,200,120,0.8); pointer-events:none; user-select:none; opacity:0; transition:opacity 0.3s ease; }
   #overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:radial-gradient(circle at center, rgba(10,14,26,0.6), rgba(5,6,10,0.92)); gap:14px; user-select:none; }
   #overlay h1 { margin:0; font-size:64px; letter-spacing:10px; color:#cfe8ff; text-shadow:0 0 22px rgba(120,200,255,0.7); }
@@ -31,6 +39,11 @@
   @media (max-height: 540px) { #overlay { gap: 8px; overflow-y: auto; } #overlay h1 { font-size: 34px; letter-spacing: 5px; } #overlay p { font-size: 13px; line-height: 1.4; } }
   .btn { font-family:inherit; font-size:14px; letter-spacing:2px; padding:10px 22px; border-radius:10px; cursor:pointer; border:1px solid rgba(120,200,255,0.5); background:rgba(20,30,50,0.6); color:#cfe8ff; margin:4px; }
   .btn:hover { border-color:#9fe8ff; box-shadow:0 0 14px rgba(120,200,255,0.4); }
+  .btn.sel { border-color:#ffd166; color:#ffd166; box-shadow:0 0 16px rgba(255,209,102,0.5); }
+  .btn.play { margin-top:16px; font-size:16px; padding:12px 32px; border-color:#9fe8ff; color:#9fe8ff; }
+  .btn[disabled] { opacity:0.35; cursor:not-allowed; box-shadow:none; border-color:rgba(120,200,255,0.3); }
+  .psec { font-family:inherit; font-size:11px; letter-spacing:3px; opacity:0.5; margin:12px 0 2px; }
+  .prow { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   .ashare { display:flex; gap:10px; justify-content:center; align-items:center; margin-top:10px; flex-wrap:wrap; }
   .ashare .albl { font-size:11px; letter-spacing:2px; opacity:0.5; margin-right:2px; }
   .asbtn { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; padding:0; cursor:pointer; border-radius:10px; border:1px solid rgba(120,200,255,0.45); background:rgba(20,30,50,0.6); color:#cfe8ff; }
@@ -52,15 +65,14 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="topHud"><div id="hud"><div class="label">SCORE</div><div id="score">0</div><div id="weapon">WEAPON I</div></div><div id="lives"></div></div>
-<div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div>
+<div id="topHud"><div id="hud"><div class="label">SCORE</div><div id="score">0</div><div id="weapon">WEAPON I</div></div><div id="lives"></div><div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div></div>
 <div id="flash"></div>
 
 <div id="overlay">
   <h1>ASTEROIDS</h1>
-  <p><strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause</p>
+  <p id="ctrlLine"><strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause</p>
   <p class="hint" id="modeHint">Fly around them or blast them apart. Score to upgrade your weapon.</p>
-  <p class="blink">press ENTER or SPACE to start</p>
+  <p class="blink" id="startHint">press ENTER or SPACE to start</p>
 </div>
 
 <script>
@@ -71,17 +83,30 @@
   const timerEl=document.getElementById('timer'), timerVal=document.getElementById('timerVal'), timerGoal=document.getElementById('timerGoal');
   const modeHint=document.getElementById('modeHint');
 
+  // ---- Mode: ?v=classic|enh (no ?v → show the in-page picker). Enhanced adds weapon tiers +
+  //      Space-to-start; bare Classic stays Weapon I forever. ----
+  const params = new URLSearchParams(location.search);
+  const HAS_V = params.has('v');
+  const ENHANCED = params.get('v') === 'enh';
+  const KEY = ENHANCED ? 'classic-enhanced' : 'classic';
   // ---- Speedrun ----
-  const SPEEDRUN = new URLSearchParams(location.search).has('speedrun');
+  const SPEEDRUN = params.has('speedrun');
   const SR_TARGET_SCORE = 2000;
-  const BEST_KEY = 'asteroids_best_classic-enhanced.html';
+  const BEST_KEY = 'asteroids_best_' + KEY;
   const now = () => (window.performance && performance.now) ? performance.now() : Date.now();
   let srElapsed=0, srPrev=0, srDone=false;
   function fmtTime(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
   function saveBest(ms){ try{ const p=localStorage.getItem(BEST_KEY); if(p==null||ms<parseInt(p,10)){ localStorage.setItem(BEST_KEY,String(Math.floor(ms))); return true; } }catch(e){} return false; }
-  const SCORE_KEY='asteroids_score_classic-enhanced.html';
+  const SCORE_KEY='asteroids_score_' + KEY;
   function saveBestScore(v){ try{ const p=localStorage.getItem(SCORE_KEY); if(p==null||v>parseInt(p,10)){ localStorage.setItem(SCORE_KEY,String(v)); return true; } }catch(e){} return false; }
-  if (SPEEDRUN){ timerEl.style.display='block'; timerGoal.textContent='GOAL: '+SR_TARGET_SCORE+' PTS'; modeHint.textContent='SPEEDRUN — reach '+SR_TARGET_SCORE+' points as fast as you can.'; const th=document.getElementById('topHud'); if(th) th.style.top='58px'; }
+  if (SPEEDRUN){ timerEl.style.display='block'; timerGoal.textContent='GOAL: '+SR_TARGET_SCORE+' PTS'; modeHint.textContent='SPEEDRUN — reach '+SR_TARGET_SCORE+' points as fast as you can.'; }
+  // bare Classic: no weapon tiers — hide the weapon HUD and use the original menu copy
+  if (!ENHANCED){
+    weaponEl.style.display='none';
+    const cl=document.getElementById('ctrlLine'); if(cl) cl.innerHTML='<strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot';
+    const sh=document.getElementById('startHint'); if(sh) sh.textContent='press ENTER to start';
+    if(!SPEEDRUN) modeHint.textContent='Fly around them or blast them apart. The screen wraps.';
+  }
 
 
   // ---- Audio: SFX go through the game-kit shared sound engine (site-wide SFX mute/volume);
@@ -119,7 +144,7 @@
   window.addEventListener('keydown',(e)=>{
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
     keys[e.key.length===1?e.key.toLowerCase():e.key]=true;
-    if((e.key==='Enter'||e.key===' ') && state!=='playing' && state!=='paused') startGame();
+    if((e.key==='Enter'||(ENHANCED&&e.key===' ')) && state!=='playing' && !(ENHANCED&&state==='paused')) startGame();
     if(e.key==='Escape'){ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }
   });
   window.addEventListener('keyup',(e)=>{ keys[e.key.length===1?e.key.toLowerCase():e.key]=false; });
@@ -135,23 +160,47 @@
     {level:3,score:1500,cooldown:9,label:'WEAPON III — SPREAD'},
   ];
 
-  function startGame(){ score=0; lives=3; level=1; weaponLevel=1; asteroids=[]; bullets=[]; particles=[];
+  function startGame(){ if(!HAS_V){ showModePicker(); return; } score=0; lives=3; level=1; weaponLevel=1; asteroids=[]; bullets=[]; particles=[];
     spawnShip(); spawnWave(4); state='playing'; overlay.classList.add('hidden'); updateHud();
     srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); }
-  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">score '+score+' &middot; wave '+level+'</p><div class="row"><button class="btn" id="resumeBtn">RESUME (ESC)</button>'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
-  function resumeGame(){ state='playing'; srPrev=now(); overlay.classList.add('hidden'); }
+  function pauseGame(){ state='paused'; if(!ENHANCED) SND.stopMusic(); overlay.innerHTML='<h1>PAUSED</h1><p class="hint">score '+score+(ENHANCED?(' &middot; wave '+level):'')+'</p><div class="row"><button class="btn" id="resumeBtn">RESUME (ESC)</button>'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
+  function resumeGame(){ state='playing'; srPrev=now(); if(!ENHANCED) SND.startMusic(); overlay.classList.add('hidden'); }
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
   function updateHud(){ scoreEl.textContent=score; livesEl.textContent='▲ '.repeat(Math.max(0,lives)).trim(); weaponEl.textContent=WEAPONS[weaponLevel-1].label; }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=90; }
-  function quitToMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused')) saveBestScore(score); try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
+  function quitToMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused')) saveBestScore(score); try{ location.href = location.pathname; }catch(e){} }
+  // in-page mode picker (replaces the old launcher): 1·RUN → 2·MODE → Play. Selecting only
+  // highlights; nothing starts until Play. Play reloads with ?v=<mode>[&speedrun=1].
+  const PICK_MODES = [['classic', 'CLASSIC'], ['enh', 'CLASSIC+']];
+  function showModePicker(){
+    state='menu'; SND.stopMusic();
+    let selV = null, selSR = new URLSearchParams(location.search).has('speedrun');
+    function render(){
+      overlay.innerHTML = '<h1>ASTEROIDS</h1>'
+        + '<div class="psec">1 · RUN</div>'
+        + '<div class="prow"><button class="btn' + (!selSR ? ' sel' : '') + '" data-sr="0">NORMAL</button>'
+          + '<button class="btn' + (selSR ? ' sel' : '') + '" data-sr="1">SPEEDRUN</button></div>'
+        + '<div class="psec">2 · MODE</div>'
+        + '<div class="prow">' + PICK_MODES.map(m => '<button class="btn' + (selV === m[0] ? ' sel' : '') + '" data-v="' + m[0] + '">' + m[1] + '</button>').join('') + '</div>'
+        + '<button class="btn play" id="playBtn"' + (selV ? '' : ' disabled') + '>PLAY ▶</button>'
+        + '<p class="hint">' + (selSR ? ('Speedrun — reach ' + SR_TARGET_SCORE + ' points fast.') : 'Normal — endless, rack up the highest score.') + '</p>';
+      const q = overlay.querySelectorAll ? overlay.querySelectorAll('[data-sr],[data-v],#playBtn') : [];
+      for (let i = 0; i < q.length; i++) { const b = q[i];
+        if (b.getAttribute && b.getAttribute('data-sr') != null) b.addEventListener('click', () => { selSR = b.getAttribute('data-sr') === '1'; render(); });
+        else if (b.getAttribute && b.getAttribute('data-v') != null) b.addEventListener('click', () => { selV = b.getAttribute('data-v'); render(); });
+        else b.addEventListener('click', () => { if (!selV) return; const p = new URLSearchParams(); p.set('v', selV); if (selSR) p.set('speedrun', '1'); try { location.href = location.pathname + '?' + p.toString(); } catch (e) {} });
+      }
+    }
+    overlay.classList.remove('hidden'); render();
+  }
   function wireOverlay(){ const mb=document.getElementById('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=document.getElementById('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); }
   const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
   // end-screen share row is built by the game-kit into this placeholder
   const SHARE_ROW = '<div id="shareRow"></div>';
   function wireShareRow(finalScore) {
-    if (KIT) KIT.shareRow(document.getElementById('shareRow'), { slug: 'asteroids', title: 'Asteroids', message: () => KIT.shareText({ score: finalScore, game: 'Asteroids', emoji: '🛸', mode: 'Classic+', extra: ['level ' + level] }), params: () => ({ play: 'classic-enhanced.html' }) });
+    if (KIT) KIT.shareRow(document.getElementById('shareRow'), { slug: 'asteroids', title: 'Asteroids', message: () => KIT.shareText({ score: finalScore, game: 'Asteroids', emoji: '🛸', mode: ENHANCED ? 'Classic+' : 'Classic', extra: ['level ' + level] }), params: () => ({ v: ENHANCED ? 'enh' : 'classic' }) });
   }
-  function checkWeaponUpgrade(){ const nx=WEAPONS[weaponLevel]; if(nx && score>=nx.score){ weaponLevel=nx.level; flash('WEAPON UPGRADED'); updateHud(); } }
+  function checkWeaponUpgrade(){ if(!ENHANCED) return; const nx=WEAPONS[weaponLevel]; if(nx && score>=nx.score){ weaponLevel=nx.level; flash('WEAPON UPGRADED'); updateHud(); } }
 
   function makeAsteroid(x,y,size){ const r=size===3?56:size===2?34:18; const verts=[]; const n=9+Math.floor(Math.random()*4);
     for(let i=0;i<n;i++){ const ang=(i/n)*Math.PI*2; verts.push({ang,d:r*(0.65+Math.random()*0.5)}); }
@@ -252,13 +301,14 @@
     fireBtn.addEventListener('touchcancel',()=>{ keys[' ']=false; });
   }
   // tap the start / game-over / win / pause screen instead of a key
-  overlay.addEventListener('click',(e)=>{ if(e.target && e.target.closest && e.target.closest('button')) return; if(state==='menu'||state==='dead'||state==='won') startGame(); else if(HAS_PAUSE && state==='paused') resumeGame(); });
+  overlay.addEventListener('click',(e)=>{ if(!HAS_V) return; /* picker is up — its buttons handle clicks */ if(e.target && e.target.closest && e.target.closest('button')) return; if(state==='menu'||state==='dead'||state==='won') startGame(); else if(HAS_PAUSE && state==='paused') resumeGame(); });
   if(isTouch){ document.body.classList.add('touch'); buildTouch(); }
 
   // game-kit nav: top-left ‹ Menu (quits to the launcher) + top-right sound menu (SFX + Music + Reset)
-  if (KIT) KIT.nav({ music: true, reset: 'asteroids_', home: '../../../', onMenu: () => { quitToMenu(); } });
+  if (KIT) { KIT.nav({ music: true, reset: 'asteroids_', home: '../../', onMenu: () => { quitToMenu(); } }); KIT.pwa(); }
 
   resize(); spawnWave(4); updateHud(); loop();
+  if (!HAS_V) showModePicker(); // entry with no mode chosen → show the in-page picker
 })();
 </script>
 </body>

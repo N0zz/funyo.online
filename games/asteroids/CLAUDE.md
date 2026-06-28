@@ -17,36 +17,32 @@ Open `index.html` to play; run `node test.mjs` to test.
 - **Add a new file only for a genuinely distinct version/mode** (a new concept worth
   its own menu entry) — not for an iteration of an existing one. To trace how a
   version evolved, read the commit history, not extra files.
-- **`levels.js` is the single source of truth** for the launcher menu. Add a version
-  by adding a file and one `{ file, title, desc, tag, goal }` entry. `tag` is
-  `CLASSIC` or `ROGUELITE` and decides which menu row it appears in.
+- **`levels.js` is the single source of truth** for the launcher menu. Each entry is
+  `{ file, params, key, title, desc, tag, goal }`: `file` is the engine HTML, `params`
+  are the knobs appended as the query (`{}`, `{enh:1}`, `{prog:'shop'}`…), and `key` is
+  the localStorage suffix for that variant's bests (independent of filename, so engines
+  can be shared across cards). `tag` is `CLASSIC` or `ROGUELITE` and decides the menu row.
 - **Always run `node test.mjs` after changes and keep it green** — it's the safety net
   that lets us edit versions in place with confidence.
 - **No external resources.** Keep everything inline and offline. No CDNs, fonts, or
   image assets — the retro look is all canvas vector drawing + CSS.
 
-## The roguelite trio is generated — edit the base, then regenerate
+## One engine file, knob-driven (no codegen)
 
-All playable builds live in **`levels/`** (root keeps `index.html`, `levels.js`,
-`favicon.svg`, `test.mjs`, and the docs).
+This game is now **Classic only** (Classic + Classic-Enhanced). The roguelite progressions
+moved to their own catalogue game — **`games/asteroids-plus/`** (a de-iframed single-page
+game; its `index.html` is the roguelite engine with an in-page mode picker). Keep them in sync
+where the shared engine bits overlap (audio, touch, starfield).
 
-`levels/roguelite-milestones.html` and `levels/roguelite-shop.html` are **generated
-copies** of `levels/roguelite-levelup.html`. They differ only by the `PROGRESSION`
-constant near the top of the script (`'levelup' | 'milestones' | 'shop'`) and the `<title>`.
+The launcher (`index.html`) iframes the one engine file and lists its cards from `levels.js`:
 
-**Always edit `levels/roguelite-levelup.html`, then regenerate the other two (run from `levels/`):**
+- **`levels/classic.html`** — Classic + Classic-Enhanced. `?enh=1` turns on the Enhanced
+  extras (weapon tiers, Space-to-start); bare (no param) stays Weapon I and uses the original
+  Classic menu copy. The `ENHANCED` flag near the top gates the deltas. There is **no codegen**.
 
-```bash
-cd levels
-sed -e "s/const PROGRESSION = 'levelup';/const PROGRESSION = 'milestones';/" \
-    -e "s|<title>Roguelite: Auto Level-Up</title>|<title>Roguelite: Score Milestones</title>|" \
-    roguelite-levelup.html > roguelite-milestones.html
-sed -e "s/const PROGRESSION = 'levelup';/const PROGRESSION = 'shop';/" \
-    -e "s|<title>Roguelite: Auto Level-Up</title>|<title>Roguelite: Wave Shop</title>|" \
-    roguelite-levelup.html > roguelite-shop.html
-```
-
-Never hand-edit the two generated files — changes will be overwritten.
+Edit the engine file directly — both variants are the same code behind a flag. When you add or
+change a variant, adjust its `levels.js` entry (`params` + `key`) and its test call site (the
+test passes the knob as a query on the file token, e.g. `'classic.html?enh=1'`).
 
 ## Testing
 
@@ -69,14 +65,15 @@ Never hand-edit the two generated files — changes will be overwritten.
 - **Audio engine (`SND`) is inlined** in each game (full version) and in the launcher
   (music-only, for menu music). It's procedural Web Audio — no asset files — and is
   inert when `AudioContext` is absent (so the harness is unaffected). When you change
-  it, update the roguelite base (then regenerate), both classic files, and the launcher.
+  it, update `classic.html`, the launcher, and (kept in sync) `games/asteroids-plus/index.html`.
 - **WASD mirrors the arrow keys** for steering *and* menu navigation: keydown maps
   `w/a/s/d → Arrow Up/Left/Down/Right` and the picker/shop branches use the mapped key.
-- **`localStorage` keys** (all suffixed with the file **basename**):
-  `asteroids_best_<file>` (speedrun time), `asteroids_score_<file>` / `asteroids_wave_<file>`
-  (normal-mode bests), `asteroids_sfx` / `asteroids_music` (on/off),
-  `asteroids_sfxvol` / `asteroids_musvol` (0–1). The launcher's menu reads these for the
-  card "BEST …" lines and the **RESET BEST SCORES** button clears the per-version bests.
+- **`localStorage` keys** (suffixed with the variant **`key`** from `levels.js` —
+  `classic`, `classic-enhanced`; the `roguelite-*` keys belong to asteroids-plus now):
+  `asteroids_best_<key>` (speedrun time), `asteroids_score_<key>` / `asteroids_wave_<key>`
+  (normal-mode bests), plus the kit-owned `asteroids_sfx` / `asteroids_music` (on/off) and
+  `asteroids_sfxvol` / `asteroids_musvol` (0–1). The launcher reads these for the card
+  "BEST …" lines; the kit sound-menu Reset clears all `asteroids_*` keys.
 - **Mobile/touch** controls are inlined per game, shown only on `pointer: coarse`
   devices, and never touch desktop. The move joystick is *aim-and-go*: it sets
   `ship.angle` to the stick direction every frame (instant aim) and only thrusts past

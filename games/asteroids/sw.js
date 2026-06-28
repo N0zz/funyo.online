@@ -2,10 +2,8 @@
 // Network-first (so updates show up when online), falling back to cache when offline.
 const CACHE = 'asteroids-v1';
 const ASSETS = [
-  './', './index.html', './levels.js', './favicon.svg', './manifest.json',
-  '../../game-kit.js', '../../game-kit.css',
-  './levels/classic.html', './levels/classic-enhanced.html',
-  './levels/roguelite-levelup.html', './levels/roguelite-milestones.html', './levels/roguelite-shop.html',
+  './', './index.html', './favicon.svg', './manifest.json',
+  '../../game-kit.js', '../../game-kit.css', './icon-192.png','./icon-512.png',
 ];
 
 self.addEventListener('install', e => {

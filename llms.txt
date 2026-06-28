@@ -6,7 +6,8 @@ Komyo Games is a hobby project. Each game is a single self-contained HTML/Canvas
 
 ## Games
 
-- [Asteroids](https://komyo.online/games/asteroids/): Fly, shoot, survive — classic arcade plus roguelite modes with upgrades.
+- [Asteroids](https://komyo.online/games/asteroids/): Fly, shoot, survive — classic arcade with endless waves and a speedrun race.
+- [Asteroids+](https://komyo.online/games/asteroids-plus/): Roguelite Asteroids — XP, upgrades, bosses and a wave shop across escalating waves.
 - [Keep Defender](https://komyo.online/games/tower-defense/): Fixed-path tower defense — build towers, spend gold, hold the keep wave after wave.
 - [Bubble Pop](https://komyo.online/games/bubbles/): Bubble shooter — match groups of 3+, with Arcade, Endless and Zen modes.
 - [Brick Breaker](https://komyo.online/games/breakout/): Paddle-and-ball brick breaker with power-ups and escalating levels (synthwave theme).

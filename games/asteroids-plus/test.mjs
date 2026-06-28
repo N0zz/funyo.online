@@ -146,8 +146,8 @@ function smokeClassic(file, { enhanced = false } = {}) {
     g.down('Escape'); g.step(1);
     ok(g.el('overlay').classList.contains('hidden') === false, file + ' ESC shows pause overlay');
     ok(/QUIT TO MENU/.test(g.el('overlay').innerHTML), file + ' pause has Quit-to-menu button');
-    g.el('menuBtn').fire('click'); // quit now navigates in-page to the mode picker (no postMessage)
-    ok(g.errors.length === 0, file + ' pause Quit-to-menu runs without error: ' + g.errors[0]);
+    g.el('menuBtn').fire('click');
+    ok(g.posted.includes('asteroids:menu'), file + ' pause Quit posts to parent');
     g.down('Escape'); g.step(1);
     ok(g.el('overlay').classList.contains('hidden') === true, file + ' ESC again resumes');
   }
@@ -506,15 +506,17 @@ function testLauncher() {
   }
   catch (e) { bootErr = e.message; }
   ok(bootErr === null, 'launcher boots: ' + bootErr);
-  ok(Array.isArray(win.LEVELS) && win.LEVELS.length === 2, 'levels.js exposes 2 versions (got ' + (win.LEVELS && win.LEVELS.length) + ')');
+  ok(Array.isArray(win.LEVELS) && win.LEVELS.length === 5, 'levels.js exposes 5 versions (got ' + (win.LEVELS && win.LEVELS.length) + ')');
   const cards = getEl('cards');
-  // one row now: Classic + Classic-Enhanced (roguelite moved to its own game)
+  // two rows: [label, classic-row, label, roguelite-row]
   const rows = cards.children.filter(c => c.className === 'crow');
-  ok(rows.length === 1, 'launcher renders one row (got ' + rows.length + ')');
+  ok(rows.length === 2, 'launcher renders two rows (got ' + rows.length + ')');
   const classicCount = (win.LEVELS || []).filter(v => v.tag === 'CLASSIC').length;
+  const rogueCount = (win.LEVELS || []).filter(v => v.tag === 'ROGUELITE').length;
   ok(rows[0] && rows[0].children.length === classicCount, 'classic row has ' + classicCount + ' cards (got ' + (rows[0] && rows[0].children.length) + ')');
+  ok(rows[1] && rows[1].children.length === rogueCount, 'roguelite row has ' + rogueCount + ' cards (got ' + (rows[1] && rows[1].children.length) + ')');
   const totalCards = rows.reduce((n, r) => n + r.children.length, 0);
-  ok(totalCards === 2, 'launcher renders 2 cards total (got ' + totalCards + ')');
+  ok(totalCards === 5, 'launcher renders 5 cards total (got ' + totalCards + ')');
   const toggle = getEl('modeToggle');
   ok(toggle.textContent === 'NORMAL', 'mode starts NORMAL (got ' + toggle.textContent + ')');
   toggle.fire('click');
@@ -542,14 +544,35 @@ function testLauncher() {
 }
 
 // ---------------- Run ----------------
-// Asteroids = Classic + Enhanced (one engine, classic.html, variant via ?enh=1). The roguelite
-// progressions moved to their own game — see games/asteroids-plus/test.mjs.
-console.log('Running Asteroids headless tests…');
+// Asteroids+ is the de-iframed roguelite game: one engine (index.html), variant via ?prog=.
+// testMenuButton is launcher-specific (quit now navigates in-page, not postMessage) — dropped;
+// testSaveOnQuit still covers save-on-quit.
+console.log('Running Asteroids+ headless tests…');
 
-smokeClassic('index.html?v=classic');
-smokeSpeedrun('index.html?v=classic');
-smokeClassic('index.html?v=enh', { enhanced: true });
-smokeSpeedrun('index.html?v=enh');
+for (const [file, prog] of [['index.html?prog=levelup', 'levelup'], ['index.html?prog=milestones', 'milestones'], ['index.html?prog=shop', 'shop']]) {
+  rogueCommon(file, prog);
+  if (prog !== 'shop') testWaveAdvance(file); // shop mode advances via the shop screen (see testShop)
+  testUpgradesApply(file);
+  testAutoWeapons(file);
+  testWave5BossVisible(file);
+  testWave4Clearable(file);
+  testBulletsClearOnWave(file);
+  testSaveOnQuit(file, prog);
+  testWASD(file);
+  testHealthPickup(file);
+  testAutoFire(file);
+  testBossScaling(file);
+  testStressManyWaves(file, prog);
+  testSpeedrunWin(file, prog);
+}
+testMagnet('index.html?prog=levelup');
+testKeyboardPicker('index.html?prog=levelup');
+testKeyboardPicker('index.html?prog=milestones');
+testKeyboardShopNav('index.html?prog=shop');
+testShop('index.html?prog=shop');
+testShopProgression('index.html?prog=shop');
+testTieredPricing('index.html?prog=shop');
+testMilestonePick('index.html?prog=milestones');
 
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);

@@ -1,7 +1,7 @@
 {
-  "name": "Asteroids",
-  "short_name": "Asteroids",
-  "description": "A self-contained Asteroids game — classic + enhanced modes, playable offline.",
+  "name": "Asteroids+",
+  "short_name": "Asteroids+",
+  "description": "Roguelite Asteroids — XP, upgrades, bosses and a wave shop. Playable offline.",
   "start_url": ".",
   "scope": ".",
   "display": "fullscreen",
