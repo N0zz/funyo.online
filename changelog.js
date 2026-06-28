@@ -12,6 +12,7 @@ window.CHANGELOG = [
     'New: a ⏸ pause button in every game (top-right, next to sound).',
     'New: Export / import your data — back it up or move it between devices, no account needed (in the menu under "Your data").',
     'New: a Compact tile view (button by the filters) so more games fit on screen, plus an FAQ and a Privacy policy in the menu.',
+    'New: Neon Snake has on-screen arrow buttons on phones — tap to turn instead of swiping, and drag the pad wherever suits you.',
     'Fix: games now re-fit correctly when you rotate your phone between portrait and landscape — Stack stays centered, Brick Breaker keeps room to react, Bubble Pop sticks to portrait on phones, Tower Defense’s menu and keep fit the screen, Asteroids’ end screen fits in landscape.',
     'Fix: the Filter panel now fits the screen on phones in landscape — it no longer runs off the edge, and the genre list scrolls.',
     'Fix: Range’s "race to 100" progress bar now tracks targets hit, not points.',

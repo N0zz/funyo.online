@@ -156,7 +156,7 @@ window.GAMES = [
     accent: "#7fffb0",
     tag: "CLASSIC",
     added: "2026-06-26",
-    updated: "2026-06-27",
+    updated: "2026-06-28",
   },
 
   // ---- multiplayer (local, single-screen) — coming soon ----
