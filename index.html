@@ -184,6 +184,13 @@
   /* FAQ modal (reuses .about container) */
   #faqModal { width:min(560px,94vw); }
   .faq { max-height:80vh; overflow-y:auto; }
+  /* themed scrollbars for scrollable modals/drawers (default is a stark white/grey bar) */
+  .faq, .cl-list, .filter-pop, .dscroll, .data-ta { scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .faq::-webkit-scrollbar, .cl-list::-webkit-scrollbar, .filter-pop::-webkit-scrollbar, .dscroll::-webkit-scrollbar, .data-ta::-webkit-scrollbar { width:10px; height:10px; }
+  .faq::-webkit-scrollbar-track, .cl-list::-webkit-scrollbar-track, .filter-pop::-webkit-scrollbar-track, .dscroll::-webkit-scrollbar-track, .data-ta::-webkit-scrollbar-track { background:transparent; }
+  .faq::-webkit-scrollbar-thumb, .cl-list::-webkit-scrollbar-thumb, .filter-pop::-webkit-scrollbar-thumb, .dscroll::-webkit-scrollbar-thumb, .data-ta::-webkit-scrollbar-thumb {
+    background:var(--border); border:2px solid transparent; background-clip:padding-box; border-radius:999px; }
+  .faq::-webkit-scrollbar-thumb:hover, .cl-list::-webkit-scrollbar-thumb:hover, .filter-pop::-webkit-scrollbar-thumb:hover, .dscroll::-webkit-scrollbar-thumb:hover, .data-ta::-webkit-scrollbar-thumb:hover { background:var(--faint); }
   .faq-q { font-weight:700; color:var(--text); font-size:15.5px; margin-top:6px; }
   .faq-a { margin:0; font-size:14.5px; line-height:1.62; color:var(--muted); }
   .faq-a b { color:var(--text); } .faq-a a { color:#9fe8ff; }
