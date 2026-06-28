@@ -200,15 +200,9 @@
       lsSet(key, JSON.stringify(log));
       pruneOldLogs();
     } catch (e) {}
-    try { // rolling recent-plays buffer (powers the catalogue ticker), newest first, capped
-      var recent = JSON.parse(lsGet('gamekit_recent') || 'null') || [];
-      recent.unshift({ slug: slug, score: rec.score, mode: rec.mode, ts: rec.ts });
-      lsSet('gamekit_recent', JSON.stringify(recent.slice(0, 20)));
-    } catch (e) {}
     return rec;
   }
   function lastResult(slug) { try { return JSON.parse(lsGet('gamekit_result_' + slug) || 'null'); } catch (e) { return null; } }
-  function recentResults() { try { return JSON.parse(lsGet('gamekit_recent') || 'null') || []; } catch (e) { return []; } }
   function playedToday() { try { return JSON.parse(lsGet('gamekit_played_' + utcDateStr()) || 'null') || emptyLog(); } catch (e) { return emptyLog(); } }
 
   // ---------- top-right sound menu (+ optional per-game "reset scores") ----------
@@ -220,9 +214,10 @@
       + '<input class="gamekit-au-slider" id="gamekitSfxV" type="range" min="0" max="100" aria-label="Sound effects volume"></div>';
     if (opts.music) rows += '<div class="gamekit-au-row"><button class="gamekit-au-toggle" id="gamekitMusM" type="button" aria-label="Mute music">🎵</button>'
       + '<input class="gamekit-au-slider" id="gamekitMusV" type="range" min="0" max="100" aria-label="Music volume"></div>';
+    var embedRow = '<button class="gamekit-au-embed" id="gamekitEmbed" type="button" aria-label="Embed this game" title="Embed this game on your website or blog">&#x29C9; Embed</button>';
     wrap.innerHTML = '<button class="gamekit-au-btn" id="gamekitAudioBtn" type="button" aria-label="Sound settings" title="Sound settings">🔊</button>'
-      + '<div class="gamekit-au-panel" id="gamekitAudioPanel">' + rows + '</div>'
-      + (opts.reset ? '<button class="gamekit-au-resetbtn" id="gamekitReset" type="button" aria-label="Reset scores" title="Reset scores">↺</button>' : '');
+      + '<div class="gamekit-au-panel" id="gamekitAudioPanel">' + rows + embedRow + '</div>'
+      + (opts.reset ? '<button class="gamekit-au-resetbtn" id="gamekitReset" type="button" aria-label="Reset this game’s scores" title="Reset this game’s saved scores">↺</button>' : '');
     document.body.appendChild(wrap);
     var btn = document.getElementById('gamekitAudioBtn'), panel = document.getElementById('gamekitAudioPanel');
     if (btn && panel) btn.addEventListener('click', function () { if (panel.classList) panel.classList.toggle('open'); });
@@ -241,6 +236,11 @@
         confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} });
       });
     }
+    var eb = document.getElementById('gamekitEmbed');
+    if (eb) eb.addEventListener('click', function () {
+      var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
+      embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
+    });
     audioUIs.push(u); syncAudioUI();
   }
 
@@ -250,18 +250,12 @@
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
       wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">&#x2039; Menu</button>'
-        + '<a class="gamekit-back" id="gamekitHome" target="_top" href="' + (opts.home || '../../') + '">Komyo Games &#x203A;</a>'
-        + '<button class="gamekit-back gamekit-embed-btn" id="gamekitEmbed" type="button" aria-label="Embed this game" title="Embed this game">&#x29C9;</button>';
+        + '<a class="gamekit-back" id="gamekitHome" target="_top" href="' + (opts.home || '../../') + '">Komyo Games &#x203A;</a>';
       document.body.appendChild(wrap);
       var menu = document.getElementById('gamekitMenu');
       if (menu) menu.addEventListener('click', function () {
         if (typeof opts.onMenu === 'function') { try { opts.onMenu(); } catch (e) {} }
         else { try { location.reload(); } catch (e) {} }
-      });
-      var eb = document.getElementById('gamekitEmbed');
-      if (eb) eb.addEventListener('click', function () {
-        var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
-        embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
       });
     }
     audioMenu({ music: !!opts.music, reset: opts.reset });
@@ -318,23 +312,37 @@
         if (typeof document === 'undefined' || !document.createElement) return resolve(null);
         var c = document.createElement('canvas'); c.width = 1200; c.height = 630;
         var x = c.getContext && c.getContext('2d'); if (!x) return resolve(null);
-        var accent = opts.accent || '#9fe8ff', W = 1200, H = 630;
-        var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0b1018'); g.addColorStop(1, '#131c2b');
+        var W = 1200, H = 630, accent = opts.accent || '#9fe8ff';
+        var who = opts.player || (typeof player === 'function' ? player() : 'anonymous');
+        var rr = function (X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
+        // base + diagonal sheen
+        var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0a0f17'); g.addColorStop(1, '#121a28');
         x.fillStyle = g; x.fillRect(0, 0, W, H);
-        x.strokeStyle = accent; x.globalAlpha = 0.9; x.lineWidth = 10; x.strokeRect(24, 24, W - 48, H - 48); x.globalAlpha = 1;
+        // accent glow, top-right
+        try { var rg = x.createRadialGradient(W - 200, 150, 40, W - 200, 150, 620); rg.addColorStop(0, accent); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.globalAlpha = 0.16; x.fillStyle = rg; x.fillRect(0, 0, W, H); x.globalAlpha = 1; } catch (e) {}
+        // inner panel
+        x.fillStyle = 'rgba(255,255,255,0.02)'; rr(36, 36, W - 72, H - 72, 28); x.fill();
+        x.strokeStyle = accent; x.globalAlpha = 0.55; x.lineWidth = 2; rr(36, 36, W - 72, H - 72, 28); x.stroke(); x.globalAlpha = 1;
+        // accent rail
+        x.fillStyle = accent; rr(36, 36, 12, H - 72, 6); x.fill();
         x.textAlign = 'left';
-        x.fillStyle = accent; x.font = '700 34px system-ui, sans-serif'; x.fillText('KOMYO GAMES', 80, 110);
-        x.fillStyle = '#eaf2fb'; x.font = '600 56px system-ui, sans-serif'; x.fillText(String(opts.title || 'Komyo Games'), 80, 215);
-        x.fillStyle = accent; x.font = '800 200px system-ui, sans-serif';
-        x.fillText(String(opts.scoreText != null ? opts.scoreText : (opts.score || 0)), 76, 430);
-        if (opts.sub) { x.fillStyle = '#9fb2c8'; x.font = '400 36px system-ui, sans-serif'; x.fillText(String(opts.sub), 80, 500); }
-        x.fillStyle = '#7a8aa0'; x.font = '500 34px system-ui, sans-serif'; x.fillText('komyo.online', 80, 575);
+        // wordmark + game title
+        x.fillStyle = accent; x.font = '800 30px system-ui, sans-serif'; x.fillText('KOMYO GAMES', 92, 118);
+        x.fillStyle = '#eef4fc'; x.font = '600 58px system-ui, sans-serif'; x.fillText(String(opts.title || 'Komyo Games'), 90, 210);
+        // score label + big number
+        x.fillStyle = '#8aa0ba'; x.font = '600 26px ui-monospace, monospace'; x.fillText('SCORE', 92, 290);
+        x.fillStyle = accent; x.font = '800 190px system-ui, sans-serif';
+        x.fillText(String(opts.scoreText != null ? opts.scoreText : (opts.score || 0)), 88, 470);
+        // sub (mode/stats) + player + footer
+        if (opts.sub) { x.fillStyle = '#9fb2c8'; x.font = '400 34px system-ui, sans-serif'; x.fillText(String(opts.sub), 92, 524); }
+        x.fillStyle = '#cdd9e8'; x.font = '600 30px system-ui, sans-serif'; x.fillText('— ' + who, 92, opts.sub ? 566 : 540);
+        x.textAlign = 'right'; x.fillStyle = '#7a8aa0'; x.font = '600 30px ui-monospace, monospace'; x.fillText('komyo.online', W - 92, 566); x.textAlign = 'left';
         var finish = function () { try { if (c.toBlob) c.toBlob(function (b) { resolve(b || null); }, 'image/png'); else resolve(null); } catch (e) { resolve(null); } };
-        var mascot = function (img) { try { x.drawImage(img, W - 360, 150, 280, 280); } catch (e) {} finish(); };
+        var drawMascot = function (img) { try { x.globalAlpha = 0.97; x.drawImage(img, W - 430, 120, 320, 320); x.globalAlpha = 1; } catch (e) {} finish(); };
         try {
           var im = new Image(); var done = false;
-          im.onload = function () { if (done) return; done = true; mascot(im); };
-          im.onerror = function () { if (done) return; done = true; try { x.font = '220px system-ui, sans-serif'; x.textAlign = 'center'; x.fillText('🦊', W - 220, 400); } catch (e) {} finish(); };
+          im.onload = function () { if (done) return; done = true; drawMascot(im); };
+          im.onerror = function () { if (done) return; done = true; try { x.textAlign = 'center'; x.font = '230px system-ui, sans-serif'; x.fillText('🦊', W - 270, 400); x.textAlign = 'left'; } catch (e) {} finish(); };
           im.src = opts.mascot || '../../favicon.svg';
         } catch (e) { finish(); }
       } catch (e) { resolve(null); }
@@ -516,7 +524,7 @@
     __emit: function (w, h) { try { if (typeof window !== 'undefined') { if (w != null) window.innerWidth = w; if (h != null) window.innerHeight = h; } } catch (e) {} fireLayout(); },
   };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, recentResults: recentResults, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

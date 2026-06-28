@@ -169,12 +169,13 @@ posts spread it, embeds pull new players in.
 
 - **Embeddable games (iframe snippet)** **(HIGH PRIORITY)** — "embed this game on your blog" → backlinks + free traffic.
 - **List on game portals** — itch.io, free-to-play indexes.
-- **Recent-scores ticker** *(shipped — local)*: a dimmed, chat-style ticker (bottom-right, hideable)
-  shows the player's own recent plays from `gamekit_recent`. **Future (needs a shared feed backend):**
-  once we grow to many users/games, the on-site ticker **and** the Discord feed should show only
-  **good scores / records** — per-game score thresholds, personal-best beats, or leaderboard-worthy
-  runs — **not every game-over**. Otherwise the feed is noise. (Same idea as the Discord changelog
-  filter: surface signal, drop the firehose.) Until then the ticker is the local player's own plays.
+- **Shared scores feed = Discord** (no server / no P2P, so the website can't aggregate everyone's
+  scores client-side). The score auto-post already makes **Discord the games-log**. *(An on-site
+  local-only ticker was tried and removed — showing just your own plays misreads as a community feed.)*
+  **Future on-site feed:** a scheduled GitHub Action with a **Discord bot token reads the scores
+  channel → writes a static `scores.json`** the site fetches and renders — and at that point filter
+  to **good scores / records only** (per-game thresholds, personal-best beats, leaderboard-worthy),
+  **not every game-over**. Same signal-over-firehose idea as the Discord changelog filter.
 - **Optional next:** opt-in toggle for the Discord score auto-post.
 
 ## Marketing experiments

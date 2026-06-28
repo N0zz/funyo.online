@@ -5,10 +5,9 @@
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
   { date: '2026-06-28', title: 'Challenges, score cards & more', items: [
-    'New: Daily & Weekly Challenges — tap 🏆 for today’s challenge plus a bigger weekly one, with a friendly "days played" counter that never resets.',
+    'New: Daily & Weekly Challenges — tap 🏆 for today’s challenge plus a bigger weekly one. Earn points (1 per daily, 5 per weekly) that only ever go up.',
     'New: Score cards — share a picture of your score from the end screen (📷), straight to your apps.',
-    'New: Embed games on your own site or blog — an Embed button in each game, plus "Embed a game" in the menu.',
-    'New: a "recent plays" ticker (bottom-right) shows your latest scores; hide it anytime.',
+    'New: Embed games on your own site or blog — an Embed button in each game’s sound menu, plus "Embed a game" in the main menu.',
     'Fix: games now re-fit correctly when you rotate your phone between portrait and landscape.',
     'Fix: Keep Defender — the upgrade button is greyed out until you can afford it, then pops in.',
   ] },

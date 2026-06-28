@@ -204,9 +204,6 @@ function testKit() {
   // embed modal (single + picker)
   let embErr = null; try { F.embedModal({ slug: 'snake', title: 'Neon Snake' }); F.embedModal({ games: [{ slug: 'a', title: 'A' }, { slug: 'b', title: 'B' }] }); } catch (e) { embErr = e.message; }
   ok(embErr === null && typeof F.embedModal === 'function', 'embedModal builds (single + picker) headless: ' + embErr);
-  // recent-plays buffer (powers the ticker), newest first
-  const recent = F.recentResults();
-  ok(recent.length === 2 && recent[0].slug === 'bubbles' && recent[1].slug === 'snake', 'recentResults buffers plays newest-first');
   // headless-safe (incl. the audio menu + reset + music flag)
   let threw = null;
   try { F.nav({ music: true, reset: 'snake_' }); F.shareRow(doc.getElementById('sr'), { slug: 'snake', message: () => 'x' }); F.pwa(); F.resetScores('snake_'); } catch (e) { threw = e.message; }
