@@ -122,6 +122,24 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
   loaded as a separate sandbox pre-script (the real `game-kit.js`). Keep that pattern.
 - No browser automation here — the harness is the regression net. Always run after changes.
 
+## Local preview (test in a browser before pushing)
+
+The headless suites can't catch visuals, layout, or touch UX. For anything player-facing, serve
+the site locally and eyeball it **before** committing/pushing — the site is static, but service
+workers, the manifest, and `analytics.js` need a real HTTP origin (they don't work over `file://`).
+
+```bash
+cd ~/arcade && python3 -m http.server 8765    # then open http://localhost:8765/
+```
+
+- Catalogue: `http://localhost:8765/` · a game: `http://localhost:8765/games/<slug>/`.
+- After a redeploy/edit, **hard-refresh** (service workers cache aggressively) or the old build shows.
+- Mobile/touch UX (joysticks, the snake D-pad, rotation): use the browser's device-mode (coarse
+  pointer) — touch-only controls don't render on a desktop pointer.
+- Stop the server when done: `lsof -ti:8765 | xargs kill`.
+
+When the change is visual/interactive, offer the user this local URL to verify before pushing.
+
 ## Git & deploy
 
 - **Per-game commits** for clean history. End commit messages with the
