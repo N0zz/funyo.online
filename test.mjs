@@ -61,6 +61,11 @@ function testCatalogue() {
   ok(cerr === null, 'rendering challenges does not throw: ' + cerr);
   const eb = g.getEl('embedBtn'); let ebErr = null; try { eb.fire('click'); } catch (e) { ebErr = e.message; }
   ok(ebErr === null, 'Embed-a-game menu opens without throwing: ' + ebErr);
+  // density toggle: cozy ⇄ compact
+  const db = g.getEl('densityBtn'); db.fire('click');
+  ok(g.getEl('grid').classList.contains('compact'), 'density toggle → compact');
+  db.fire('click');
+  ok(!g.getEl('grid').classList.contains('compact'), 'density toggle → back to cozy');
   const GAMES = g.win.GAMES;
   ok(Array.isArray(GAMES) && GAMES.length >= 2, 'games.js exposes games (got ' + (GAMES && GAMES.length) + ')');
   const grid = g.getEl('grid');
