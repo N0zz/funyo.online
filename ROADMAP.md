@@ -1,8 +1,9 @@
 # komyo Roadmap
 
-Working notes — **open items only**, not an order. Per-game feel/balance polish is continuous and
-not tracked here. Shipped history lives in the in-page changelog / git.
-Design docs live in `~/` (not in the repo): mobile-rotation, gamedev-skills, challenges, tv-controller.
+Working notes — mostly **open items (unordered)**; the one ordered track is **Path to launch** below.
+Per-game feel/balance polish is continuous and not tracked here. Shipped history lives in the in-page
+changelog / git. Design docs live in `~/` (not in the repo): mobile-rotation, gamedev-skills,
+challenges, tv-controller.
 
 ## 🔴 Critical (before more games)
 
@@ -10,6 +11,59 @@ Design docs live in `~/` (not in the repo): mobile-rotation, gamedev-skills, cha
   all games, checking each against our distilled per-genre knobs + failure modes — **includes the old
   "TD self-audit"** (Keep Defender vs the 7 tower-defense systems + the DPS sanity formula). Output =
   concrete polish items per game; fix the cheap ones inline, log the rest. Review-then-fix, not a rewrite.
+  (On-screen / no-overlap / portrait·landscape·desktop layout is now locked by per-game `__test.layout`
+  tests across every live game — so this audit can focus on *feel + balance*, not layout regressions.)
+
+## 🚀 Path to launch (ordered)
+
+The one ordered track. Everything else in this file is unordered backlog feeding into it.
+
+- **Testers:** 3–4 active players (vote on games, test builds) + self-testing.
+- **Launch content bar: 15–20 games.** Have **9** live → add **~3–5 I pick** + **~3–5 the players
+  vote for** → launch.
+- **External gates (not on my clock):** the **real mascot** and the **privacy policy** are owned by
+  someone else; both can slip the date. Sequence around them.
+
+1. **`gamekit.menu` framework** *(prio #1 — before new games)* — all menus kit-controlled, defined
+   per game (declarative config → consistent behavior, easy to rebuild). Migrate all 9 live games onto
+   it without breaking the three-screen schema / deep-links / mode preselection; suites green + manual
+   pass. **~2 sessions.**
+2. **Knobs audit pass** *(prio #2 — before new games)* — every game vs the design knobs (feel +
+   balance; layout is already test-locked). Fix cheap items inline, log the rest. **~1 session.**
+3. **Staging environment (`staging.komyo.online`)** *(nice-to-have, infra — enables online testing for
+   everything below)* — a public staging site so testers hit the real thing, not just localhost.
+   GitHub Pages serves one site per repo, so the two routes are **(a)** a second repo mirrored to
+   `staging.komyo.online` via an Action (stays 100% GitHub-native), or **(b)** point the repo at
+   Netlify / Cloudflare Pages for free per-branch deploys + the subdomain (less plumbing, adds a
+   platform for staging only). **Must isolate staging's side effects:** `noindex` + robots disallow
+   (keep it out of Google), **no prod GA4** (separate property or off), **no prod Discord webhook**
+   (test webhook or off — don't spam real channels), **no real Kit signups** (test form or off). DNS:
+   `staging` CNAME → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
+4. **Build games to the bar** — ~3–5 I choose + ~3–5 player-voted, reaching 15–20; each via the
+   dev-process gate (design+mock → POC → MVP → 2–3 iterations).
+5. **Sound + music pass** — review & redesign SFX across all games for consistency; add **music** to
+   the games that warrant it (only Asteroids has music today).
+6. **Score-card redesign** *(gated on the real mascot)* — redesign the card art + settle the share
+   affordance. My weak point — may need design help. **~1 session.**
+7. **Target tuning** *(needs testing first)* — testers + self playtest (on staging), then retune
+   daily/weekly challenge targets; confirm the UTC daily reset behaves. **~1 session.**
+8. **Pre-launch QA** — real-device pass on staging (iPhone / Android / desktop): touch, audio unlock,
+   PWA install, rotation, visuals. **Test newsletter sending** (Kit form → inbox). Confirm GA4 events +
+   the in-site feedback path fire so post-launch feedback has inputs.
+9. **Privacy policy signed off** *(external gate — counsel)* — hard blocker for any public launch
+   (GA4 + Discord auto-post + EU visitors).
+10. **Discord / community readiness** — recruit **moderators** and set the server up for public traffic
+    (roles, rules, channel structure, verification gate, automod / anti-spam, a reporting path). The
+    score auto-post + changelog already flow there, so it's the front door. **Consult someone
+    experienced** on the must-haves for opening a public Discord. Needed before the wider-share / social
+    stages below (fine to start small with family + friends).
+11. **Launch rollout (staged):** family + friends → let them share further → social media → launch
+    posts (forums / portals / Reddit) → consider **paid ads** (Facebook / Google / wherever fits) →
+    organic growth from shared scores + their friends joining.
+
+**Post-launch:** watch requests/feedback, add games in free time. **TV + gamepad + a11y** lands here
+(important, nice-to-have, not a launch blocker). Marketing experiments (QR stickers, merch, plushie)
+also post-launch.
 
 ## Coming-soon games (queue)
 
@@ -17,55 +71,72 @@ Ship **lots** of games, each **polished with real depth** — added slowly, in s
 game follows the dev-process gate in CLAUDE.md (design+mock → POC → MVP → 2–3 iterations) and the
 design knobs (`@game-design-knobs.md`).
 
+**All of the games below are already live as greyed "coming soon" placeholder tiles in `games.js`** —
+titles, icons and genre tags here match the catalogue. This table is the build queue: effort + notes
+per game. Roughly easiest → hardest within each group.
+
 ### Single player
 
-| Idea | Effort | Notes |
+| Game | Effort | Build notes |
 | --- | --- | --- |
-| **Word & typing games** | low–med | typing trainer (speed/accuracy/wpm), word search, anagram / Wordle-style guesser, spelling & letter puzzles — a whole `WORD` / `LOGIC` lane, good for SEO and daily-challenge fits |
-| **Sudoku** | med | grid + notes + hints are low; real work is the generator (backtracking solver → dig cells keeping a unique solution). 🔢 · `LOGIC` · `#7aa2ff` |
-| **Dino Jump** | low | Chrome's offline T-Rex runner in its minimalist style (mono line-art, day→night, cacti + pterodactyls, jump/duck, speed ramp) |
-| Invaders | med | formation movement, descending rows, shields, escalating waves |
-| Road Hop (crossy) | med | lane spawns, log-riding, endless scroll |
-| Trap the Cat | med | hex grid + cat BFS pathfinding to the nearest edge |
-| Arcane (spellcaster) | med–high | spell variety + wave AI (scope-dependent) |
-| Icy Tower | high | momentum + variable jump + wall-bounce + combos + rising floor |
-| Pulse Dash (rhythm) | high | obstacles authored to a beat + generate/sync a track |
-| **Balloon Slinger** | med | bottom-center slingshot — **drag back to aim & set power, release to fire** at floating balloons; projectile **physics with gravity + shifting wind**, ricochets and multi-pop combos; levels add balloon patterns/movers and limited ammo. 🎈 · `SKILL` (a physics-aim game — distinct from the kids tap-only *Pop the Balloons*) |
-| **Fill the Tank** | trivial–low | petrol-pump game: hold to pump, **stop at exactly $20.00** (or a target). Fast-flowing meter + momentum/overrun, scored by how close you land; rounds raise the target / speed up the flow. Simple, satisfying, very mobile-friendly. ⛽ · `SKILL` |
-| **Spot & Recall** | med | observation/memory: random items/animals cross the screen for ~10–30s, then you **answer questions about what you saw** ("how many ducks?") — plus **trick questions** about things never mentioned (the background color, an item that wasn't there). 👁️ · `LOGIC` |
-| **Parking / Racing (simple)** | med | a small driving lane: **simple races, parking-space challenges**, time trials. Top-down car + basic steering/physics; modes = race vs. park-it. Could grow into a small driving set. 🚗 · `SKILL` |
-| **Pipe Layer** | med | **lay & fix pipes** to connect source→drain before the water reaches the end (rotate tiles / drag segments); leak-plugging variant. Classic puzzle, scales with grid size + timer. 🚰 · `LOGIC` |
+| **Dusk Runner** 🦖 `ARCADE`+`REFLEX` | low | Chrome offline-dino style — mono line-art, ground runner, jump/duck, obstacle spawner, speed ramp, day→night palette shift |
+| **Pump Stop** ⛽ `SKILL` (+`STRATEGY` manager) | trivial–low (solo) · med (manager) | Solo: hold to pump, **stop at the target** with momentum/overrun, scored by closeness. **Tolerance is tight (~1%):** $20 off by 20¢ = fine, by 50¢ = too far under. **Manager expansion (idea, discuss later):** run **4 pumps** — cars arrive with a paid limit, stop each near its limit. Over = free-gas penalty (costs the station); tiny-under = fine; a car left under-served/unattended → patience runs out → it **blocks the pump**; **all 4 blocked = game over**. Attention is the scarce resource → triage is the game. **Open decisions:** (a) cars **auto-fill and you only tap _stop_** vs you actively **_pump_** each; (b) **one active pump at a time** vs **all at once**; (c) tolerance band (~1%? scales with difficulty?). Tension: a tight ~1% band is hard to hit while juggling 4 pumps — (a)/(b) set how forgiving it must be. |
+| **Keyfall** ⌨️ `TYPING`+`SKILL` | low–med | falling words — type each before it lands; speed ramp, combos, WPM. Opens a wider WORD/TYPING lane (more later: anagram, spelling, Wordle-style guesser) |
+| **Word Hunt** 🔍 `WORD`+`PUZZLE` | low–med | letter-grid word search — drag to circle, timer, themed packs; word-placement generator |
+| **Sky Sling** 🎈 `SKILL`+`ARCADE` | med | bottom slingshot — drag back to aim & set power, release to fire at floating balloons; projectile physics (gravity + shifting wind), ricochets, multi-pop combos, ammo limits. Physics-aim — distinct from the kids tap-only Balloon Pop |
+| **Blink** 👁️ `LOGIC`+`PUZZLE` | med | observation/memory — items cross the screen ~10–30s, then Q&A ("how many ducks?") incl. **trick questions** about things never shown (background color, an item that wasn't there) |
+| **Pocket Rally** 🏎️ `RACING`+`ARCADE` | med | top-down multi-lane straight — weave the traffic, don't clip a bumper, distance + speed score |
+| **Market Parking** 🅿️ `SKILL`+`RACING` | med | packed lot, too few spots — race rivals to an empty space and park before them; P1–4 (bots fill the solo game) |
+| **Floodgate** 🚰 `LOGIC`+`PUZZLE` | med | pipe-routing — rotate tiles to connect source→drain before the flood; **solvable-by-construction**, leak-plug variant, grid + timer scaling |
+| **Sudoku** 🔢 `LOGIC`+`PUZZLE` | med | grid + notes + hints are low; real work is the **unique-solution generator** (backtracking solver → dig cells) |
+| **Invaders** 👾 `SHOOTER`+`ARCADE` | med | formation movement, descending rows, shields, escalating waves |
+| **Road Hop** 🐸 `ARCADE`+`CASUAL` | med | lane spawns, log-riding, endless scroll |
+| **Trap the Cat** 🐱 `PUZZLE`+`LOGIC` | med | hex grid + cat BFS pathfinding to the nearest edge |
+| **Arcane** 🔮 `ACTION`+`SHOOTER` | med–high | spell variety + wave AI (scope-dependent) |
+| **Icy Tower** 🧗 `PLATFORMER`+`ARCADE` | high | momentum + variable jump + wall-bounce + combos + rising floor |
+| **Pulse Dash** 🔺 `RHYTHM`+`REFLEX` | high | obstacles authored to a beat + generate/sync a track |
 
 ### Kids-first (ages 6–10)
 
 Built *for* young kids: one-tap / big-target controls, no reading required, gentle/no fail-state,
-celebratory feedback. Anchor a future **Kids section/filter** (tag the cute-simple existing games —
-Stack, Bubble Pop, Snake-Slow, Meadow-gentle — alongside these). The no-ads / no-payments / no-chat /
-offline story is the parent pitch.
+celebratory feedback. The **`KIDS` genre tag now exists** (all six carry it, so the filter is already
+wired) — still want to fold the gentle existing games into it (Stack, Bubble Pop, a slow Snake,
+gentle Meadow). The no-ads / no-payments / no-chat / offline story is the parent pitch.
 
-| Idea | Effort | Notes |
+| Game | Effort | Build notes |
 | --- | --- | --- |
-| **Pop the Balloons** | trivial–low | tap big floating balloons; combos/colors; no fail state. The kid-safe reskin of Range's mechanic. |
-| **Memory / Matching Pairs** | low | flip cards to match animal/fruit emoji; grid sizes for age scaling |
-| **Simon (color + sound)** | low | repeat the growing color/tone sequence |
-| **Tap-to-Paint / Coloring** | low | fill regions/pixels by tapping a palette; no fail, screenshot-shareable |
-| **Counting / Letters / Shapes** | low–med | early-learning taps (count the ducks, tap the letter A) — *educational*, pairs with the Word lane |
-| **Simple Maze** | low | guide a character to the goal; bigger tiles + no timer for the youngest |
+| **Balloon Pop** 🎈 | trivial–low | tap big floating balloons; combos/colors; no fail. Kid-safe tap game (distinct from Sky Sling) |
+| **Critter Match** 🐾 | low | flip cards to match animal pairs; grid sizes scale by age |
+| **Glow Says** 🟢 | low | Simon — repeat the growing color/tone sequence |
+| **Color Pop** 🎨 | low | tap regions to fill color; no fail, screenshot-shareable |
+| **Tap & Learn** 🔠 | low–med | early-learning taps (count the ducks, tap the letter A) — *educational*, pairs with the WORD lane |
+| **Maze Pals** 🐭 | low | guide the mouse to the goal; big tiles, no timer |
 
 ### Local multiplayer (single-screen)
 
-One file, shared input on one device (desktop = split keyboard; mobile = each player owns a screen
-half). **Favorites: Light Cycles, Air Hockey, Slime Volleyball.** More: Sumo Arena, Spacewar Duel,
-Joust-lite, Snake Battle, Button-Mash Race.
+One file, shared input on one device (desktop = split keyboard; mobile = each player owns a screen half).
+
+| Game | Effort | Build notes |
+| --- | --- | --- |
+| **Mash Dash** 🏁 `PARTY` 2–4P | trivial | button-mash race to the line |
+| **Air Hockey** 🏒 `SPORT` 2P | low–med | puck physics + 2 paddles. *(favorite)* |
+| **Light Cycles** 🏍️ `ARCADE` 2–4P | med | neon trail-fill arena, box rivals in. *(favorite)* |
+| **Slime Volleyball** 🏐 `SPORT` 2P | med | two blobs + ball + net physics. *(favorite)* |
+| **Ring Out** 🟡 `SPORT` 2–4P | med | sumo — shove rivals off the disc |
+| **Gravity Duel** 🚀 `ACTION` 2P | med | gravity well + two ships orbit / aim / shoot |
+| **Flap Fight** 🪶 `ARCADE` 2–4P | med | flap to ride higher and stomp — Joust on one screen |
+
+Not yet a tile (idea): **Snake Battle** (multiplayer trail duel — overlaps Light Cycles; pick one).
 
 ### Persistent / long-running games (saved-state lane) — *idea worth pursuing*
 
-A **second category: games with saved progress** that resume where you left off (idle/clicker first —
-cheapest proven entry; or an incremental sim / grow-over-days base). **Why:** the strongest retention
-lever — a daily reason to return that the current arcade games lack; pairs with Challenges + Discord.
-All `localStorage` (no server), so Export/Import matters more. Design for: per-device storage (clearing
-wipes progress — lean on Export/Import), timestamp-based offline accrual (not a live timer), and a
-**versioned save schema** from day one.
+A **second category: games with saved progress** that resume where you left off. **Foxden** 🦊 `IDLE`
+(grow a fox den over days) is the shipped placeholder / flagship for this lane — idle/clicker is the
+cheapest proven entry. **Why:** the strongest retention lever — a daily reason to return that the
+current arcade games lack; pairs with Challenges + Discord. All `localStorage` (no server), so
+Export/Import matters more. Design for: per-device storage (clearing wipes progress — lean on
+Export/Import), timestamp-based offline accrual (not a live timer), and a **versioned save schema**
+from day one.
 
 ## Product & growth
 
@@ -88,9 +159,10 @@ wipes progress — lean on Export/Import), timestamp-based offline accrual (not 
 
 ### Catalogue / kit
 
-- **Kit menu framework (v3)** *(undecided)* — promote the asteroids-style mode tiles + option-group rows
-  into a reusable `gamekit.menu` (declarative config → consistent menus, less per-game markup). Only
-  worth it if per-game menu boilerplate starts to hurt as games scale. Decide before the next batch.
+- **`gamekit.menu` framework (v3)** *(decided — launch prio #1, see Path to launch)* — promote the
+  asteroids-style mode tiles + option-group rows into a reusable `gamekit.menu`: declarative config →
+  one consistent menu system across all games, less per-game markup, easy to rebuild. Migrate every
+  live game onto it.
 
 ### Platforms
 
@@ -104,12 +176,31 @@ wipes progress — lean on Export/Import), timestamp-based offline accrual (not 
 ### Distribution
 
 - **List on game portals** — itch.io, free-to-play indexes.
+- **Discord Activity (play inside a voice channel)** *(idea — strong architectural fit)* — register a
+  Discord app with **Activities** enabled (Embedded App SDK) so people launch komyo **inside a voice
+  channel** and play together right on the server. Our games are static, self-contained and
+  same-origin / no external deps, which is exactly what the sandboxed Activity iframe wants (the main
+  chore is routing any requests through Discord's `/.proxy/` URL mapping + the CSP). Bonus: the SDK
+  exposes the Discord user, so we could **auto-set the display name** for the score post. Pairs with the
+  Discord-first community plan; needs a public, approved app. Likely **post-launch** (after the server +
+  mods are real), but low-friction given the architecture.
+- **Discord auto-post at scale (decided).** Keep posts **client-side**, shard by **one channel + one
+  webhook per game** — each game is then an independent ~30/min bucket (the ceiling is keyed to channel
+  *and/or* webhook, and per-game makes both unique, so it works either way). No practical per-server
+  cap; Discord's global ~50 req/s is **per origin IP**, and client posts come from each player's own
+  browser, so that never bites. Gate volume with a **filter + adjustable threshold** — only post scores
+  above a tunable level (records / notable runs), with a knob to dial how chatty it is. The realistic
+  wall is a *single game* getting >~30 finishers/minute (a great problem, far off).
+  - *Not doing — batching* (needs a server to aggregate across players; pointless per-player — see
+    Decision guards). *Parked — a relay* in front of the webhook (the client-embedded webhook is an
+    open spam target; a relay would hide+rate-limit it, but it's a Cloudflare-Worker route we're
+    avoiding for now — see Parked).
 - **Shared scores feed = Discord** (the score auto-post is the games-log). A live **on-site** feed needs
   an off-GitHub backend (Pages is static — can't host an endpoint, so no GH load risk): **(a)** scheduled
-  Action scrapes Discord → static `scores.json` (stopgap, near-live, one-way), or **(b)** Cloudflare
-  Worker + KV free tier (`POST /score` → capped list, `GET /recent`; truly live). Filter to **good
-  scores / records only**; public `POST` has the same abuse surface as the webhook (validate +
-  rate-limit). **Defer** until real traffic (an empty live feed looks deader than none).
+  Action scrapes Discord → static `scores.json` (stopgap, near-live, one-way, GitHub-native — preferred),
+  or **(b)** Cloudflare Worker + KV (`POST /score` → capped list, `GET /recent`; truly live — *parked,
+  see Parked*). Filter to **good scores / records only**; public `POST` has the same abuse surface as
+  the webhook. **Defer** until real traffic (an empty live feed looks deader than none).
 - **Optional:** opt-in toggle for the Discord score auto-post.
 
 ## Marketing experiments
@@ -132,9 +223,22 @@ wipes progress — lean on Export/Import), timestamp-based offline accrual (not 
   `stats.json`; `render()` sorts playable tiles (favorites pinned; missing/zero → current order). Could
   also drive the "POPULAR" badge.
 
+- **Cloudflare Worker (any role)** — *avoiding for now: prefer staying GitHub-Pages-only, no extra
+  platform.* Saved only for what it *would* give if ever reconsidered: (a) a truly-live on-site scores
+  feed (`POST /score` → capped list, `GET /recent`); (b) a validating, rate-limiting **relay** in front
+  of the Discord webhook (hides the URL → kills the client-embedded-webhook spam surface, drips under
+  rate limits). Not wanted now — note the benefits, don't build it.
+
 ## Decision guards (don't re-propose)
 
 - **No per-tile personal bests** — every game has many modes, so there's no single best to show, and it
   overcrowds the home page.
 - **No on-site local "recent plays" ticker** — with no server it only shows your own plays and misreads
   as a community feed (tried + removed). The shared feed is Discord; see Distribution for the live route.
+- **No formal idea→release checklist / per-game QA blocker list** — testers play what they *like* and
+  report issues there; they won't grind a feature checklist over untested games, and a blocker list of
+  untested games is meaningless. Organic test-and-report instead. (Revisit only if the tester pool
+  grows enough to staff structured QA.)
+- **No batching of Discord score posts** — batching only pays off by aggregating across many players at
+  a central point, which needs a server; a single player doesn't finish games fast enough for
+  per-player batching to mean anything. Use the filter + per-game channels instead.
