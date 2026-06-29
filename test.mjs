@@ -215,11 +215,48 @@ function testKit() {
   ok(threw === null, 'nav/audioMenu/shareRow/pwa/resetScores run headless without throwing: ' + threw);
 }
 
+// ---------------- Challenges ↔ games coverage ----------------
+function testChallenges() {
+  section('challenges.js (coverage vs games.js)');
+  const games = fs.readFileSync(path.join(DIR, 'games.js'), 'utf8');
+  const challenges = fs.readFileSync(path.join(DIR, 'challenges.js'), 'utf8');
+  const sb = { window: {}, console }; sb.globalThis = sb;
+  let derr = null;
+  try { vm.runInContext(games + '\n' + challenges, vm.createContext(sb), { filename: 'catalogue-data.js' }); } catch (e) { derr = e.message; }
+  ok(derr === null, 'games.js + challenges.js load: ' + derr);
+  const GAMES = sb.window.GAMES || [], C = sb.window.CHALLENGES || {};
+  const goals = C.goals || {};
+  const activeSlugs = new Set(GAMES.filter(g => !g.soon).map(g => g.slug));
+  const allSlugs = new Set(GAMES.map(g => g.slug));
+  const goalEntries = Object.entries(goals);
+  const singleGoals = goalEntries.filter(([, gl]) => gl.slug);          // single-game goals carry a slug
+  const crossGoals = goalEntries.filter(([, gl]) => gl.scope === 'cross');
+  const slugsWithChallenge = new Set(singleGoals.map(([, gl]) => gl.slug));
+
+  // A) every ACTIVE (playable, non-soon) game has at least one challenge
+  for (const slug of activeSlugs) ok(slugsWithChallenge.has(slug), 'active game "' + slug + '" has ≥1 challenge defined');
+  // B) every single-game challenge points at an existing + active game (none orphaned to a soon/removed game)
+  for (const [id, gl] of singleGoals) {
+    ok(allSlugs.has(gl.slug), 'challenge "' + id + '" → game "' + gl.slug + '" exists in games.js');
+    ok(activeSlugs.has(gl.slug), 'challenge "' + id + '" → game "' + gl.slug + '" is active (not soon)');
+  }
+  // C) cross goals are well-formed (no stray slug; a recognized metric)
+  const crossMetrics = new Set(['distinctGames', 'totalGames', 'totalScore', 'distinctGenres']);
+  for (const [id, gl] of crossGoals) {
+    ok(!gl.slug, 'cross goal "' + id + '" carries no game slug');
+    ok(crossMetrics.has(gl.metric), 'cross goal "' + id + '" uses a known metric (' + gl.metric + ')');
+  }
+  // D) referential integrity: every id in the daily/weekly rotations resolves to a defined goal
+  for (const id of (C.daily || [])) ok(!!goals[id], 'daily rotation id "' + id + '" is a defined goal');
+  for (const id of (C.weekly || [])) ok(!!goals[id], 'weekly rotation id "' + id + '" is a defined goal');
+}
+
 console.log('Running arcade tests…');
 testCatalogue();
 testTD();
 testLiveGames();
 testKit();
+testChallenges();
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);
 if (fail) { console.log('\nFailures:'); fails.forEach(f => console.log(' - ' + f)); process.exit(1); }
