@@ -5,14 +5,13 @@ Per-game feel/balance polish is continuous and not tracked here. Shipped history
 changelog / git. Design docs live in `~/` (not in the repo): mobile-rotation, gamedev-skills,
 challenges, tv-controller.
 
-## 🔴 Critical (before more games)
+## ✅ Done
 
-- **Verify every existing game against the game design knobs** (`@game-design-knobs.md`). One pass over
-  all games, checking each against our distilled per-genre knobs + failure modes — **includes the old
-  "TD self-audit"** (Keep Defender vs the 7 tower-defense systems + the DPS sanity formula). Output =
-  concrete polish items per game; fix the cheap ones inline, log the rest. Review-then-fix, not a rewrite.
-  (On-screen / no-overlap / portrait·landscape·desktop layout is now locked by per-game `__test.layout`
-  tests across every live game — so this audit can focus on *feel + balance*, not layout regressions.)
+- **Knobs audit pass — DONE (2026-06-29).** All 9 games reviewed vs `@game-design-knobs.md` (feel +
+  balance). Keep Defender done (difficulty tiers + rebalance). Asteroids+ rebalanced (×10 scale, caps,
+  expiry, kamikaze, finite 30-wave finale) — **shipped but still being playtested** (tracked in the
+  `komyo-asteroids-plus-rebalance` note; difficulty tiers parked). Meadow Flyer speed-creep shipped.
+  Other games were fine or got minor tweaks. Layout already locked by per-game `__test.layout` tests.
 
 ## 🚀 Path to launch (ordered)
 
@@ -28,8 +27,8 @@ The one ordered track. Everything else in this file is unordered backlog feeding
    per game (declarative config → consistent behavior, easy to rebuild). Migrate all 9 live games onto
    it without breaking the three-screen schema / deep-links / mode preselection; suites green + manual
    pass. **~2 sessions.**
-2. **Knobs audit pass** *(prio #2 — before new games)* — every game vs the design knobs (feel +
-   balance; layout is already test-locked). Fix cheap items inline, log the rest. **~1 session.**
+2. **Knobs audit pass** — ✅ **DONE (2026-06-29)**, see the "Done" section above. (Asteroids+ still in
+   playtest; difficulty tiers parked.)
 3. **Staging environment (`staging.komyo.online`)** *(nice-to-have, infra — enables online testing for
    everything below)* — a public staging site so testers hit the real thing, not just localhost.
    GitHub Pages serves one site per repo, so the two routes are **(a)** a second repo mirrored to
@@ -40,7 +39,12 @@ The one ordered track. Everything else in this file is unordered backlog feeding
    (test webhook or off — don't spam real channels), **no real Kit signups** (test form or off). DNS:
    `staging` CNAME → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
 4. **Build games to the bar** — ~3–5 I choose + ~3–5 player-voted, reaching 15–20; each via the
-   dev-process gate (design+mock → POC → MVP → 2–3 iterations).
+   dev-process gate (design+mock → POC → MVP → 2–3 iterations). **When picking, weigh build+tuning cost:
+   bias toward low-tuning genres (puzzle / timing / arcade-skill) and AVOID balance-heavy ones (tower
+   defense, roguelite shooters)** — Keep Defender and Asteroids+ each ate many tuning cycles
+   (geometric HP, economy, snowball, drop rates, difficulty tiers). The queue's per-game **Effort**
+   column already encodes this; treat balance-heavy as a high hidden cost. (See the
+   `komyo-avoid-balance-heavy-genres` note.)
 5. **Sound + music pass** — review & redesign SFX across all games for consistency; add **music** to
    the games that warrant it (only Asteroids has music today).
 6. **Score-card redesign** *(gated on the real mascot)* — redesign the card art + settle the share
@@ -52,11 +56,10 @@ The one ordered track. Everything else in this file is unordered backlog feeding
    the in-site feedback path fire so post-launch feedback has inputs.
 9. **Privacy policy signed off** *(external gate — counsel)* — hard blocker for any public launch
    (GA4 + Discord auto-post + EU visitors).
-10. **Discord / community readiness** — recruit **moderators** and set the server up for public traffic
-    (roles, rules, channel structure, verification gate, automod / anti-spam, a reporting path). The
-    score auto-post + changelog already flow there, so it's the front door. **Consult someone
-    experienced** on the must-haves for opening a public Discord. Needed before the wider-share / social
-    stages below (fine to start small with family + friends).
+10. **Discord / community readiness** — ✅ **server set up (done)**: roles, rules, channels, verification,
+    automod/anti-spam, reporting path; score auto-post + changelog flow there. **Only open item:
+    moderators** — ask friends to volunteer; **if nobody bites, launch without mods** (someone will want
+    the role) — *not a launch blocker.* Fine to start small with family + friends.
 11. **Launch rollout (staged):** family + friends → let them share further → social media → launch
     posts (forums / portals / Reddit) → consider **paid ads** (Facebook / Google / wherever fits) →
     organic growth from shared scores + their friends joining.
