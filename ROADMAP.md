@@ -168,13 +168,6 @@ from day one.
   supported → build a branded one (mascot + search / back-to-catalogue; ties into the mascot reuse).
   Other codes (403 / 5xx) are served by GitHub/Fastly and **aren't customizable** on a static Pages
   site — confirm the limits and document what we can/can't do.
-- **Deep-link routes for modals** (`/embed`, `/faq`, `/changelog`, …) — let a URL open the catalogue
-  with that modal already open (shareable, bookmarkable, better SEO entry points). Static-site options:
-  **(a)** a query/hash the index reads on load (`/?m=faq` or `/#faq`) — simplest, no extra files;
-  **(b)** real `/<faq>/index.html` stub pages that open/redirect into the modal — individually
-  indexable, cleaner paths, but more files. (b) is better for SEO/sharing, (a) is least work. Pairs
-  with the existing `?q&genre` URL-state handling.
-
 ### Platforms
 
 - **TV & controller support** (Android/Google TV · remote · gamepad) — full design at
