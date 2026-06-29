@@ -164,6 +164,17 @@ from day one.
   one consistent menu system across all games, less per-game markup, easy to rebuild. Migrate every
   live game onto it.
 
+- **Custom error pages** — verify what GitHub Pages actually allows. A root **`404.html`** *is*
+  supported → build a branded one (mascot + search / back-to-catalogue; ties into the mascot reuse).
+  Other codes (403 / 5xx) are served by GitHub/Fastly and **aren't customizable** on a static Pages
+  site — confirm the limits and document what we can/can't do.
+- **Deep-link routes for modals** (`/embed`, `/faq`, `/changelog`, …) — let a URL open the catalogue
+  with that modal already open (shareable, bookmarkable, better SEO entry points). Static-site options:
+  **(a)** a query/hash the index reads on load (`/?m=faq` or `/#faq`) — simplest, no extra files;
+  **(b)** real `/<faq>/index.html` stub pages that open/redirect into the modal — individually
+  indexable, cleaner paths, but more files. (b) is better for SEO/sharing, (a) is least work. Pairs
+  with the existing `?q&genre` URL-state handling.
+
 ### Platforms
 
 - **TV & controller support** (Android/Google TV · remote · gamepad) — full design at
@@ -202,6 +213,45 @@ from day one.
   see Parked*). Filter to **good scores / records only**; public `POST` has the same abuse surface as
   the webhook. **Defer** until real traffic (an empty live feed looks deader than none).
 - **Optional:** opt-in toggle for the Discord score auto-post.
+
+### Integrations (ideas — for later)
+
+Filter for all of these: **does it keep the no-server / no-ads / no-accounts identity?** Most
+"integrations" quietly need a backend; these are sorted by whether they do.
+
+**Good & low-friction (fit the ethos):**
+
+- **Twitch chat (client-side, no backend)** — *the standout.* A streamer logs in with Twitch; the game
+  connects to **Twitch chat over IRC-WebSocket from the browser** (no server), and viewers affect/play
+  via chat: vote the next wave, spawn a boss, names on-screen, chat-triggered events. Fits
+  "self-contained"; streamer + chat is the best organic-reach lever. Suits Keep Defender / Asteroids.
+  (Deeper hooks — channel-point EventSub, a published Twitch **Extension** panel — need an Extension
+  Backend Service → parked.)
+- **Google Play via PWA wrap** — games are already PWAs; Bubblewrap / PWABuilder wraps the catalogue (or
+  a game) as a TWA → real Play Store presence, no backend, no ads. Best app-store route. (iOS needs a
+  wrapper + Apple review — harder.)
+- **itch.io HTML5 uploads** — zip each game; itch hosts + brings players, ad-free-friendly, embeddable.
+  Concretizes "list on portals."
+- **More share targets + story-format card** — add WhatsApp / Telegram / Bluesky / Mastodon / Threads
+  intents (just URL schemes) + a **vertical "story" score-card** for IG/TikTok Stories. Cheap; leverages
+  the existing share row.
+- **Per-game OG/Twitter cards** — static per-game share images so a shared *game* link looks good (not
+  just the homepage). Small SEO/social win, no infra.
+
+**Needs a server/Worker → parked** (we're avoiding that — note the benefit, don't build): dynamic
+*per-score* OG images, global cross-player leaderboards, Reddit/X **auto-posting** of records, Twitch
+Extensions w/ EBS, Discord channel-point hooks.
+
+**Marketing, not integration:** YouTube / TikTok / Shorts = a *content* play (clips of satisfying
+moments, a devlog, a komyo channel), no API work. (Discord **Activity** — play in a voice channel — is
+the best Discord-native one; already under Distribution.)
+
+**Honest tradeoff:** the big traffic portals (Poki, CrazyGames, GameDistribution) send real volume but
+inject **their ads** + want **their SDK** — collides with the "no ads · plays offline" pitch. itch.io
+and Play-via-PWA don't. Treat the ad-portals as a separate, deliberate decision later.
+
+Ranked pick if/when we act: Twitch chat → richer share targets + story card (cheap, pre-launch) →
+Play Store via PWA → itch.io. Rest are post-launch or parked.
 
 ## Marketing experiments
 
