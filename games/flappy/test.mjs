@@ -424,6 +424,29 @@ section('Progressive difficulty');
   ok(Math.abs(gHi - T().GAP_MIN) < 0.001, 'gap clamps exactly to GAP_MIN at the floor (got ' + gHi + ')');
 }
 
+// (t2) speed creep: once the gap is maxed (score 55), scroll speed ramps 1.9→2.5 by score 100
+section('Speed creep');
+{
+  g = runGame();
+  T().start();
+  T().setScore(0);
+  ok(Math.abs(T().currentSpeed() - 1.9) < 0.001, 'day base speed is 1.9 before the ramp (got ' + T().currentSpeed() + ')');
+  T().setScore(55);
+  ok(Math.abs(T().currentSpeed() - 1.9) < 0.001, 'speed still 1.9 at score 55 (ramp start, got ' + T().currentSpeed() + ')');
+  T().setScore(77);
+  const sMid = T().currentSpeed();
+  ok(sMid > 1.9 && sMid < 2.5, 'speed ramps mid-window (got ' + sMid + ')');
+  T().setScore(100);
+  ok(Math.abs(T().currentSpeed() - 2.5) < 0.001, 'speed reaches 2.5 at score 100 (got ' + T().currentSpeed() + ')');
+  T().setScore(500);
+  ok(Math.abs(T().currentSpeed() - 2.5) < 0.001, 'speed clamps at 2.5 beyond the ramp (got ' + T().currentSpeed() + ')');
+  T().startMode('night');
+  T().setScore(0);
+  ok(Math.abs(T().currentSpeed() - 2.2) < 0.001, 'night base speed is 2.2 (got ' + T().currentSpeed() + ')');
+  T().setScore(100);
+  ok(Math.abs(T().currentSpeed() - 2.8) < 0.001, 'night speed reaches 2.8 at full creep (got ' + T().currentSpeed() + ')');
+}
+
 // (u) bird unlocks: locked until enough cash, selecting an unlocked bird sticks
 section('Bird unlocks');
 {
