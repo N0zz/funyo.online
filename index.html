@@ -264,9 +264,9 @@
   .filter-btn { cursor:pointer; }
   .fcount { font-family:var(--mono); font-size:10px; font-weight:800; min-width:16px; text-align:center; padding:1px 5px; margin-left:6px;
     border-radius:999px; color:#06121a; background:#9fe8ff; }
-  .filter-pop { display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:45; width:230px; text-align:left;
+  .filter-pop { display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:45; width:340px; text-align:left;
     background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:12px 13px; box-shadow:0 16px 44px rgba(0,0,0,0.55);
-    resize:both; overflow:auto; min-width:220px; min-height:200px; max-height:82vh; }
+    resize:both; overflow:auto; min-width:240px; min-height:200px; max-height:82vh; }
   .filter-pop.show { display:block; }
   .filter-pop .fh { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); margin:2px 0 7px; }
   .filter-pop .fh:not(:first-child) { margin-top:12px; }
@@ -908,24 +908,43 @@
       if (ss) ss.addEventListener('change', e => { FILTER.showSoon = e.target.checked; fcountUpdate(); render(); });
       // on the narrow layout the panel is a full-width sheet — lock the page behind it so it
       // doesn't scroll under the open filters.
+      // Filter panel sizing: default = centered under the button at a comfy width; the native resize
+      // grip then grows it right+down toward the cursor (left-anchored), and we remember the user's
+      // size + position. (On narrow phones the panel is a full-width sheet — no custom sizing.)
+      const FSIZE_KEY = 'arcade_filter_size', FW_DEFAULT = 340;
+      let fsaved = null; try { fsaved = JSON.parse(localStorage.getItem(FSIZE_KEY) || 'null'); } catch (e) {}
+      let fsuppress = false;
       const setPop = open => {
         pop.classList.toggle('show', open);
         const narrow = window.matchMedia && window.matchMedia('(max-width: 560px)').matches;
         try { document.body.style.overflow = (open && narrow) ? 'hidden' : ''; } catch (e) {}
-        // Left-anchor the panel at its current spot so the native resize grip grows it toward the
-        // cursor (right + down) instead of jumping left; cap max-width to the viewport so it can't run
-        // off-screen. (Inline width/height from a previous resize are kept, so the size is remembered.)
         try {
           if (open && !narrow) {
-            pop.style.left = ''; pop.style.right = ''; pop.style.maxWidth = ''; // reset to CSS (right:0) to measure
-            const r = pop.getBoundingClientRect(), wrap = pop.closest('.filter-wrap');
-            const wl = wrap ? wrap.getBoundingClientRect().left : 0;
-            pop.style.left = (r.left - wl) + 'px';
+            fsuppress = true; // ignore the resize-observer fire from this programmatic sizing
+            const w = (fsaved && fsaved.w) || FW_DEFAULT;
+            const wrap = pop.closest('.filter-wrap'); const wr = wrap ? wrap.getBoundingClientRect() : { left: 0, width: 0 };
+            let leftV = (fsaved && fsaved.left != null) ? (wr.left + fsaved.left) : (wr.left + wr.width / 2 - w / 2); // restore, else center on the button
+            leftV = Math.max(8, Math.min(leftV, window.innerWidth - w - 8)); // keep on-screen
+            pop.style.width = w + 'px';
+            pop.style.height = (fsaved && fsaved.h) ? (fsaved.h + 'px') : '';
+            pop.style.left = (leftV - wr.left) + 'px';
             pop.style.right = 'auto';
-            pop.style.maxWidth = Math.max(220, window.innerWidth - r.left - 8) + 'px';
-          } else { pop.style.left = ''; pop.style.right = ''; pop.style.maxWidth = ''; }
+            pop.style.maxWidth = Math.max(240, window.innerWidth - leftV - 8) + 'px';
+            try { requestAnimationFrame(() => { fsuppress = false; }); } catch (e) { fsuppress = false; }
+          } else { pop.style.left = ''; pop.style.right = ''; pop.style.width = ''; pop.style.height = ''; pop.style.maxWidth = ''; }
         } catch (e) {}
       };
+      // remember a user resize (ResizeObserver — native resize fires no DOM event)
+      try {
+        if (typeof ResizeObserver === 'function') {
+          new ResizeObserver(() => {
+            if (fsuppress || !pop.classList.contains('show')) return;
+            const narrow = window.matchMedia && window.matchMedia('(max-width: 560px)').matches; if (narrow) return;
+            fsaved = { left: parseFloat(pop.style.left) || 0, w: pop.offsetWidth, h: pop.offsetHeight };
+            try { localStorage.setItem(FSIZE_KEY, JSON.stringify(fsaved)); } catch (e) {}
+          }).observe(pop);
+        }
+      } catch (e) {}
       const fc = document.getElementById('filterClear');
       if (fc) fc.addEventListener('click', e => { e.preventDefault(); clearFilters(); setPop(false); });
       btn.addEventListener('click', e => { e.stopPropagation(); setPop(!pop.classList.contains('show')); });
