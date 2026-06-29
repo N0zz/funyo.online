@@ -103,7 +103,9 @@
   // ---------- embed modal (iframe snippet) — used by the per-game nav button + catalogue menu ----------
   function embedSnippet(slug, title) {
     var t = String(title || 'Komyo Games').replace(/"/g, '&quot;');
-    return '<iframe src="https://komyo.online/games/' + slug + '/" width="480" height="720" loading="lazy" style="max-width:100%;border:0;border-radius:12px" title="' + t + ' — Komyo Games"></iframe>';
+    // slug '' (or falsy) → embed the whole arcade catalogue; otherwise a single game
+    var src = slug ? ('https://komyo.online/games/' + slug + '/') : 'https://komyo.online/';
+    return '<iframe src="' + src + '" width="480" height="720" loading="lazy" style="max-width:100%;border:0;border-radius:12px" title="' + t + ' — Komyo Games"></iframe>';
   }
   // opts: { slug, title } for one game, OR { games: [{slug,title}, …] } for a picker.
   function embedModal(opts) {
@@ -154,12 +156,16 @@
 
   // ---------- post a score to the public Komyo Games Discord (webhook, intentional/button only) ----------
   var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1520515996933296378/YlXg2W8ypFcQGMHRf0BvWxp10-m7Z7DggStKrBZfusWo8e_emNF6gLpiVjfb0YIExL24';
-  function postDiscord(text) {
+  function postDiscord(text, url) {
     try {
       if (typeof fetch !== 'function' || typeof FormData === 'undefined') return;
       var fd = new FormData();
       // fixed username (no impersonation via override) + no pings (player name/text can't @everyone)
-      fd.append('payload_json', JSON.stringify({ username: 'Komyo Games', content: String(text).slice(0, 1800), allowed_mentions: { parse: [] } }));
+      var payload = { username: 'Komyo Games', content: String(text).slice(0, 1800), allowed_mentions: { parse: [] } };
+      // the play link goes in an embed so it renders as a tidy "▶ Play this game on Komyo" link
+      // (masked links only render inside embeds, not in plain content), not a raw ?query URL.
+      if (url) payload.embeds = [{ description: '[▶ Play this game on Komyo](' + String(url) + ')', color: 0x9fe8ff }];
+      fd.append('payload_json', JSON.stringify(payload));
       fetch(DISCORD_WEBHOOK, { method: 'POST', body: fd })['catch'](function () {}); // multipart = no CORS preflight; fire-and-forget
     } catch (e) {}
   }
@@ -243,6 +249,7 @@
       + '<button class="gamekit-au-btn gamekit-au-embedbtn" id="gamekitEmbed" type="button" aria-label="Embed this game" title="Embed this game on your website or blog">&#x29C9;</button>'
       + (opts.reset ? '<button class="gamekit-au-resetbtn" id="gamekitReset" type="button" aria-label="Reset this game’s scores" title="Reset this game’s saved scores">↺</button>' : '');
     document.body.appendChild(wrap);
+    _audioEl = wrap;
     var btn = document.getElementById('gamekitAudioBtn'), panel = document.getElementById('gamekitAudioPanel');
     if (btn && panel) btn.addEventListener('click', function () { if (panel.classList) panel.classList.toggle('open'); });
     var u = { mainBtn: btn };
@@ -275,15 +282,27 @@
   // The ‹ Menu button (go to the game's own menu) is only meaningful DURING play — on the game's menu
   // it confuses people who expect it to go back to the site (that's the "Komyo Games ›" link). Games
   // call showMenuButton(true) when play starts and (false) on their menu screen.
-  var _menuBtn = null;
+  var _menuBtn = null, _navEl = null, _audioEl = null;
   function showMenuButton(show) { if (_menuBtn && _menuBtn.style) _menuBtn.style.display = show ? '' : 'none'; }
+  // Collapse the "Komyo ›" label to just "›" ONLY when the left nav would actually overlap the
+  // right sound/pause cluster — measured, not a hardcoded breakpoint (so portrait phones with room
+  // keep the full label).
+  function fitNav() {
+    if (!_navEl || !_audioEl || !_navEl.classList || !_navEl.getBoundingClientRect) return;
+    _navEl.classList.remove('gamekit-nav-tight'); // measure at full width first
+    try {
+      var nr = _navEl.getBoundingClientRect(), ar = _audioEl.getBoundingClientRect();
+      if (nr.right + 12 > ar.left) _navEl.classList.add('gamekit-nav-tight');
+    } catch (e) {}
+  }
   function nav(opts) {
     opts = opts || {};
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
       wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">&#x2039; Menu</button>'
-        + '<a class="gamekit-back" id="gamekitHome" target="_top" href="' + (opts.home || '../../') + '"><span class="gamekit-home-label">Komyo Games </span>&#x203A;</a>';
+        + '<a class="gamekit-back" id="gamekitHome" target="_top" href="' + (opts.home || '../../') + '"><span class="gamekit-home-label">Komyo </span>&#x203A;</a>';
       document.body.appendChild(wrap);
+      _navEl = wrap;
       var menu = document.getElementById('gamekitMenu');
       _menuBtn = menu || null;
       if (menu) menu.addEventListener('click', function () {
@@ -292,6 +311,8 @@
       });
     }
     audioMenu({ music: !!opts.music, reset: opts.reset });
+    if (typeof layout !== 'undefined' && layout && layout.on) layout.on(fitNav);
+    fitNav();
     // block the browser context menu on game canvases (no "save image…" popping mid-play)
     if (typeof document !== 'undefined' && document.querySelectorAll) {
       try {
@@ -472,7 +493,7 @@
         var msg = getMsg(), now = (typeof Date !== 'undefined' ? Date.now() : 0);
         if (!msg || msg === lastMsg || now - lastAt <= 3000) return;
         var who = (player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous';
-        postDiscord('**' + who + '** — ' + msg + '\n' + getUrl());
+        postDiscord('**' + who + '** — ' + msg, getUrl());
         lastMsg = msg; lastAt = now;
       };
       if (typeof setTimeout === 'function') setTimeout(maybePost, 0);   // already-visible (built at game-over)

@@ -10,7 +10,11 @@ window.CHANGELOG = [
     'Fix: Range — on phones the shot marker now stays exactly where you fired, instead of drifting along with your finger.',
     'Fix: Bubble Pop — the grid now keeps its shape when a new row drops in (no more sideways jump), and your shot sticks to the spot you aimed at instead of occasionally slipping behind the pack.',
     'Improved: Bubble Pop — bubbles render crisp and sharp on high-resolution screens.',
-    'Improved: the Filter panel’s Highlights and Genres are now tappable chips (matching the Type buttons) instead of checkboxes.',
+    'Improved: the Filter panel’s Highlights and Genres are now tappable chips (matching the Type buttons) instead of checkboxes — and the panel can be resized.',
+    'New: you can now embed the whole arcade on your site, not just a single game (menu → “Embed a game”).',
+    'New: direct links to the menu pages — e.g. komyo.online/?m=faq or ?m=changelog open straight to that panel.',
+    'New: a quick “?” tip in the search box — search by game name or genre (arcade, puzzle, kids…).',
+    'Improved: score posts in our Discord now show a tidy “▶ Play this game on Komyo” link instead of a long raw address.',
   ] },
   { date: '2026-06-28', title: 'Challenges, score cards & more', items: [
     'New: game tiles now show up to three genre tags, each in its own consistent color, and you can filter by any of them.',

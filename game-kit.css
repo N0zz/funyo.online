@@ -7,15 +7,11 @@
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   transition: border-color .12s, color .12s, background .12s; }
 .gamekit-back:hover { border-color: #9fe8ff; color: #fff; background: rgba(8, 12, 20, 0.85); }
-/* narrow phones: shrink both top clusters + collapse the home label to just "›" so the left nav and
-   the right sound/pause cluster never overlap (the bar is busiest mid-play: Menu + Komyo + 4 buttons). */
-@media (max-width: 480px) {
-  .gamekit-nav { left: 8px; gap: 6px; }
-  .gamekit-audio { right: 8px; gap: 5px; }
-  .gamekit-back { padding: 6px 8px; font-size: 11px; letter-spacing: .5px; }
-  .gamekit-home-label { display: none; }
-  .gamekit-au-btn, .gamekit-au-resetbtn { width: 32px; height: 30px; }
-}
+/* The left nav collapses to just "›" ONLY when it would actually overlap the right sound/pause
+   cluster — game-kit.js measures the two and toggles .gamekit-nav-tight (no hardcoded breakpoint,
+   so portrait phones with room keep the full "Komyo ›" label). */
+.gamekit-nav-tight .gamekit-home-label { display: none; }
+.gamekit-nav-tight .gamekit-back { padding: 6px 8px; font-size: 11px; letter-spacing: .5px; }
 
 /* top-right sound menu (+ optional reset-scores) */
 .gamekit-audio { position: fixed; top: 8px; right: 10px; z-index: 9; display: flex; flex-direction: row; align-items: flex-start; gap: 6px; }

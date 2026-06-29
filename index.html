@@ -265,7 +265,8 @@
   .fcount { font-family:var(--mono); font-size:10px; font-weight:800; min-width:16px; text-align:center; padding:1px 5px; margin-left:6px;
     border-radius:999px; color:#06121a; background:#9fe8ff; }
   .filter-pop { display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:45; width:230px; text-align:left;
-    background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:12px 13px; box-shadow:0 16px 44px rgba(0,0,0,0.55); }
+    background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:12px 13px; box-shadow:0 16px 44px rgba(0,0,0,0.55);
+    resize:both; overflow:auto; min-width:220px; max-width:min(92vw,440px); min-height:200px; max-height:82vh; }
   .filter-pop.show { display:block; }
   .filter-pop .fh { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); margin:2px 0 7px; }
   .filter-pop .fh:not(:first-child) { margin-top:12px; }
@@ -275,6 +276,22 @@
   .seg button.on { background:#9fe8ff; color:#06121a; font-weight:700; border-color:#9fe8ff; }
   .fchk { display:flex; align-items:center; gap:8px; padding:5px 2px; font-size:13px; color:var(--text); cursor:pointer; }
   .fchk input { accent-color:#9fe8ff; }
+  /* themed "Show coming soon" checkbox (matches the palette instead of the default white box) */
+  #showSoon { appearance:none; -webkit-appearance:none; flex:none; width:16px; height:16px; margin:0; border:1px solid var(--border);
+    border-radius:5px; background:var(--surface); cursor:pointer; position:relative; }
+  #showSoon:checked { background:#9fe8ff; border-color:#9fe8ff; }
+  #showSoon:checked::after { content:"✓"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#06121a; font-size:11px; font-weight:800; }
+  #showSoon:focus-visible { outline:2px solid #9fe8ff; outline-offset:2px; }
+  /* search "?" help button + hover/focus tip */
+  .search-help { position:relative; flex:none; width:21px; height:21px; padding:0; border-radius:50%; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--faint); font-family:var(--mono); font-size:12px; font-weight:700; line-height:1; cursor:help;
+    display:inline-flex; align-items:center; justify-content:center; }
+  .search-help:hover, .search-help:focus-visible { color:var(--text); border-color:#9fe8ff; outline:none; }
+  .search-tip { display:none; position:absolute; top:calc(100% + 9px); right:-6px; z-index:60; width:232px; cursor:auto;
+    font-family:var(--sans); font-weight:400; font-size:12px; line-height:1.5; letter-spacing:0; text-align:left; color:var(--muted);
+    background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 12px; box-shadow:0 12px 30px rgba(0,0,0,0.5); }
+  .search-tip b { color:var(--text); }
+  .search-help:hover .search-tip, .search-help:focus-within .search-tip { display:block; }
   /* Highlights + Genre as selectable chips (color dot + accent ring when on) */
   .chips { display:flex; flex-wrap:wrap; gap:6px; }
   .chip { appearance:none; -webkit-appearance:none; display:inline-flex; align-items:center; gap:7px; margin:0;
@@ -290,7 +307,7 @@
   /* narrow screens: a 230px panel anchored to the centered button overflows the left edge —
      pin it to the viewport with margins and let the long genre list scroll. */
   @media (max-width: 560px) {
-    .filter-pop { position:fixed; left:8px; right:8px; top:auto; bottom:12px; width:auto; max-height:78vh; overflow-y:auto; }
+    .filter-pop { position:fixed; left:8px; right:8px; top:auto; bottom:12px; width:auto; max-width:none; max-height:78vh; overflow-y:auto; resize:none; }
   }
   .no-results { grid-column:1 / -1; text-align:center; color:var(--muted); padding:54px 0; font-size:15px; }
   .no-results button { margin-left:6px; font-family:var(--mono); font-size:12px; cursor:pointer; padding:7px 13px; border-radius:9px;
@@ -420,7 +437,7 @@
       </div>
       <div class="sub">a catalogue of self-contained browser games</div>
       <div class="controls">
-        <div class="searchbox">🔍 <input id="search" type="search" placeholder="Search…" aria-label="Search games" autocomplete="off"></div>
+        <div class="searchbox">🔍 <input id="search" type="search" placeholder="Search…" aria-label="Search games" autocomplete="off"><button class="search-help" type="button" aria-label="Search tips">?<span class="search-tip">Search by <b>game name</b> or <b>genre</b> — try “arcade”, “puzzle”, “kids”, or a title like “snake”.</span></button></div>
         <div class="filter-wrap">
           <button class="ibtn filter-btn" id="filterBtn" aria-haspopup="true" aria-expanded="false">⚙ Filter ▾<span class="fcount" id="fcount" hidden></span></button>
           <div class="filter-pop" id="filterPop">
@@ -1326,6 +1343,7 @@
       if (!btn || !window.gamekit || !window.gamekit.embedModal) return;
       btn.addEventListener('click', () => {
         const games = (window.GAMES || []).filter(g => g && !g.soon).map(g => ({ slug: g.slug, title: g.title || g.slug }));
+        games.unshift({ slug: '', title: '🎮 Whole arcade (all games)' }); // embed the full catalogue, not just one game
         window.gamekit.embedModal({ games });
       });
     })();
@@ -1403,6 +1421,17 @@
         .then(reg => { reg.update(); setInterval(() => reg.update(), 3600000); })
         .catch(() => {}));
     }
+
+    // ---- Deep links: /?m=faq|changelog|about|privacy|embed|data opens that panel on load ----
+    (function () {
+      try {
+        const m = new URLSearchParams(location.search).get('m'); if (!m) return;
+        const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn',
+          privacy: 'legalBtn', legal: 'legalBtn', license: 'legalBtn', embed: 'embedBtn', data: 'dataBtn' };
+        const id = MAP[m.toLowerCase()], btn = id && document.getElementById(id);
+        if (btn) btn.click();
+      } catch (e) {}
+    })();
   </script>
 </body>
 </html>
