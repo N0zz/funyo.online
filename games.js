@@ -242,6 +242,15 @@ window.GAMES = [
     tags: ["LOGIC", "PUZZLE"],
     soon: true,
   },
+  {
+    slug: "minesweeper",
+    title: "Minesweeper",
+    blurb: "Clear the minefield — flag the bombs, read the numbers, deduce the rest. The timeless logic classic.",
+    icon: "💣",
+    accent: "#9fb2c8",
+    tags: ["LOGIC", "PUZZLE", "CLASSIC"],
+    soon: true,
+  },
 
   // ---- coming soon: kids-first (ages 6–10) ----
   {
