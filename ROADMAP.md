@@ -167,6 +167,12 @@ from day one.
   one consistent menu system across all games, less per-game markup, easy to rebuild. Migrate every
   live game onto it.
 
+- **"CHALLENGE" tile badge + filter** *(idea)* — a new badge (alongside NEW / UPDATED / POPULAR in
+  the `BADGES` map) on a game tile when that game has an **active today's/weekly challenge**, and a
+  matching **filter** ("has an active challenge") that lists only those games. **Must key off
+  game-specific challenges only** — generic cross-game goals (e.g. "play 2 games") must NOT light up
+  the badge on every tile; only a challenge scoped to that game's slug counts. Drives players toward
+  games with something to chase today.
 - **Custom error pages** — verify what GitHub Pages actually allows. A root **`404.html`** *is*
   supported → build a branded one (mascot + search / back-to-catalogue; ties into the mascot reuse).
   Other codes (403 / 5xx) are served by GitHub/Fastly and **aren't customizable** on a static Pages
