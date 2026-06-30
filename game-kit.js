@@ -166,6 +166,35 @@
     });
   }
 
+  // ---------- controls board (top-bar 🎮 button → modal) ----------
+  // controlsModal(cfg[, theme]): cfg.title?, cfg.note?, and rows in cfg.keyboard / cfg.touch — each row is
+  // [keys, action]. Renders a per-section list; scrolls for games with lots of controls. Modal (gates the
+  // menu engine + Esc-closes). Available on the menu AND mid-play, so it's the in-game reference too.
+  function controlsModal(cfg, theme) {
+    cfg = cfg || {};
+    if (typeof document === 'undefined' || !document.body) return;
+    var sec = function (label, rows) {
+      if (!rows || !rows.length) return '';
+      return '<div class="gkctl-sec">' + label + '</div>' + rows.map(function (r) {
+        return '<div class="gkctl-row"><span class="gkctl-keys">' + r[0] + '</span><span class="gkctl-act">' + r[1] + '</span></div>';
+      }).join('');
+    };
+    var ov = document.createElement('div'); ov.className = 'gamekit-controls';
+    ov.innerHTML = '<div class="gkctl-box"><button class="gkctl-x" type="button" aria-label="Close">&#x2715;</button>'
+      + '<h3>' + (cfg.title || 'Controls') + '</h3>'
+      + sec('⌨️ Keyboard', cfg.keyboard) + sec('🖱️ Mouse', cfg.mouse) + sec('👆 Touch', cfg.touch)
+      + (cfg.note ? '<p class="gkctl-note">' + cfg.note + '</p>' : '') + '</div>';
+    if (theme) applyMenuTheme(ov, theme);
+    document.body.appendChild(ov);
+    _modalOpen++;
+    var done = false;
+    function close() { if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} }
+    function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
+    var x = ov.querySelector ? ov.querySelector('.gkctl-x') : null; if (x) x.addEventListener('click', close);
+    ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
+    if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
+  }
+
   // ---------- reset scores (per-game; clears only keys starting with `prefix`) ----------
   function resetScores(prefix) {
     if (!prefix || typeof localStorage === 'undefined' || typeof localStorage.key !== 'function') return;
@@ -291,6 +320,7 @@
     wrap.innerHTML = '<button class="gamekit-au-btn gamekit-au-pausebtn" id="gamekitPause" type="button" aria-pressed="false" aria-label="Pause" title="Pause">⏸</button>'
       + '<button class="gamekit-au-btn" id="gamekitAudioBtn" type="button" aria-label="Sound settings" title="Sound settings">🔊</button>'
       + '<div class="gamekit-au-panel" id="gamekitAudioPanel">' + rows + '</div>'
+      + (opts.controls ? '<button class="gamekit-au-btn gamekit-au-ctlbtn" id="gamekitControls" type="button" aria-label="Controls" title="How to play — controls">🎮</button>' : '')
       + '<button class="gamekit-au-btn gamekit-au-embedbtn" id="gamekitEmbed" type="button" aria-label="Embed this game" title="Embed this game on your website or blog">&#x29C9;</button>'
       + (opts.reset ? '<button class="gamekit-au-resetbtn" id="gamekitReset" type="button" aria-label="Reset this game’s scores" title="Reset this game’s saved scores">↺</button>' : '');
     document.body.appendChild(wrap);
@@ -324,6 +354,7 @@
       var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
       embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
     });
+    if (opts.controls) { var ctlb = document.getElementById('gamekitControls'); if (ctlb) ctlb.addEventListener('click', function () { controlsModal(opts.controls, opts.theme); }); }
     var pb = document.getElementById('gamekitPause'); _pauseBtnEl = pb;
     if (pb) {
       // a game with its own (menu-based) pause passes onPause → the ⏸ button drives THAT, so there's a
@@ -405,7 +436,7 @@
         guarded(function () { try { (window.top || window).location.href = href; } catch (err) { try { location.href = href; } catch (e2) {} } });
       });
     }
-    audioMenu({ music: !!opts.music, reset: opts.reset, onPause: opts.onPause });
+    audioMenu({ music: !!opts.music, reset: opts.reset, onPause: opts.onPause, controls: opts.controls, theme: opts.theme });
     versionTag();
     if (typeof layout !== 'undefined' && layout && layout.on) layout.on(fitNav);
     fitNav();
@@ -759,14 +790,15 @@
     var box = mkEl('div', 'gkm-box'); ov.appendChild(box);
 
     if (cfg.title != null) box.appendChild(mkEl('h1', 'gkm-title', cfg.title));
+    var scroll = mkEl('div', 'gkm-scroll'); box.appendChild(scroll); // content scrolls; title + actions stay pinned
     if (cfg.score != null) {
-      box.appendChild(mkEl('div', 'gkm-score', cfg.scoreText != null ? cfg.scoreText : fmtScore(cfg.score)));
-      if (cfg.best != null) box.appendChild(mkEl('p', 'gkm-best', 'Best: ' + fmtScore(cfg.best) + (cfg.newBest ? ' <span class="gkm-new">★ New best!</span>' : '')));
+      scroll.appendChild(mkEl('div', 'gkm-score', cfg.scoreText != null ? cfg.scoreText : fmtScore(cfg.score)));
+      if (cfg.best != null) scroll.appendChild(mkEl('p', 'gkm-best', 'Best: ' + fmtScore(cfg.best) + (cfg.newBest ? ' <span class="gkm-new">★ New best!</span>' : '')));
     }
 
     var choiceRefs = [], dynamic = []; // dynamic[]: per-card updater(state), re-run on any change
     groups.forEach(function (g2) {
-      if (g2.label != null) box.appendChild(mkEl('div', 'gkm-sec', g2.label));
+      if (g2.label != null) scroll.appendChild(mkEl('div', 'gkm-sec', g2.label));
       if (g2.style === 'cards') {
         var list = mkEl('div', 'gkm-cards');
         (g2.choices || []).forEach(function (c) {
@@ -794,7 +826,7 @@
             desc.textContent = evalVal(c.desc, st) || '';
           });
         });
-        box.appendChild(list);
+        scroll.appendChild(list);
       } else {
         var row = mkEl('div', 'gkm-row');
         (g2.choices || []).forEach(function (c) {
@@ -805,7 +837,7 @@
           b.addEventListener('mouseenter', function () { setFocusEl(b); });
           choiceRefs.push(ref); row.appendChild(b);
         });
-        box.appendChild(row);
+        scroll.appendChild(row);
       }
     });
 
@@ -815,16 +847,16 @@
       var lab = mkEl('label', 'gkm-check');
       lab.appendChild(mkEl('span', 'gkm-check-box'));
       lab.appendChild(mkEl('span', 'gkm-check-txt', t.label + (t.caption ? ' <span class="cap">' + t.caption + '</span>' : '')));
-      rowT.appendChild(lab); box.appendChild(rowT);
+      rowT.appendChild(lab); scroll.appendChild(rowT);
       var ref = { el: lab, kind: 'toggle', id: t.id };
       lab.addEventListener('click', function (e) { if (e && e.preventDefault) e.preventDefault(); toggleOne(ref); setFocusEl(lab); });
       lab.addEventListener('mouseenter', function () { setFocusEl(lab); });
       toggleRefs.push(ref);
     });
 
-    (cfg.lines || []).forEach(function (ln) { box.appendChild(mkEl('p', 'gkm-line', ln)); });
-    var hintEl = cfg.hint ? mkEl('p', 'gkm-hint') : null; if (hintEl) box.appendChild(hintEl);
-    var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null; if (shareHost) box.appendChild(shareHost);
+    (cfg.lines || []).forEach(function (ln) { scroll.appendChild(mkEl('p', 'gkm-line', ln)); });
+    var hintEl = cfg.hint ? mkEl('p', 'gkm-hint') : null; if (hintEl) scroll.appendChild(hintEl);
+    var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null; if (shareHost) scroll.appendChild(shareHost);
     var actionRefs = [];
     if (actions.length) {
       var arow = mkEl('div', 'gkm-actions');
@@ -895,7 +927,7 @@
   }
   var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, versionTag: versionTag };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, versionTag: versionTag };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

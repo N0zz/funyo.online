@@ -76,11 +76,14 @@
    passes a `theme` to menu.show(); everything below falls back to the neutral kit palette. */
 .gamekit-menu { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 20px;
   background: var(--gkm-overlay, rgba(6, 9, 15, 0.82)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
-.gamekit-menu .gkm-box { width: min(420px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; box-sizing: border-box;
+.gamekit-menu .gkm-box { width: min(420px, 100%); max-height: calc(100vh - 40px); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;
   background: var(--gkm-bg, rgba(14, 20, 32, 0.96)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16));
   border-radius: var(--gkm-radius, 16px); padding: 24px 22px; box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6));
   color: var(--gkm-text, #eaf2fb); text-align: center; font-family: var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace);
   --gamekit-accent: var(--gkm-accent, #9fe8ff); }
+/* the content between the title and the actions scrolls — so the title + the big Play stay pinned/visible */
+.gamekit-menu .gkm-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.gamekit-menu .gkm-title { flex: 0 0 auto; }
 .gamekit-menu .gkm-title { margin: 0 0 14px; font-size: 26px; letter-spacing: 2px; font-weight: 800; text-wrap: balance;
   color: var(--gkm-title, var(--gkm-text, #eaf2fb)); text-shadow: var(--gkm-glow, none); }
 .gamekit-menu .gkm-sec { margin: 14px 0 6px; font-size: 10px; letter-spacing: 2px; opacity: .55; }
@@ -94,11 +97,12 @@
 .gamekit-menu .gkm-choice:hover { border-color: var(--gkm-accent, #9fe8ff); }
 .gamekit-menu .gkm-choice.gkm-focus, .gamekit-menu .gkm-action.gkm-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
 .gamekit-menu .gkm-hint { margin: 14px 0 0; font-size: 11px; line-height: 1.5; opacity: .7; }
-.gamekit-menu .gkm-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 18px; }
-.gamekit-menu .gkm-action { cursor: pointer; padding: 11px 22px; border-radius: 10px; font: 700 14px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px;
-  color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.25); transition: border-color .12s, background .12s; }
+/* actions stack full-width (mobile-first) — the primary Play reads big and is always easy to hit */
+.gamekit-menu .gkm-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.12)); }
+.gamekit-menu .gkm-action { width: 100%; cursor: pointer; padding: 13px 22px; border-radius: 11px; font: 700 14px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px;
+  color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.25); transition: border-color .12s, background .12s, filter .12s; }
 .gamekit-menu .gkm-action:hover { border-color: var(--gkm-accent, #9fe8ff); }
-.gamekit-menu .gkm-action.primary { color: var(--gkm-on-accent, #06121a); background: var(--gkm-accent, #9fe8ff); border-color: var(--gkm-accent, #9fe8ff); box-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-action.primary { padding: 16px; font-size: 17px; letter-spacing: 2px; color: var(--gkm-on-accent, #06121a); background: var(--gkm-accent, #9fe8ff); border-color: var(--gkm-accent, #9fe8ff); box-shadow: var(--gkm-glow, none); }
 .gamekit-menu .gkm-action.primary:hover { filter: brightness(1.1); }
 .gamekit-menu .gkm-action.danger { color: #ffb4b4; border-color: rgba(255, 120, 120, 0.5); background: rgba(255, 90, 90, 0.12); }
 .gamekit-menu .gkm-action.danger:hover { color: #fff; background: rgba(255, 90, 90, 0.25); border-color: #ff8a8a; }
@@ -152,6 +156,24 @@
 .gamekit-menu .gkm-check.gkm-on .gkm-check-box::after { opacity: 1; transform: scale(1); }
 .gamekit-menu .gkm-check-txt { font: 700 14px/1.2 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; color: var(--gkm-text, #eaf3ff); }
 .gamekit-menu .gkm-check-txt .cap { font-weight: 400; letter-spacing: .3px; color: #93a5bd; font-size: 12px; }
+
+/* controls board (🎮 top-bar button → modal) */
+.gamekit-au-ctlbtn { font-size: 15px; }
+.gamekit-controls { position: fixed; inset: 0; z-index: 9200; display: flex; align-items: center; justify-content: center; padding: 18px;
+  background: var(--gkm-overlay, rgba(6, 9, 15, 0.82)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-controls .gkctl-box { position: relative; width: min(380px, 100%); max-height: calc(100vh - 36px); overflow-y: auto; box-sizing: border-box;
+  background: var(--gkm-bg, rgba(14, 20, 32, 0.97)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 16px; padding: 22px 22px 20px;
+  box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6)); color: var(--gkm-text, #eaf2fb); font-family: var(--gkm-font, ui-monospace, monospace); }
+.gamekit-controls h3 { margin: 0 0 14px; font-size: 18px; letter-spacing: 2px; color: var(--gkm-title, var(--gkm-text, #eaf3ff)); text-shadow: var(--gkm-glow, none); }
+.gamekit-controls .gkctl-sec { font-size: 10px; letter-spacing: 2px; color: #6b7a90; text-transform: uppercase; margin: 14px 0 7px; }
+.gamekit-controls .gkctl-sec:first-of-type { margin-top: 0; }
+.gamekit-controls .gkctl-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; }
+.gamekit-controls .gkctl-keys { flex: 0 0 auto; min-width: 96px; font-size: 12px; letter-spacing: .5px; color: var(--gkm-accent, #9fe8ff);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.18)); border-radius: 7px; padding: 6px 9px; text-align: center; }
+.gamekit-controls .gkctl-act { color: #aebccd; font: 13px/1.4 var(--gkm-font-body, system-ui, sans-serif); }
+.gamekit-controls .gkctl-note { margin: 14px 0 0; font-size: 12px; color: #6b7a90; line-height: 1.5; }
+.gamekit-controls .gkctl-x { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #9fb2c8; font-size: 17px; line-height: 1; cursor: pointer; padding: 2px; }
+.gamekit-controls .gkctl-x:hover { color: var(--gkm-text, #fff); }
 
 @media (max-width: 560px) {
   /* stay horizontal with a smaller SQUARE preview — never stretch the canvas into a wide banner */

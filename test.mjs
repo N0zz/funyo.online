@@ -286,6 +286,10 @@ function testKit() {
   let cfErr = null;
   try { F.confirm('Leave?', () => {}, 'Leave', () => {}); } catch (e) { cfErr = e.message; }
   ok(cfErr === null, 'confirm(msg,onYes,yesLabel,onCancel) runs headless: ' + cfErr);
+  // controls board: nav exposes a controls button + the modal builds headless
+  let ctlErr = null;
+  try { F.controls({ title: 'Controls', keyboard: [['Space', 'Shoot'], ['Esc', 'Pause']], touch: [['Tap', 'Shoot']] }); } catch (e) { ctlErr = e.message; }
+  ok(ctlErr === null && typeof F.controls === 'function', 'controls board builds headless: ' + ctlErr);
   // ---- cards group + boolean toggle: state merges selection + toggles; dynamic best/mech are fns ----
   let played2 = null, cardErr = null, hc = null;
   try {
