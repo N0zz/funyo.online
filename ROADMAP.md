@@ -154,8 +154,9 @@ from day one.
   single-game + cross-game goals, plus a 1-year completion History). Targets are **provisional** —
   playtest and retune (Snake already bumped 50→250); confirm the UTC daily-reset behaves.
 
-- **Privacy policy — legal review** *(in progress)*. AI draft is published at `komyo.online/privacy.html`
-  and links from the cookie banner + About. **Waiting on the lawyer's response** (handoff briefs:
+- **Privacy policy — legal review** *(in progress)*. `komyo.online/privacy.html` now shows a "being finalized"
+  placeholder (the AI draft was pulled — we won't present an unreviewed policy as authoritative); it still
+  links from the cookie banner + About. **Waiting on the lawyer's response** (handoff briefs:
   `~/komyo-prawnik-brief-pl.md` PL + `~/komyo-privacy-lawyer-brief.md` EN). Open: PL-authoritative
   version + LLM convenience translations, the children/analytics question, and the Discord auto-post
   clause. Revisit `privacy.html` once counsel replies.
