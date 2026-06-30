@@ -86,7 +86,11 @@
 
   // ---------- in-page confirm dialog (replaces the browser confirm()) ----------
   // confirmDialog(msg, onYes[, yesLabel][, onCancel]) — yesLabel defaults to 'OK'; onCancel fires on
-  // Cancel / overlay-click / Esc (lets callers resume a paused game). Enter = yes, Esc = cancel.
+  // Cancel / overlay-click / Esc. Fully keyboard-steerable: ←/→ (or Tab) move between Cancel/Leave,
+  // Enter/Space activate the focused button (default = Cancel, the safe choice), Esc cancels. It's a
+  // MODAL — while open it owns the keyboard (_modalOpen gates the menu engine; events are stopped so
+  // nothing behind it reacts).
+  var _modalOpen = 0;
   function confirmDialog(msg, onYes, yesLabel, onCancel) {
     if (typeof document === 'undefined' || !document.body) { if (onYes) onYes(); return; }
     var ov = document.createElement('div'); ov.className = 'gamekit-confirm';
@@ -94,23 +98,32 @@
       + '<button class="gamekit-cf-no" type="button">Cancel</button>'
       + '<button class="gamekit-cf-yes" type="button">' + (yesLabel || 'OK') + '</button></div></div>';
     document.body.appendChild(ov);
+    var no = ov.querySelector ? ov.querySelector('.gamekit-cf-no') : null;
+    var yes = ov.querySelector ? ov.querySelector('.gamekit-cf-yes') : null;
+    var btns = [no, yes], fi = 0; // 0 = Cancel (default focus), 1 = yes/Leave
+    function paint() { for (var i = 0; i < btns.length; i++) if (btns[i] && btns[i].classList) btns[i].classList.toggle('gkm-cf-focus', i === fi); }
     var done = false;
     function finish(cb) {
-      if (done) return; done = true;
+      if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1);
       try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
       try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
       if (cb) try { cb(); } catch (e) {}
     }
     function onKey(e) {
-      if (!e) return;
-      if (e.key === 'Escape' || e.key === 'Esc') { if (e.preventDefault) e.preventDefault(); finish(onCancel); }
-      else if (e.key === 'Enter') { if (e.preventDefault) e.preventDefault(); finish(onYes); }
+      if (!e || done) return;
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation(); else if (e.stopPropagation) e.stopPropagation();
+      var k = e.key;
+      if (k === 'Escape' || k === 'Esc') finish(onCancel);
+      else if (k === 'Enter' || k === ' ' || k === 'Spacebar') finish(fi === 1 ? onYes : onCancel);
+      else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'a' || k === 'A' || k === 'w' || k === 'W') { fi = 0; paint(); }
+      else if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'd' || k === 'D' || k === 's' || k === 'S' || k === 'Tab') { fi = (fi + 1) % 2; paint(); }
     }
-    var no = ov.querySelector ? ov.querySelector('.gamekit-cf-no') : null;
-    var yes = ov.querySelector ? ov.querySelector('.gamekit-cf-yes') : null;
-    if (no) no.addEventListener('click', function () { finish(onCancel); });
-    if (yes) yes.addEventListener('click', function () { finish(onYes); });
+    if (no) { no.addEventListener('click', function () { finish(onCancel); }); no.addEventListener('mouseenter', function () { fi = 0; paint(); }); }
+    if (yes) { yes.addEventListener('click', function () { finish(onYes); }); yes.addEventListener('mouseenter', function () { fi = 1; paint(); }); }
     ov.addEventListener('click', function (e) { if (e && e.target === ov) finish(onCancel); });
+    paint();
+    _modalOpen++;
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
   }
 
@@ -311,8 +324,13 @@
       var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
       embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
     });
-    var pb = document.getElementById('gamekitPause');
-    if (pb) { _pauseBtns.push(pb); pb.addEventListener('click', togglePause); }
+    var pb = document.getElementById('gamekitPause'); _pauseBtnEl = pb;
+    if (pb) {
+      // a game with its own (menu-based) pause passes onPause → the ⏸ button drives THAT, so there's a
+      // single pause UI; otherwise the button toggles the kit's universal pause overlay.
+      if (typeof opts.onPause === 'function') pb.addEventListener('click', function () { try { opts.onPause(); } catch (e) {} });
+      else { _pauseBtns.push(pb); pb.addEventListener('click', togglePause); }
+    }
     syncPauseUI();
     audioUIs.push(u); syncAudioUI();
   }
@@ -321,8 +339,9 @@
   // The ‹ Menu button (go to the game's own menu) is only meaningful DURING play — on the game's menu
   // it confuses people who expect it to go back to the site (that's the "Komyo Games ›" link). Games
   // call showMenuButton(true) when play starts and (false) on their menu screen.
-  var _menuBtn = null, _navEl = null, _audioEl = null;
+  var _menuBtn = null, _navEl = null, _audioEl = null, _pauseBtnEl = null;
   function showMenuButton(show) { if (_menuBtn && _menuBtn.style) _menuBtn.style.display = show ? '' : 'none'; }
+  function showPauseButton(show) { if (_pauseBtnEl && _pauseBtnEl.style) _pauseBtnEl.style.display = show ? '' : 'none'; }
   // Collapse the "Komyo ›" label to just "›" ONLY when the left nav would actually overlap the
   // right sound/pause cluster — measured, not a hardcoded breakpoint (so portrait phones with room
   // keep the full label).
@@ -386,7 +405,7 @@
         guarded(function () { try { (window.top || window).location.href = href; } catch (err) { try { location.href = href; } catch (e2) {} } });
       });
     }
-    audioMenu({ music: !!opts.music, reset: opts.reset });
+    audioMenu({ music: !!opts.music, reset: opts.reset, onPause: opts.onPause });
     versionTag();
     if (typeof layout !== 'undefined' && layout && layout.on) layout.on(fitNav);
     fitNav();
@@ -851,7 +870,7 @@
     setFocus(primIdx);
 
     var keyFn = function (e) {
-      if (_menuKey !== keyFn || !_menuEl || !e) return; // ignore stale handlers (hidden menu / superseded)
+      if (_menuKey !== keyFn || !_menuEl || !e || _modalOpen) return; // stale, or a confirm owns the keyboard
       var k = e.key;
       if (k === 'a' || k === 'A') k = 'ArrowLeft'; else if (k === 'd' || k === 'D') k = 'ArrowRight';
       else if (k === 'w' || k === 'W') k = 'ArrowUp'; else if (k === 's' || k === 'S') k = 'ArrowDown';
@@ -876,7 +895,7 @@
   }
   var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, versionTag: versionTag };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, versionTag: versionTag };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

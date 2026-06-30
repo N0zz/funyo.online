@@ -156,12 +156,12 @@
     overlay:'rgba(6,9,16,0.74)', title:'#cfe8ff', new:'#ffd166', 'on-accent':'#06121a' };
   function startGame(){ if(KIT) KIT.menu.hide(); score=0; lives=3; level=1; weaponLevel=1; asteroids=[]; bullets=[]; particles=[];
     spawnShip(); spawnWave(4); state='playing'; overlay.classList.add('hidden'); updateHud();
-    srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT) KIT.showMenuButton(true); }
+    srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT){ KIT.showMenuButton(true); KIT.showPauseButton(true); } }
   function pauseGame(){ state='paused'; if(!ENHANCED) SND.stopMusic();
     if(!KIT) return;
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:'PAUSED',
       lines:[ 'Score ' + score + (ENHANCED ? (' · Wave ' + level) : '') ],
-      actions:[ {id:'resume',label:'RESUME (ESC)',primary:true}, {id:'menu',label:'QUIT TO MENU',danger:true,confirm:"Leave this run? You'll lose your progress."} ],
+      actions:[ {id:'resume',label:'RESUME (ESC)',primary:true}, {id:'menu',label:'QUIT TO MENU',danger:true} ],
       onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') toMenu(); }, onEsc: resumeGame });
   }
   function resumeGame(){ state='playing'; srPrev=now(); if(!ENHANCED) SND.startMusic(); if(KIT) KIT.menu.hide(); }
@@ -185,7 +185,7 @@
     [-0.22,0,0.22].forEach(a=>{ g.beginPath(); g.moveTo(w*.3+12,h*.52); g.lineTo(w*.3+12+Math.cos(a)*52,h*.52+Math.sin(a)*52); g.stroke(); }); g.shadowBlur=0;
     pvRock(g,w*.82,h*.32,9,210); pvRock(g,w*.74,h*.74,7,200); }
   function showStartMenu(){
-    state='menu'; SND.stopMusic(); if(KIT) KIT.showMenuButton(false); overlay.classList.add('hidden');
+    state='menu'; SND.stopMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
     if(!KIT) return;
     const bestScore = k => { const v=readStat('asteroids_score_'+k); return v==null?'—':v; };
     const bestTime  = k => { const v=readStat('asteroids_best_'+k);  return v==null?'—':fmtTime(v); };
@@ -220,7 +220,7 @@
   }
   // end screen (game over + speedrun complete) — kit-rendered; reuses recordResult + the shared share row.
   function showEnd(win){
-    SND.stopMusic(); SND.play(win ? 'level' : 'over'); if(KIT) KIT.showMenuButton(false);
+    SND.stopMusic(); SND.play(win ? 'level' : 'over'); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
     const record = { mode: SPEEDRUN ? 'speedrun' : KEY, score: score, time: SPEEDRUN ? srElapsed : 0, stats: { wave: level } };
     let title, scoreText, best=null, newBest=false, lines=[];
     if (SPEEDRUN) {
@@ -338,6 +338,7 @@
   // home link both ask to confirm while a run is live (game pauses behind the confirm); ‹ Menu returns
   // to the start menu in-place.
   if (KIT) { KIT.nav({ music: true, reset: 'asteroids_', home: '../../', onMenu: () => toMenu(),
+    onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); },
     confirmLeave: () => (state==='playing' || state==='paused') ? "Leave this run? You'll lose your progress." : false }); KIT.pwa(); KIT.showMenuButton(false); }
 
   // ---- test hook: state getters + a layout snapshot for the headless harness (inert in normal play) ----
