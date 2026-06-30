@@ -70,13 +70,8 @@
 <div id="topHud"><div id="hud"><div class="label">SCORE</div><div id="score">0</div><div id="weapon">WEAPON I</div></div><div id="lives"></div><div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div></div>
 <div id="flash"></div>
 
-<div id="overlay">
-  <h1>ASTEROIDS</h1>
-  <p id="ctrlLine"><strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause</p>
-  <p class="hint" id="modeHint">Fly around them or blast them apart. Score to upgrade your weapon.</p>
-  <p class="hint touchonly">📱 Phone: drag the left side to steer &amp; thrust &middot; tap FIRE to shoot</p>
-  <p class="blink" id="startHint">press ENTER or SPACE to start</p>
-</div>
+<!-- menus (start / pause / end) are rendered by gamekit.menu; #overlay is kept only as a hidden anchor -->
+<div id="overlay" class="hidden"></div>
 
 <script>
 (() => {
@@ -84,31 +79,24 @@
   const scoreEl=document.getElementById('score'), weaponEl=document.getElementById('weapon');
   const livesEl=document.getElementById('lives'), overlay=document.getElementById('overlay'), flashEl=document.getElementById('flash');
   const timerEl=document.getElementById('timer'), timerVal=document.getElementById('timerVal'), timerGoal=document.getElementById('timerGoal');
-  const modeHint=document.getElementById('modeHint');
 
-  // ---- Mode: ?v=classic|enh (no ?v → show the in-page picker). Enhanced adds weapon tiers +
-  //      Space-to-start; bare Classic stays Weapon I forever. ----
+  // ---- Mode: chosen on the start menu, applied IN-PLACE (no reload) and stamped into the URL so a
+  //      refresh/share reopens the same mode. ?v=classic|enh and ?speedrun=1 just seed the picker. ----
   const params = new URLSearchParams(location.search);
-  const HAS_V = params.has('v');
-  const ENHANCED = params.get('v') === 'enh';
-  const KEY = ENHANCED ? 'classic-enhanced' : 'classic';
-  // ---- Speedrun ----
-  const SPEEDRUN = params.has('speedrun');
   const SR_TARGET_SCORE = 2000;
-  const BEST_KEY = 'asteroids_best_' + KEY;
+  let ENHANCED = false, SPEEDRUN = false, KEY = 'classic', BEST_KEY = 'asteroids_best_classic', SCORE_KEY = 'asteroids_score_classic';
   const now = () => (window.performance && performance.now) ? performance.now() : Date.now();
   let srElapsed=0, srPrev=0, srDone=false;
   function fmtTime(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
   function saveBest(ms){ try{ const p=localStorage.getItem(BEST_KEY); if(p==null||ms<parseInt(p,10)){ localStorage.setItem(BEST_KEY,String(Math.floor(ms))); return true; } }catch(e){} return false; }
-  const SCORE_KEY='asteroids_score_' + KEY;
   function saveBestScore(v){ try{ const p=localStorage.getItem(SCORE_KEY); if(p==null||v>parseInt(p,10)){ localStorage.setItem(SCORE_KEY,String(v)); return true; } }catch(e){} return false; }
-  if (SPEEDRUN){ timerEl.style.display='block'; timerGoal.textContent='GOAL: '+SR_TARGET_SCORE+' PTS'; modeHint.textContent='SPEEDRUN — reach '+SR_TARGET_SCORE+' points as fast as you can.'; }
-  // bare Classic: no weapon tiers — hide the weapon HUD and use the original menu copy
-  if (!ENHANCED){
-    weaponEl.style.display='none';
-    const cl=document.getElementById('ctrlLine'); if(cl) cl.innerHTML='<strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot';
-    const sh=document.getElementById('startHint'); if(sh) sh.textContent='press ENTER to start';
-    if(!SPEEDRUN) modeHint.textContent='Fly around them or blast them apart. The screen wraps.';
+  function readStat(k){ try{ const p=localStorage.getItem(k); return p==null?null:parseInt(p,10); }catch(e){ return null; } }
+  // apply a mode in-place: weapon HUD (Enhanced only), speedrun timer, and the per-variant storage keys.
+  function applyMode(v, speedrun){
+    ENHANCED = (v === 'enh'); SPEEDRUN = !!speedrun;
+    KEY = ENHANCED ? 'classic-enhanced' : 'classic'; BEST_KEY = 'asteroids_best_' + KEY; SCORE_KEY = 'asteroids_score_' + KEY;
+    if (weaponEl) weaponEl.style.display = ENHANCED ? '' : 'none';
+    if (timerEl) { timerEl.style.display = SPEEDRUN ? 'block' : 'none'; if (SPEEDRUN && timerGoal) timerGoal.textContent = 'GOAL: ' + SR_TARGET_SCORE + ' PTS'; }
   }
 
 
@@ -147,8 +135,7 @@
   window.addEventListener('keydown',(e)=>{
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
     keys[e.key.length===1?e.key.toLowerCase():e.key]=true;
-    if((e.key==='Enter'||(ENHANCED&&e.key===' ')) && state!=='playing' && !(ENHANCED&&state==='paused')) startGame();
-    if(e.key==='Escape'){ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }
+    if(e.key==='Escape' && state==='playing') pauseGame(); // start/resume/play are handled by the kit menu
   });
   window.addEventListener('keyup',(e)=>{ keys[e.key.length===1?e.key.toLowerCase():e.key]=false; });
 
@@ -163,43 +150,67 @@
     {level:3,score:1500,cooldown:9,label:'WEAPON III — SPREAD'},
   ];
 
-  function startGame(){ if(!HAS_V){ showModePicker(); return; } score=0; lives=3; level=1; weaponLevel=1; asteroids=[]; bullets=[]; particles=[];
+  // per-game look for ALL asteroids menus (space cyan + violet glow) — structure/behaviour are the kit's.
+  const MENU_THEME = { accent:'#9fe8ff', 'accent-soft':'rgba(159,232,255,0.18)', glow:'0 0 18px rgba(120,200,255,0.45)',
+    bg:'radial-gradient(circle at 50% 26%, rgba(18,26,48,0.96), rgba(7,9,16,0.98))', border:'rgba(120,200,255,0.30)',
+    overlay:'rgba(6,9,16,0.74)', title:'#cfe8ff', new:'#ffd166', 'on-accent':'#06121a' };
+  function startGame(){ if(KIT) KIT.menu.hide(); score=0; lives=3; level=1; weaponLevel=1; asteroids=[]; bullets=[]; particles=[];
     spawnShip(); spawnWave(4); state='playing'; overlay.classList.add('hidden'); updateHud();
     srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT) KIT.showMenuButton(true); }
-  function pauseGame(){ state='paused'; if(!ENHANCED) SND.stopMusic(); overlay.innerHTML='<h1>PAUSED</h1><p class="hint">score '+score+(ENHANCED?(' &middot; wave '+level):'')+'</p><div class="row"><button class="btn" id="resumeBtn">RESUME (ESC)</button>'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
-  function resumeGame(){ state='playing'; srPrev=now(); if(!ENHANCED) SND.startMusic(); overlay.classList.add('hidden'); }
+  function pauseGame(){ state='paused'; if(!ENHANCED) SND.stopMusic();
+    if(!KIT) return;
+    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:'PAUSED',
+      lines:[ 'Score ' + score + (ENHANCED ? (' · Wave ' + level) : '') ],
+      actions:[ {id:'resume',label:'RESUME (ESC)',primary:true}, {id:'menu',label:'QUIT TO MENU',danger:true,confirm:"Leave this run? You'll lose your progress."} ],
+      onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') toMenu(); }, onEsc: resumeGame });
+  }
+  function resumeGame(){ state='playing'; srPrev=now(); if(!ENHANCED) SND.startMusic(); if(KIT) KIT.menu.hide(); }
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
   function updateHud(){ scoreEl.textContent=score; livesEl.textContent='▲ '.repeat(Math.max(0,lives)).trim(); weaponEl.textContent=WEAPONS[weaponLevel-1].label; }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=90; }
-  function quitToMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused')) saveBestScore(score); try{ location.href = location.pathname; }catch(e){} }
-  // in-page mode picker (replaces the old launcher): 1·RUN → 2·MODE → Play. Selecting only
-  // highlights; nothing starts until Play. Play reloads with ?v=<mode>[&speedrun=1].
-  const PICK_MODES = [['classic', 'CLASSIC'], ['enh', 'CLASSIC+']];
-  function showModePicker(){
-    state='menu'; SND.stopMusic(); if(KIT) KIT.showMenuButton(false);
-    let selV = 'classic', selSR = new URLSearchParams(location.search).has('speedrun'); // default mode preselected (Play ready)
-    function render(){
-      overlay.innerHTML = '<h1>ASTEROIDS</h1>'
-        + '<div class="psec">1 · RUN</div>'
-        + '<div class="prow"><button class="btn' + (!selSR ? ' sel' : '') + '" data-sr="0">NORMAL</button>'
-          + '<button class="btn' + (selSR ? ' sel' : '') + '" data-sr="1">SPEEDRUN</button></div>'
-        + '<div class="psec">2 · MODE</div>'
-        + '<div class="prow">' + PICK_MODES.map(m => '<button class="btn' + (selV === m[0] ? ' sel' : '') + '" data-v="' + m[0] + '">' + m[1] + '</button>').join('') + '</div>'
-        + '<button class="btn play" id="playBtn"' + (selV ? '' : ' disabled') + '>PLAY ▶</button>'
-        + '<p class="hint">' + (selSR ? ('Speedrun — reach ' + SR_TARGET_SCORE + ' points fast.') : 'Normal — endless, rack up the highest score.') + '</p>';
-      const q = overlay.querySelectorAll ? overlay.querySelectorAll('[data-sr],[data-v],#playBtn') : [];
-      for (let i = 0; i < q.length; i++) { const b = q[i];
-        if (b.getAttribute && b.getAttribute('data-sr') != null) b.addEventListener('click', () => { selSR = b.getAttribute('data-sr') === '1'; render(); });
-        else if (b.getAttribute && b.getAttribute('data-v') != null) b.addEventListener('click', () => { selV = b.getAttribute('data-v'); render(); });
-        else b.addEventListener('click', () => { if (!selV) return; const p = new URLSearchParams(); p.set('v', selV); if (selSR) p.set('speedrun', '1'); try { location.href = location.pathname + '?' + p.toString(); } catch (e) {} });
-      }
-    }
-    overlay.classList.remove('hidden'); render();
+  // quit a run back to the start menu, in-place (no reload). Save the score best first (non-speedrun).
+  function toMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused')) saveBestScore(score); SND.stopMusic(); if(KIT) KIT.menu.hide(); showStartMenu(); }
+  // the unified start menu (mode picker) — kit-rendered from config, themed per game. Play starts the
+  // game IN-PLACE and stamps the mode into the URL (no blink; refresh/share reopens the same mode).
+  // mini mechanic previews drawn into each mode card's canvas (tiny, vector, self-contained)
+  function pvShip(g,cx,cy,ang,col){ g.save(); g.translate(cx,cy); g.rotate(ang); g.strokeStyle=col; g.lineWidth=2; g.shadowColor=col; g.shadowBlur=8;
+    g.beginPath(); g.moveTo(13,0); g.lineTo(-10,-9); g.lineTo(-5,0); g.lineTo(-10,9); g.closePath(); g.stroke(); g.restore(); g.shadowBlur=0; }
+  function pvRock(g,cx,cy,r,hue){ g.strokeStyle='hsl('+hue+',60%,72%)'; g.lineWidth=1.6; g.beginPath();
+    for(let i=0;i<9;i++){ const a=r+i/9*6.283, rr=r*(.74+(i%2?.16:0)), x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr; i?g.lineTo(x,y):g.moveTo(x,y); } g.closePath(); g.stroke(); }
+  function pvClassic(g,w,h){ pvRock(g,w*.3,h*.32,13,205); pvRock(g,w*.74,h*.7,10,215); pvShip(g,w*.42,h*.52,0,'#9fe8ff');
+    // single straight shot (the ship points right at angle 0 — fire horizontally, like in-game)
+    g.strokeStyle='rgba(223,243,255,.95)'; g.lineWidth=2.5; g.shadowColor='rgba(180,230,255,.9)'; g.shadowBlur=6;
+    g.beginPath(); g.moveTo(w*.42+14,h*.52); g.lineTo(w*.86,h*.52); g.stroke(); g.shadowBlur=0; }
+  function pvEnh(g,w,h){ pvShip(g,w*.3,h*.52,0,'#9fe8ff'); g.strokeStyle='#ffd166'; g.lineWidth=2; g.shadowColor='#ffd166'; g.shadowBlur=6;
+    [-0.22,0,0.22].forEach(a=>{ g.beginPath(); g.moveTo(w*.3+12,h*.52); g.lineTo(w*.3+12+Math.cos(a)*52,h*.52+Math.sin(a)*52); g.stroke(); }); g.shadowBlur=0;
+    pvRock(g,w*.82,h*.32,9,210); pvRock(g,w*.74,h*.74,7,200); }
+  function showStartMenu(){
+    state='menu'; SND.stopMusic(); if(KIT) KIT.showMenuButton(false); overlay.classList.add('hidden');
+    if(!KIT) return;
+    const bestScore = k => { const v=readStat('asteroids_score_'+k); return v==null?'—':v; };
+    const bestTime  = k => { const v=readStat('asteroids_best_'+k);  return v==null?'—':fmtTime(v); };
+    const goalChip  = st => st.speedrun ? { label:'Goal '+SR_TARGET_SCORE, hot:true } : null;
+    const modeParams = st => { const v = st.mode==='enh' ? 'enh' : 'classic'; return st.speedrun ? { v, speedrun:'1' } : { v }; };
+    KIT.menu.show({ kind:'start', theme:MENU_THEME, title:'ASTEROIDS',
+      groups:[ { id:'mode', label:'MODE', style:'cards', default: ENHANCED ? 'enh' : 'classic', choices:[
+        { id:'classic', label:'CLASSIC', preview:pvClassic,
+          desc:'The original. One weapon, a whole field of drifting rocks, and a screen that wraps around the edges.',
+          mech: st => ['1 weapon','Screen wrap','3 lives', goalChip(st)],
+          best: st => st.speedrun ? bestTime('classic') : bestScore('classic') },
+        { id:'enh', label:'CLASSIC+', tag:'UPGRADES', preview:pvEnh,
+          desc:'Score to power up: the cannon grows to Twin at 500, then a 3-way Spread at 1,500. Same rocks, more firepower.',
+          mech: st => ['Weapon tiers','Upgrades 500 / 1,500', goalChip(st)],
+          best: st => st.speedrun ? bestTime('classic-enhanced') : bestScore('classic-enhanced') },
+      ]} ],
+      toggles:[ { id:'speedrun', label:'SPEEDRUN', caption:'— race to '+SR_TARGET_SCORE+' pts against the clock', default: SPEEDRUN } ],
+      hint: st => st.speedrun ? ('Speedrun — reach ' + SR_TARGET_SCORE + ' points as fast as you can.')
+        : (st.mode==='enh' ? 'Classic+ — endless; score to upgrade your weapon.' : 'Classic — endless; rack up the highest score.'),
+      actions:[ {id:'play',label:'PLAY ▶',primary:true} ],
+      onChange: st => KIT.stampUrl(modeParams(st)), // live: the address bar reflects your picks → shareable link
+      onPlay: st => { applyMode(st.mode==='enh'?'enh':'classic', !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
+    });
+    KIT.stampUrl(modeParams({ mode: ENHANCED?'enh':'classic', speedrun: SPEEDRUN })); // reflect the opening selection
   }
-  function wireOverlay(){ const mb=document.getElementById('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=document.getElementById('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); }
-  const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
-  // end-screen share row is built by the game-kit into this placeholder
-  const SHARE_ROW = '<div id="shareRow"></div>';
   // In Speedrun the RESULT is the time, not score/level — so the share + Discord post lead with the clear time.
   function shareMsg(finalScore) {
     if (SPEEDRUN) return srDone
@@ -207,8 +218,21 @@
       : KIT.shareText({ verb: 'I reached', score: score, unit: 'pts', game: 'Asteroids', emoji: '🛸', mode: 'Speedrun', extra: ['run failed at ' + fmtTime(srElapsed)] });
     return KIT.shareText({ score: finalScore, game: 'Asteroids', emoji: '🛸', mode: ENHANCED ? 'Classic+' : 'Classic', extra: ['level ' + level] });
   }
-  function wireShareRow(finalScore) {
-    if (KIT) KIT.shareRow(document.getElementById('shareRow'), { slug: 'asteroids', title: 'Asteroids', message: () => shareMsg(finalScore), params: () => (SPEEDRUN ? { v: ENHANCED ? 'enh' : 'classic', speedrun: '1' } : { v: ENHANCED ? 'enh' : 'classic' }) });
+  // end screen (game over + speedrun complete) — kit-rendered; reuses recordResult + the shared share row.
+  function showEnd(win){
+    SND.stopMusic(); SND.play(win ? 'level' : 'over'); if(KIT) KIT.showMenuButton(false);
+    const record = { mode: SPEEDRUN ? 'speedrun' : KEY, score: score, time: SPEEDRUN ? srElapsed : 0, stats: { wave: level } };
+    let title, scoreText, best=null, newBest=false, lines=[];
+    if (SPEEDRUN) {
+      if (win) { newBest = saveBest(srElapsed); title='COMPLETE'; scoreText=fmtTime(srElapsed); best=fmtTime(readStat(BEST_KEY)); lines=[SR_TARGET_SCORE + ' points reached']; }
+      else { title='GAME OVER'; scoreText=String(score); lines=['Speedrun — run failed at ' + fmtTime(srElapsed)]; }
+    } else { newBest = saveBestScore(score); title='GAME OVER'; scoreText=String(score); best=readStat(SCORE_KEY); lines=['Reached wave ' + level]; }
+    if(!KIT) return;
+    KIT.menu.show({ kind:'end', theme:MENU_THEME, title, score:score, scoreText, best, newBest, lines,
+      share:{ slug:'asteroids', title:'Asteroids', message: ()=>shareMsg(score), params: ()=> (SPEEDRUN ? { v: ENHANCED?'enh':'classic', speedrun:'1' } : { v: ENHANCED?'enh':'classic' }) },
+      record,
+      actions:[ {id:'again',label:'PLAY AGAIN',primary:true}, {id:'menu',label:'MENU'} ],
+      onAction:(id)=>{ if(id==='again') startGame(); else if(id==='menu') toMenu(); } });
   }
   function checkWeaponUpgrade(){ if(!ENHANCED) return; const nx=WEAPONS[weaponLevel]; if(nx && score>=nx.score){ weaponLevel=nx.level; flash('WEAPON UPGRADED'); updateHud(); } }
 
@@ -234,10 +258,8 @@
     if(SPEEDRUN && !srDone && score>=SR_TARGET_SCORE) winRun();
     if(asteroids.length===0){ level++; spawnWave(3+level); } }
   function killShip(){ SND.play('hit'); burst(ship.x,ship.y,'255,160,120',40,4); lives--; updateHud(); if(lives<=0){ state='dead'; showGameOver(); } else spawnShip(); }
-  function winRun(){ srDone=true; state='won'; SND.stopMusic(); SND.play('level'); const isBest=saveBest(srElapsed); if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids',{mode:'speedrun',score:score,time:srElapsed,stats:{wave:level}});
-    overlay.innerHTML='<h1 class="win">COMPLETE</h1><p>Time: <strong>'+fmtTime(srElapsed)+'</strong>'+(isBest?'  ★ NEW BEST':'')+'</p><p class="hint">'+SR_TARGET_SCORE+' points reached</p><p class="blink">press ENTER or SPACE to run again</p><div class="row">'+MENU_BTN+'</div>'+SHARE_ROW;
-    overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
-  function showGameOver(){ SND.stopMusic(); SND.play('over'); const best=!SPEEDRUN&&saveBestScore(score); if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids',{mode:SPEEDRUN?'speedrun':'',score:score,time:SPEEDRUN?srElapsed:0,stats:{wave:level}}); overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'+SHARE_ROW; overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
+  function winRun(){ srDone=true; state='won'; showEnd(true); }
+  function showGameOver(){ showEnd(false); } // killShip already set state='dead'
 
   function update(){
     applyTouch();
@@ -310,17 +332,19 @@
     fireBtn.addEventListener('touchend',e=>{ keys[' ']=false; e.preventDefault(); },{passive:false});
     fireBtn.addEventListener('touchcancel',()=>{ keys[' ']=false; });
   }
-  // tap the start / game-over / win / pause screen instead of a key
-  overlay.addEventListener('click',(e)=>{ if(!HAS_V) return; /* picker is up — its buttons handle clicks */ if(e.target && e.target.closest && e.target.closest('button')) return; if(state==='menu'||state==='dead'||state==='won') startGame(); else if(HAS_PAUSE && state==='paused') resumeGame(); });
   if(isTouch){ document.body.classList.add('touch'); buildTouch(); }
 
-  // game-kit nav: top-left ‹ Menu (quits to the launcher) + top-right sound menu (SFX + Music + Reset)
-  if (KIT) { KIT.nav({ music: true, reset: 'asteroids_', home: '../../', onMenu: () => { quitToMenu(); } }); KIT.pwa(); KIT.showMenuButton(false); }
+  // game-kit nav: top-left ‹ Menu + top-right sound menu (SFX + Music + Reset). ‹ Menu and the komyo ›
+  // home link both ask to confirm while a run is live (game pauses behind the confirm); ‹ Menu returns
+  // to the start menu in-place.
+  if (KIT) { KIT.nav({ music: true, reset: 'asteroids_', home: '../../', onMenu: () => toMenu(),
+    confirmLeave: () => (state==='playing' || state==='paused') ? "Leave this run? You'll lose your progress." : false }); KIT.pwa(); KIT.showMenuButton(false); }
 
   // ---- test hook: state getters + a layout snapshot for the headless harness (inert in normal play) ----
   window.__test = {
     start(){ startGame(); }, step(){ update(); },
     get state(){ return state; }, get score(){ return score; }, get lives(){ return lives; },
+    menu(){ return KIT ? KIT.menu.current() : null; },
     shareMsg(){ return KIT ? shareMsg(score) : ''; },
     get shipAngle(){ return ship ? ship.angle : 0; },
     // layout snapshot in CANVAS px (the world coords everything is drawn in). The canvas is
@@ -336,7 +360,8 @@
   };
 
   resize(); spawnWave(4); updateHud(); loop();
-  if (!HAS_V) showModePicker(); // entry with no mode chosen → show the in-page picker
+  applyMode(params.get('v') === 'enh' ? 'enh' : 'classic', params.has('speedrun')); // seed mode from the URL
+  showStartMenu(); // always open the unified start menu (mode preselected from the URL)
 })();
 </script>
 </body>

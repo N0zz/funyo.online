@@ -110,7 +110,7 @@ function runGame(file, { search = '' } = {}) {
     file, errors, store, posted,
     el: getEl,
     test: () => win.__test,
-    key(type, key) { (handlers[type] || []).forEach(fn => { try { fn({ key, preventDefault() {} }); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } }); },
+    key(type, key) { (handlers[type] || []).slice().forEach(fn => { try { fn({ key, preventDefault() {}, stopPropagation() {} }); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } }); },
     down(k) { this.key('keydown', k); }, up(k) { this.key('keyup', k); },
     step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; const cb = pending; pending = null; if (cb) { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } } } },
     // drive a viewport change: the kit's __emit sets window dims + fires the relayout callbacks synchronously
@@ -126,12 +126,12 @@ function smokeClassic(file, { enhanced = false } = {}) {
   const g = runGame(file);
   ok(g.errors.length === 0, file + ' boots without error: ' + g.errors[0]);
   g.step(10);
-  // start
+  // start via the kit start menu (Enter activates the focused Play button)
+  ok(g.test().menu() != null, file + ' opens the kit start menu on boot');
   g.down('Enter');
   g.step(2);
   ok(g.el('game') != null, file + ' has canvas');
-  // overlay should be hidden after starting
-  ok(g.el('overlay').classList.contains('hidden'), file + ' overlay hides on start');
+  ok(g.test().state === 'playing' && g.test().menu() == null, file + ' Play starts the game (menu closes)');
   // simulate play: rotate, thrust, shoot for a while
   g.down('ArrowUp'); g.down(' ');
   g.step(120);
@@ -144,14 +144,11 @@ function smokeClassic(file, { enhanced = false } = {}) {
   ok(enhanced ? (g.el('weapon').style.display !== 'none') : (g.el('weapon').style.display === 'none'),
     file + (enhanced ? ' shows weapon HUD' : ' hides weapon HUD (no tiers)'));
   if (enhanced) {
-    // pause toggle
+    // pause via Esc → kit pause menu; Resume closes it and resumes play
     g.down('Escape'); g.step(1);
-    ok(g.el('overlay').classList.contains('hidden') === false, file + ' ESC shows pause overlay');
-    ok(/QUIT TO MENU/.test(g.el('overlay').innerHTML), file + ' pause has Quit-to-menu button');
-    g.el('menuBtn').fire('click'); // quit now navigates in-page to the mode picker (no postMessage)
-    ok(g.errors.length === 0, file + ' pause Quit-to-menu runs without error: ' + g.errors[0]);
-    g.down('Escape'); g.step(1);
-    ok(g.el('overlay').classList.contains('hidden') === true, file + ' ESC again resumes');
+    ok(g.test().menu() != null && g.test().state === 'paused', file + ' ESC opens the kit pause menu');
+    g.test().menu().activate('resume'); g.step(1);
+    ok(g.test().state === 'playing' && g.test().menu() == null, file + ' Resume closes the pause menu and resumes');
   }
 }
 

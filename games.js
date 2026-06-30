@@ -11,7 +11,7 @@ window.GAMES = [
     accent: "#9fe8ff",
     tags: ["ARCADE", "SHOOTER"],
     added: "2026-06-26",
-    updated: "2026-06-28",
+    updated: "2026-06-30",
   },
   {
     slug: "asteroids-plus",
