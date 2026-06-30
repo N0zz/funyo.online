@@ -241,6 +241,72 @@ function testKit() {
   delete els['gamekitVersion'];
   F.versionTag();
   ok(!els['gamekitVersion'], 'versionTag is a no-op on dev (nothing rendered)');
+  // ---- menu engine (gamekit.menu.show) ----
+  ok(F.menu && typeof F.menu.show === 'function' && typeof F.menu.hide === 'function' && typeof F.stampUrl === 'function',
+    'kit exposes menu.show/hide + stampUrl');
+  let played = null;
+  const hm = F.menu.show({
+    kind: 'start', title: 'Asteroids',
+    groups: [
+      { id: 'run', label: '1 · RUN', default: 'normal', choices: [{ id: 'normal', label: 'Normal' }, { id: 'speedrun', label: 'Speedrun' }] },
+      { id: 'mode', label: '2 · MODE', default: 'classic', choices: [{ id: 'classic', label: 'Classic' }, { id: 'enh', label: 'Classic+' }] },
+    ],
+    hint: s => s.run === 'speedrun' ? 'fast' : 'endless',
+    actions: [{ id: 'play', label: 'Play ▶', primary: true }],
+    onPlay: s => { played = s; },
+    theme: { accent: '#ff7ab6' },
+  });
+  ok(hm && hm.selection().run === 'normal' && hm.selection().mode === 'classic', 'menu start defaults applied');
+  ok(F.menu.current() === hm, 'menu.current() returns the active handle');
+  hm.select('mode', 'enh'); hm.select('run', 'speedrun');
+  ok(hm.selection().mode === 'enh' && hm.selection().run === 'speedrun', 'menu.select changes the selection');
+  hm.activate('play');
+  ok(played && played.mode === 'enh' && played.run === 'speedrun', 'menu Play fires onPlay with the live selection');
+  hm.hide();
+  ok(F.menu.current() === null, 'menu.hide clears current');
+  // pause: onAction fires by id
+  let acted = null;
+  const hp = F.menu.show({ kind: 'pause', title: 'Paused', lines: ['score 10'], actions: [{ id: 'resume', label: 'Resume', primary: true }, { id: 'quit', label: 'Quit', danger: true }], onAction: id => { acted = id; } });
+  hp.activate('resume');
+  ok(acted === 'resume', 'pause action fires onAction(id)');
+  hp.hide();
+  // end: records the result (so card + day-best work) and is headless-safe with a share row
+  let endErr = null;
+  try {
+    F.menu.show({ kind: 'end', title: 'Game Over', score: 1234, best: 1000, newBest: true, lines: ['reached wave 7'],
+      share: { slug: 'asteroids', title: 'Asteroids', message: () => 'I scored 1234' },
+      record: { slug: 'asteroids', mode: 'classic', score: 1234, stats: { wave: 7 } },
+      actions: [{ id: 'again', label: 'Play again', primary: true }], onAction: () => {} });
+  } catch (e) { endErr = e.message; }
+  ok(endErr === null, 'end-screen menu builds headless (share row + record): ' + endErr);
+  const er = F.lastResult('asteroids');
+  ok(er && er.score === 1234 && er.stats.wave === 7, 'end-screen menu records the result via recordResult');
+  F.menu.hide();
+  // confirm dialog back-compat + new args are headless-safe
+  let cfErr = null;
+  try { F.confirm('Leave?', () => {}, 'Leave', () => {}); } catch (e) { cfErr = e.message; }
+  ok(cfErr === null, 'confirm(msg,onYes,yesLabel,onCancel) runs headless: ' + cfErr);
+  // ---- cards group + boolean toggle: state merges selection + toggles; dynamic best/mech are fns ----
+  let played2 = null, cardErr = null, hc = null;
+  try {
+    hc = F.menu.show({
+      kind: 'start', title: 'A',
+      groups: [{ id: 'mode', label: 'MODE', style: 'cards', default: 'classic', choices: [
+        { id: 'classic', label: 'CLASSIC', preview: function () {}, desc: st => st.speedrun ? 'race' : 'endless',
+          mech: st => ['1 weapon', st.speedrun ? { label: 'Goal 2,000', hot: true } : null], best: st => st.speedrun ? '01:00.0' : 12340 },
+        { id: 'enh', label: 'CLASSIC+', tag: 'UPGRADES', preview: function () {}, desc: 'tiers', mech: ['weapon tiers'], best: 9 },
+      ] }],
+      toggles: [{ id: 'speedrun', label: 'SPEEDRUN', caption: '— race', default: false }],
+      actions: [{ id: 'play', label: 'Play', primary: true }],
+      onPlay: s => { played2 = s; },
+    });
+  } catch (e) { cardErr = e.message; }
+  ok(cardErr === null && hc, 'cards+toggle menu builds headless: ' + cardErr);
+  ok(hc && hc.selection().mode === 'classic' && hc.selection().speedrun === false, 'cards+toggle initial state (selection + bool)');
+  if (hc) { hc.toggle('speedrun'); ok(hc.selection().speedrun === true, 'toggle() flips the boolean'); }
+  if (hc) { hc.select('mode', 'enh'); hc.activate('play'); }
+  ok(played2 && played2.mode === 'enh' && played2.speedrun === true, 'onPlay gets the merged selection + toggle state');
+  if (hc) hc.hide();
 }
 
 // ---------------- Challenges ↔ games coverage ----------------

@@ -85,19 +85,33 @@
   };
 
   // ---------- in-page confirm dialog (replaces the browser confirm()) ----------
-  function confirmDialog(msg, onYes) {
+  // confirmDialog(msg, onYes[, yesLabel][, onCancel]) — yesLabel defaults to 'OK'; onCancel fires on
+  // Cancel / overlay-click / Esc (lets callers resume a paused game). Enter = yes, Esc = cancel.
+  function confirmDialog(msg, onYes, yesLabel, onCancel) {
     if (typeof document === 'undefined' || !document.body) { if (onYes) onYes(); return; }
     var ov = document.createElement('div'); ov.className = 'gamekit-confirm';
     ov.innerHTML = '<div class="gamekit-confirm-box"><p>' + msg + '</p><div class="gamekit-confirm-btns">'
       + '<button class="gamekit-cf-no" type="button">Cancel</button>'
-      + '<button class="gamekit-cf-yes" type="button">Reset</button></div></div>';
+      + '<button class="gamekit-cf-yes" type="button">' + (yesLabel || 'OK') + '</button></div></div>';
     document.body.appendChild(ov);
-    var close = function () { try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} };
+    var done = false;
+    function finish(cb) {
+      if (done) return; done = true;
+      try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
+      try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+      if (cb) try { cb(); } catch (e) {}
+    }
+    function onKey(e) {
+      if (!e) return;
+      if (e.key === 'Escape' || e.key === 'Esc') { if (e.preventDefault) e.preventDefault(); finish(onCancel); }
+      else if (e.key === 'Enter') { if (e.preventDefault) e.preventDefault(); finish(onYes); }
+    }
     var no = ov.querySelector ? ov.querySelector('.gamekit-cf-no') : null;
     var yes = ov.querySelector ? ov.querySelector('.gamekit-cf-yes') : null;
-    if (no) no.addEventListener('click', close);
-    if (yes) yes.addEventListener('click', function () { close(); if (onYes) onYes(); });
-    ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
+    if (no) no.addEventListener('click', function () { finish(onCancel); });
+    if (yes) yes.addEventListener('click', function () { finish(onYes); });
+    ov.addEventListener('click', function (e) { if (e && e.target === ov) finish(onCancel); });
+    if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
   }
 
   // ---------- embed modal (iframe snippet) — used by the per-game nav button + catalogue menu ----------
@@ -246,7 +260,11 @@
   }
   function setPaused(p) { _paused = !!p; syncPauseUI(); }
   function togglePause() { setPaused(!_paused); }
-  function isPaused() { return _paused; }
+  // quiet pause: freezes the game loop (isPaused → true) WITHOUT showing the universal pause overlay.
+  // Used while a leave-confirm is up so the game stops underneath but no second pause UI appears.
+  var _frozen = false;
+  function freeze(on) { _frozen = !!on; }
+  function isPaused() { return _paused || _frozen; }
 
   // ---------- top-right sound menu (+ optional per-game "reset scores") ----------
   function audioMenu(opts) {
@@ -266,6 +284,13 @@
     _audioEl = wrap;
     var btn = document.getElementById('gamekitAudioBtn'), panel = document.getElementById('gamekitAudioPanel');
     if (btn && panel) btn.addEventListener('click', function () { if (panel.classList) panel.classList.toggle('open'); });
+    // click anywhere outside the sound menu closes the open panel
+    if (panel && typeof document.addEventListener === 'function') document.addEventListener('click', function (e) {
+      if (!panel.classList || !panel.classList.contains('open')) return;
+      var t = e && e.target;
+      if (t === btn || (t && t.closest && (t.closest('#gamekitAudioBtn') || t.closest('#gamekitAudioPanel')))) return;
+      panel.classList.remove('open');
+    });
     var u = { mainBtn: btn };
     u.sfxBtn = document.getElementById('gamekitSfxM'); u.sfxSlider = document.getElementById('gamekitSfxV');
     if (u.sfxBtn) u.sfxBtn.addEventListener('click', function () { sound.toggle(); });
@@ -278,7 +303,7 @@
     if (opts.reset) {
       var rb = document.getElementById('gamekitReset');
       if (rb) rb.addEventListener('click', function () {
-        confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} });
+        confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, 'Reset');
       });
     }
     var eb = document.getElementById('gamekitEmbed');
@@ -332,9 +357,33 @@
       _navEl = wrap;
       var menu = document.getElementById('gamekitMenu');
       _menuBtn = menu || null;
+      // confirmLeave: true | 'message' | function()->(message|false). Evaluated at click time, so a
+      // game can return false on its start screen (no run to lose) and a message while mid-run. Pauses
+      // the game while the confirm is up so you can't die mid-decision; Cancel resumes.
+      var cl = opts.confirmLeave;
+      var leaveMsg = function () {
+        if (!cl) return false;
+        if (typeof cl === 'function') { try { return cl(); } catch (e) { return false; } }
+        return cl === true ? "Leave this run? You'll lose your progress." : cl;
+      };
+      var guarded = function (doLeave) {
+        var msg = leaveMsg();
+        // freeze (quiet) the game under the confirm — do NOT trigger the universal pause overlay/menu
+        if (msg) { freeze(true); confirmDialog(msg, function () { freeze(false); doLeave(); }, 'Leave', function () { freeze(false); }); }
+        else doLeave();
+      };
       if (menu) menu.addEventListener('click', function () {
-        if (typeof opts.onMenu === 'function') { try { opts.onMenu(); } catch (e) {} }
-        else { try { location.reload(); } catch (e) {} }
+        guarded(function () {
+          if (typeof opts.onMenu === 'function') { try { opts.onMenu(); } catch (e) {} }
+          else { try { location.reload(); } catch (e) {} }
+        });
+      });
+      var homeA = document.getElementById('gamekitHome');
+      if (homeA) homeA.addEventListener('click', function (e) {
+        if (!leaveMsg()) return; // no run → let the link navigate normally
+        if (e && e.preventDefault) e.preventDefault();
+        var href = homeA.getAttribute('href');
+        guarded(function () { try { (window.top || window).location.href = href; } catch (err) { try { location.href = href; } catch (e2) {} } });
       });
     }
     audioMenu({ music: !!opts.music, reset: opts.reset });
@@ -621,7 +670,213 @@
     }
   })();
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, versionTag: versionTag };
+  // ---------- shared menu engine (declarative overlays: start / pause / end) ----------
+  // ONE structure + behaviour for every game's menus; the LOOK is fully per-game via CSS custom
+  // properties (--gkm-accent / --gkm-bg / --gkm-glow / --gkm-shadow / --gkm-border / --gkm-text /
+  // --gkm-overlay / --gkm-radius / --gkm-font). A game themes them in its own CSS, or passes a
+  // `theme` object to menu.show() (short keys → those vars) for per-screen tweaks.
+  var _menuEl = null, _menuKey = null, _menuHandle = null;
+  function stampUrl(params) {
+    try {
+      if (typeof history === 'undefined' || !history.replaceState || typeof location === 'undefined') return;
+      var qs = (typeof URLSearchParams !== 'undefined') ? new URLSearchParams(params || {}).toString() : '';
+      history.replaceState(null, '', qs ? location.pathname + '?' + qs : location.pathname);
+    } catch (e) {}
+  }
+  function menuHide() {
+    if (_menuKey) { try { document.removeEventListener('keydown', _menuKey, true); } catch (e) {} _menuKey = null; }
+    if (_menuEl) { try { if (_menuEl.parentNode) _menuEl.parentNode.removeChild(_menuEl); } catch (e) {} _menuEl = null; }
+    _menuHandle = null;
+  }
+  function applyMenuTheme(el, theme) {
+    if (!el || !el.style || !theme) return;
+    for (var k in theme) {
+      if (!Object.prototype.hasOwnProperty.call(theme, k)) continue;
+      var v = theme[k]; if (v == null) continue;
+      try { el.style.setProperty(k.indexOf('--') === 0 ? k : '--gkm-' + k, String(v)); } catch (e) {}
+    }
+  }
+  function fmtScore(n) { return (typeof n === 'number' && n.toLocaleString) ? n.toLocaleString() : String(n); }
+  function mkEl(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) { try { e.innerHTML = html; } catch (x) { e.textContent = String(html); } }
+    return e;
+  }
+  function evalVal(v, st) { return (typeof v === 'function') ? v(st) : v; }
+  function drawPreview(cv, fn, st) {
+    if (!cv || !cv.getContext || typeof fn !== 'function') return;
+    try { var g = cv.getContext('2d'); var w = cv.width || 0, h = cv.height || 0; if (g.clearRect) g.clearRect(0, 0, w, h); fn(g, w, h, st); } catch (e) {}
+  }
+  // menu.show(cfg): cfg.kind 'start'|'pause'|'end'; title; score/scoreText/best/newBest/lines:[…];
+  //   groups:[{id,label,default,style?:'cards',choices:[…]}] — a plain group's choices are {id,label,desc?}
+  //     buttons; a style:'cards' group's choices are rich cards {id,label,tag?,desc,mech,best,preview} where
+  //     desc/mech/best may be a value OR a fn(state) (re-evaluated on every change), mech entries are a string
+  //     or {label,hot}, and preview is fn(ctx,w,h,state) drawn into the card's canvas.
+  //   toggles:[{id,label,caption?,default?}] — boolean checkboxes (rendered after the groups).
+  //   hint(state)->string; share:{slug,title,message,…} (→ shareRow + Discord); record:{slug,mode,score,time,stats}
+  //     (→ recordResult); actions:[{id,label,primary?,danger?,confirm?:msg|fn,confirmYes?}];
+  //   onPlay(state); onAction(id,state); onChange(state) (fires on every selection/toggle change — e.g.
+  //   to live-stamp the URL); onEsc; theme. `state` = selections merged with toggle booleans.
+  // ONE structure + behaviour; the look is per-game via --gkm-* (theme object or the game's own CSS).
+  // Built with createElement + direct refs (no querySelectorAll), so it drives the same headless + live.
+  function menuShow(cfg) {
+    cfg = cfg || {};
+    var noop = function () {};
+    if (typeof document === 'undefined' || !document.body || !document.createElement) return { hide: noop, el: null, selection: function () { return {}; }, select: noop, toggle: noop, activate: noop };
+    menuHide();
+    var kind = cfg.kind || 'start';
+    var groups = cfg.groups || [];
+    var toggles = cfg.toggles || [];
+    var actions = cfg.actions || [];
+    var hasCards = false;
+    var sel = {}, tog = {};
+    function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+    groups.forEach(function (g2) { sel[g2.id] = (g2['default'] != null ? g2['default'] : (g2.choices && g2.choices[0] ? g2.choices[0].id : null)); if (g2.style === 'cards') hasCards = true; });
+    toggles.forEach(function (t) { tog[t.id] = !!t['default']; });
+    function state() { var o = {}, k; for (k in sel) if (has(sel, k)) o[k] = sel[k]; for (k in tog) if (has(tog, k)) o[k] = tog[k]; return o; }
+
+    var ov = document.createElement('div'); ov.className = 'gamekit-menu gamekit-menu-' + kind + (hasCards ? ' gkm-wide' : '');
+    var box = mkEl('div', 'gkm-box'); ov.appendChild(box);
+
+    if (cfg.title != null) box.appendChild(mkEl('h1', 'gkm-title', cfg.title));
+    if (cfg.score != null) {
+      box.appendChild(mkEl('div', 'gkm-score', cfg.scoreText != null ? cfg.scoreText : fmtScore(cfg.score)));
+      if (cfg.best != null) box.appendChild(mkEl('p', 'gkm-best', 'Best: ' + fmtScore(cfg.best) + (cfg.newBest ? ' <span class="gkm-new">★ New best!</span>' : '')));
+    }
+
+    var choiceRefs = [], dynamic = []; // dynamic[]: per-card updater(state), re-run on any change
+    groups.forEach(function (g2) {
+      if (g2.label != null) box.appendChild(mkEl('div', 'gkm-sec', g2.label));
+      if (g2.style === 'cards') {
+        var list = mkEl('div', 'gkm-cards');
+        (g2.choices || []).forEach(function (c) {
+          var card = mkEl('div', 'gkm-card');
+          var pv = mkEl('canvas', 'gkm-card-pv'); try { pv.width = c.pvW || 120; pv.height = c.pvH || 120; } catch (e) {}
+          var nm = mkEl('div', 'gkm-card-nm', c.label + (c.tag ? ' <span class="gkm-tag">' + c.tag + '</span>' : ''));
+          var best = mkEl('div', 'gkm-card-best');
+          var head = mkEl('div', 'gkm-card-head'); head.appendChild(nm); head.appendChild(best);
+          var desc = mkEl('div', 'gkm-card-desc');
+          var mech = mkEl('div', 'gkm-card-mech');
+          var body = mkEl('div', 'gkm-card-body'); body.appendChild(head); body.appendChild(desc); body.appendChild(mech);
+          card.appendChild(pv); card.appendChild(body);
+          var ref = { el: card, kind: 'choice', grp: g2.id, choice: c.id };
+          card.addEventListener('click', function () { selectChoice(ref); setFocusEl(card); });
+          card.addEventListener('mouseenter', function () { setFocusEl(card); });
+          choiceRefs.push(ref); list.appendChild(card);
+          dynamic.push(function (st) {
+            drawPreview(pv, c.preview, st);
+            best.innerHTML = (c.best != null) ? ('<span class="l">BEST</span>' + fmtScore(evalVal(c.best, st))) : '';
+            var chips = (typeof c.mech === 'function') ? c.mech(st) : (c.mech || []);
+            mech.innerHTML = (chips || []).filter(function (x) { return x != null && x !== ''; }).map(function (x) {
+              var s = (typeof x === 'object') ? x : { label: x };
+              return '<span' + (s.hot ? ' class="hot"' : '') + '>' + s.label + '</span>';
+            }).join('');
+            desc.textContent = evalVal(c.desc, st) || '';
+          });
+        });
+        box.appendChild(list);
+      } else {
+        var row = mkEl('div', 'gkm-row');
+        (g2.choices || []).forEach(function (c) {
+          var b = mkEl('button', 'gkm-choice', c.label + (c.desc ? '<span class="gkm-desc">' + c.desc + '</span>' : ''));
+          try { b.type = 'button'; } catch (e) {}
+          var ref = { el: b, kind: 'choice', grp: g2.id, choice: c.id };
+          b.addEventListener('click', function () { selectChoice(ref); setFocusEl(b); });
+          b.addEventListener('mouseenter', function () { setFocusEl(b); });
+          choiceRefs.push(ref); row.appendChild(b);
+        });
+        box.appendChild(row);
+      }
+    });
+
+    var toggleRefs = [];
+    toggles.forEach(function (t) {
+      var rowT = mkEl('div', 'gkm-checkrow');
+      var lab = mkEl('label', 'gkm-check');
+      lab.appendChild(mkEl('span', 'gkm-check-box'));
+      lab.appendChild(mkEl('span', 'gkm-check-txt', t.label + (t.caption ? ' <span class="cap">' + t.caption + '</span>' : '')));
+      rowT.appendChild(lab); box.appendChild(rowT);
+      var ref = { el: lab, kind: 'toggle', id: t.id };
+      lab.addEventListener('click', function (e) { if (e && e.preventDefault) e.preventDefault(); toggleOne(ref); setFocusEl(lab); });
+      lab.addEventListener('mouseenter', function () { setFocusEl(lab); });
+      toggleRefs.push(ref);
+    });
+
+    (cfg.lines || []).forEach(function (ln) { box.appendChild(mkEl('p', 'gkm-line', ln)); });
+    var hintEl = cfg.hint ? mkEl('p', 'gkm-hint') : null; if (hintEl) box.appendChild(hintEl);
+    var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null; if (shareHost) box.appendChild(shareHost);
+    var actionRefs = [];
+    if (actions.length) {
+      var arow = mkEl('div', 'gkm-actions');
+      actions.forEach(function (a) {
+        var b = mkEl('button', 'gkm-action' + (a.primary ? ' primary' : '') + (a.danger ? ' danger' : ''), a.label);
+        try { b.type = 'button'; } catch (e) {}
+        var ref = { el: b, kind: 'action', action: a };
+        b.addEventListener('click', function () { setFocusEl(b); fireAction(a); });
+        b.addEventListener('mouseenter', function () { setFocusEl(b); });
+        actionRefs.push(ref); arow.appendChild(b);
+      });
+      box.appendChild(arow);
+    }
+
+    applyMenuTheme(ov, cfg.theme);
+    document.body.appendChild(ov);
+    _menuEl = ov;
+    if (cfg.record) { try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
+    if (shareHost) { try { shareRow(shareHost, cfg.share); } catch (e) {} }
+
+    var focusables = choiceRefs.concat(toggleRefs).concat(actionRefs);
+    var fi = 0;
+    function setFocus(i) { if (!focusables.length) return; fi = (i % focusables.length + focusables.length) % focusables.length; for (var k = 0; k < focusables.length; k++) { if (focusables[k].el.classList) focusables[k].el.classList.toggle('gkm-focus', k === fi); } }
+    function setFocusEl(el) { for (var k = 0; k < focusables.length; k++) if (focusables[k].el === el) { setFocus(k); return; } }
+    function paintChoices() { for (var k = 0; k < choiceRefs.length; k++) { var r = choiceRefs[k]; if (r.el.classList) r.el.classList.toggle('gkm-on', sel[r.grp] === r.choice); } }
+    function paintToggles() { for (var k = 0; k < toggleRefs.length; k++) { var r = toggleRefs[k]; if (r.el.classList) r.el.classList.toggle('gkm-on', !!tog[r.id]); } }
+    function renderDynamic() { var st = state(); for (var k = 0; k < dynamic.length; k++) try { dynamic[k](st); } catch (e) {} }
+    function renderHint() { if (hintEl) { try { hintEl.textContent = cfg.hint(state()); } catch (e) {} } }
+    function refresh() { paintChoices(); paintToggles(); renderDynamic(); renderHint(); }
+    function changed() { refresh(); if (typeof cfg.onChange === 'function') { try { cfg.onChange(state()); } catch (e) {} } }
+    function selectChoice(ref) { sel[ref.grp] = ref.choice; changed(); }
+    function toggleOne(ref) { tog[ref.id] = !tog[ref.id]; changed(); }
+    function fireAction(a) {
+      var go = function () { if (a.id === 'play' && typeof cfg.onPlay === 'function') cfg.onPlay(state()); else if (typeof cfg.onAction === 'function') cfg.onAction(a.id, state()); };
+      var cm = a.confirm ? (typeof a.confirm === 'function' ? a.confirm() : a.confirm) : null;
+      if (cm) confirmDialog(cm, go, a.confirmYes || 'Leave', null); else go();
+    }
+    function activate(ref) { if (!ref) return; if (ref.kind === 'choice') selectChoice(ref); else if (ref.kind === 'toggle') toggleOne(ref); else fireAction(ref.action); }
+    function stop(ev) { if (ev.preventDefault) ev.preventDefault(); if (ev.stopPropagation) ev.stopPropagation(); }
+
+    refresh();
+    var primIdx = 0; for (var p = 0; p < actionRefs.length; p++) { if (actionRefs[p].action.primary) { primIdx = choiceRefs.length + toggleRefs.length + p; break; } }
+    setFocus(primIdx);
+
+    var keyFn = function (e) {
+      if (_menuKey !== keyFn || !_menuEl || !e) return; // ignore stale handlers (hidden menu / superseded)
+      var k = e.key;
+      if (k === 'a' || k === 'A') k = 'ArrowLeft'; else if (k === 'd' || k === 'D') k = 'ArrowRight';
+      else if (k === 'w' || k === 'W') k = 'ArrowUp'; else if (k === 's' || k === 'S') k = 'ArrowDown';
+      if (k === 'ArrowLeft' || k === 'ArrowUp') { stop(e); setFocus(fi - 1); }
+      else if (k === 'ArrowRight' || k === 'ArrowDown') { stop(e); setFocus(fi + 1); }
+      else if (k === 'Enter' || k === ' ' || k === 'Spacebar') { stop(e); activate(focusables[fi]); }
+      else if ((k === 'Escape' || k === 'Esc') && typeof cfg.onEsc === 'function') { stop(e); cfg.onEsc(); }
+    };
+    _menuKey = keyFn;
+    if (typeof document.addEventListener === 'function') document.addEventListener('keydown', keyFn, true);
+
+    var handle = {
+      hide: menuHide, el: ov, selection: state, focus: setFocus,
+      // programmatic affordances (used by the headless harness + available to games):
+      select: function (grp, choice) { for (var k = 0; k < choiceRefs.length; k++) if (choiceRefs[k].grp === grp && choiceRefs[k].choice === choice) { selectChoice(choiceRefs[k]); return true; } return false; },
+      toggle: function (id, on) { for (var k = 0; k < toggleRefs.length; k++) if (toggleRefs[k].id === id) { tog[id] = (on == null ? !tog[id] : !!on); refresh(); return true; } return false; },
+      activate: function (actionId) { for (var k = 0; k < actionRefs.length; k++) if (actionRefs[k].action.id === actionId) { fireAction(actionRefs[k].action); return true; } return false; },
+      focusedId: function () { var f = focusables[fi]; return f ? (f.kind === 'action' ? f.action.id : f.kind === 'toggle' ? f.id : f.choice) : null; },
+    };
+    _menuHandle = handle;
+    return handle;
+  }
+  var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
+
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, versionTag: versionTag };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

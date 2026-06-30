@@ -1,6 +1,6 @@
 /* game-kit shared shell styles — neutral, readable on any dark game background.
    Tint the share hover per game by setting --gamekit-accent on the share container. */
-.gamekit-nav { position: fixed; top: 8px; left: 10px; z-index: 9; display: flex; gap: 8px; }
+.gamekit-nav { position: fixed; top: 8px; left: 10px; z-index: 80; display: flex; gap: 8px; }
 .gamekit-back { font: 600 12px/1 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing: 1px;
   color: #fff; text-decoration: none; background: rgba(8, 12, 20, 0.66); border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 8px; padding: 7px 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
@@ -14,7 +14,7 @@
 .gamekit-nav-tight .gamekit-back { padding: 6px 8px; font-size: 11px; letter-spacing: .5px; }
 
 /* top-right sound menu (+ optional reset-scores) */
-.gamekit-audio { position: fixed; top: 8px; right: 10px; z-index: 9; display: flex; flex-direction: row; align-items: flex-start; gap: 6px; }
+.gamekit-audio { position: fixed; top: 8px; right: 10px; z-index: 80; display: flex; flex-direction: row; align-items: flex-start; gap: 6px; }
 .gamekit-au-btn { font-size: 14px; line-height: 0; width: 38px; height: 34px; cursor: pointer; color: #fff;
   background: rgba(8, 12, 20, 0.66); border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 8px;
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); display: inline-flex; align-items: center; justify-content: center; }
@@ -59,7 +59,7 @@
 @media (max-width: 560px) { .gamekit-hud { top: 50px; max-width: calc(100vw - 16px); gap: 8px 14px; padding: 5px 12px; font-size: 12px; } }
 
 /* in-page confirm dialog (reset scores) */
-.gamekit-confirm { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(5, 8, 13, 0.66); }
+.gamekit-confirm { position: fixed; inset: 0; z-index: 9600; display: flex; align-items: center; justify-content: center; background: rgba(5, 8, 13, 0.66); }
 .gamekit-confirm-box { background: rgba(16, 22, 34, 0.98); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 20px 22px;
   max-width: min(340px, calc(100vw - 32px)); text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   color: #eef2f8; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; }
@@ -69,6 +69,99 @@
   border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: #eef2f8; }
 .gamekit-confirm-btns button:hover { border-color: #9fe8ff; }
 .gamekit-cf-yes { background: rgba(255, 90, 90, 0.2) !important; border-color: #ff8a8a !important; color: #fff !important; }
+
+/* shared menu engine (gamekit.menu.show) — ONE structure, per-game look via --gkm-* custom props.
+   A game themes these in its own CSS (e.g. `.gamekit-menu{--gkm-accent:#ff7ab6;--gkm-glow:...}`) or
+   passes a `theme` to menu.show(); everything below falls back to the neutral kit palette. */
+.gamekit-menu { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: var(--gkm-overlay, rgba(6, 9, 15, 0.82)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-menu .gkm-box { width: min(420px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; box-sizing: border-box;
+  background: var(--gkm-bg, rgba(14, 20, 32, 0.96)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16));
+  border-radius: var(--gkm-radius, 16px); padding: 24px 22px; box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6));
+  color: var(--gkm-text, #eaf2fb); text-align: center; font-family: var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace);
+  --gamekit-accent: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-title { margin: 0 0 14px; font-size: 26px; letter-spacing: 2px; font-weight: 800; text-wrap: balance;
+  color: var(--gkm-title, var(--gkm-text, #eaf2fb)); text-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-sec { margin: 14px 0 6px; font-size: 10px; letter-spacing: 2px; opacity: .55; }
+.gamekit-menu .gkm-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.gamekit-menu .gkm-choice { flex: 1 1 auto; min-width: 96px; cursor: pointer; padding: 10px 12px; border-radius: 10px;
+  font: 600 13px/1.2 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; color: var(--gkm-text, #eaf2fb);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); transition: border-color .12s, background .12s, box-shadow .12s; }
+.gamekit-menu .gkm-choice .gkm-desc { display: block; margin-top: 4px; font-size: 10px; letter-spacing: .5px; opacity: .6; font-weight: 400; }
+.gamekit-menu .gkm-choice.gkm-on { background: var(--gkm-accent-soft, rgba(159, 232, 255, 0.16)); border-color: var(--gkm-accent, #9fe8ff);
+  color: var(--gkm-text, #fff); box-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-choice:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-choice.gkm-focus, .gamekit-menu .gkm-action.gkm-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
+.gamekit-menu .gkm-hint { margin: 14px 0 0; font-size: 11px; line-height: 1.5; opacity: .7; }
+.gamekit-menu .gkm-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 18px; }
+.gamekit-menu .gkm-action { cursor: pointer; padding: 11px 22px; border-radius: 10px; font: 700 14px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px;
+  color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.25); transition: border-color .12s, background .12s; }
+.gamekit-menu .gkm-action:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-action.primary { color: var(--gkm-on-accent, #06121a); background: var(--gkm-accent, #9fe8ff); border-color: var(--gkm-accent, #9fe8ff); box-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-action.primary:hover { filter: brightness(1.1); }
+.gamekit-menu .gkm-action.danger { color: #ffb4b4; border-color: rgba(255, 120, 120, 0.5); background: rgba(255, 90, 90, 0.12); }
+.gamekit-menu .gkm-action.danger:hover { color: #fff; background: rgba(255, 90, 90, 0.25); border-color: #ff8a8a; }
+.gamekit-menu .gkm-score { font-size: 40px; font-weight: 800; letter-spacing: 1px; margin: 6px 0; color: var(--gkm-title, var(--gkm-text, #eaf2fb)); text-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-best { margin: 0 0 6px; font-size: 12px; opacity: .85; }
+.gamekit-menu .gkm-best .gkm-new { color: var(--gkm-new, #ffd86b); opacity: 1; }
+.gamekit-menu .gkm-line { margin: 2px 0; font-size: 12px; opacity: .7; }
+.gamekit-menu .gkm-share-host { margin-top: 16px; }
+/* a menu with mode cards gets a wider box + a slightly larger start title */
+.gamekit-menu.gkm-wide .gkm-box { width: min(640px, 100%); }
+.gamekit-menu-start .gkm-title { font-size: 30px; letter-spacing: 5px; }
+
+/* ---- mode cards (style:'cards') — preview left, text column right ---- */
+.gamekit-menu .gkm-cards { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.gamekit-menu .gkm-card { display: grid; grid-template-columns: 120px 1fr; gap: 18px; align-items: center; cursor: pointer;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 14px;
+  padding: 15px 17px; transition: border-color .15s, box-shadow .15s, transform .12s; }
+.gamekit-menu .gkm-card:hover { border-color: var(--gkm-accent, #9fe8ff); transform: translateY(-1px); }
+.gamekit-menu .gkm-card.gkm-on { border-color: var(--gkm-accent, #9fe8ff); box-shadow: 0 0 0 1px var(--gkm-accent, #9fe8ff), var(--gkm-glow, 0 0 26px rgba(159, 232, 255, .26)); }
+.gamekit-menu .gkm-card.gkm-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
+.gamekit-menu .gkm-card-pv { width: 120px; height: 120px; border-radius: 11px; background: rgba(0, 0, 0, .35); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); display: block; }
+.gamekit-menu .gkm-card.gkm-on .gkm-card-pv { box-shadow: inset 0 0 0 1px var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-card-body { min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+.gamekit-menu .gkm-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.gamekit-menu .gkm-card-nm { font: 700 18px/1.2 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px;
+  color: var(--gkm-title, var(--gkm-text, #eaf3ff)); display: flex; align-items: center; gap: 9px; transition: color .15s; }
+.gamekit-menu .gkm-card.gkm-on .gkm-card-nm { color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-tag { font: 700 9px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1.5px; padding: 3px 7px; border-radius: 5px;
+  color: var(--gkm-accent, #9fe8ff); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-card-best { font: 12px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px; white-space: nowrap; flex: 0 0 auto;
+  color: var(--gkm-best, var(--gkm-new, #ffd166)); font-variant-numeric: tabular-nums; }
+.gamekit-menu .gkm-card-best .l { color: #6b7a90; font-size: 9px; letter-spacing: 1.5px; margin-right: 6px; }
+.gamekit-menu .gkm-card-desc { color: #93a5bd; font: 13.5px/1.5 var(--gkm-font-body, system-ui, sans-serif); }
+.gamekit-menu .gkm-card-mech { display: flex; flex-wrap: wrap; gap: 6px; }
+.gamekit-menu .gkm-card-mech span { font: 10px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .4px; color: #9fb2c9;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 999px; padding: 3px 9px; }
+.gamekit-menu .gkm-card-mech span.hot { color: var(--gkm-new, #ffd166); border-color: rgba(255, 209, 102, .4); background: rgba(255, 209, 102, .08); }
+
+/* ---- boolean checkbox (toggles) ---- */
+.gamekit-menu .gkm-checkrow { display: flex; justify-content: center; margin-top: 16px; }
+.gamekit-menu .gkm-check { display: inline-flex; align-items: center; gap: 11px; cursor: pointer; -webkit-user-select: none; user-select: none;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 11px; padding: 10px 16px;
+  transition: border-color .14s, box-shadow .14s; }
+.gamekit-menu .gkm-check:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-check.gkm-on { border-color: var(--gkm-accent, #9fe8ff); box-shadow: var(--gkm-glow, 0 0 18px rgba(159, 232, 255, .22)); }
+.gamekit-menu .gkm-check.gkm-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
+.gamekit-menu .gkm-check-box { width: 20px; height: 20px; border-radius: 6px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--gkm-border, rgba(255, 255, 255, 0.3)); transition: background .14s, border-color .14s; }
+.gamekit-menu .gkm-check.gkm-on .gkm-check-box { background: var(--gkm-accent, #9fe8ff); border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-check-box::after { content: "✓"; color: var(--gkm-on-accent, #06121a); font: 900 13px/1 system-ui, sans-serif; opacity: 0; transform: scale(.5); transition: opacity .12s, transform .12s; }
+.gamekit-menu .gkm-check.gkm-on .gkm-check-box::after { opacity: 1; transform: scale(1); }
+.gamekit-menu .gkm-check-txt { font: 700 14px/1.2 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; color: var(--gkm-text, #eaf3ff); }
+.gamekit-menu .gkm-check-txt .cap { font-weight: 400; letter-spacing: .3px; color: #93a5bd; font-size: 12px; }
+
+@media (max-width: 560px) {
+  /* stay horizontal with a smaller SQUARE preview — never stretch the canvas into a wide banner */
+  .gamekit-menu .gkm-card { grid-template-columns: 80px 1fr; gap: 13px; padding: 13px 14px; }
+  .gamekit-menu .gkm-card-pv { width: 80px; height: 80px; align-self: start; }
+  .gamekit-menu .gkm-card-head { flex-wrap: wrap; }
+}
+@media (max-width: 360px) {
+  .gamekit-menu .gkm-card { grid-template-columns: 64px 1fr; gap: 11px; }
+  .gamekit-menu .gkm-card-pv { width: 64px; height: 64px; }
+}
 
 .gamekit-share { display: flex; gap: 9px; justify-content: center; align-items: center; flex-wrap: wrap; --gamekit-accent: #9fe8ff; }
 /* visual props are !important so a game's broad `#overlay button {…}` rule can't clobber these icon
