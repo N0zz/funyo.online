@@ -337,9 +337,12 @@
   // game-kit nav: top-left ‹ Menu + top-right sound menu (SFX + Music + Reset). ‹ Menu and the komyo ›
   // home link both ask to confirm while a run is live (game pauses behind the confirm); ‹ Menu returns
   // to the start menu in-place.
-  if (KIT) { KIT.nav({ music: true, reset: 'asteroids_', home: '../../', onMenu: () => toMenu(),
+  if (KIT) { KIT.nav({ music: true, reset: 'asteroids_', home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); },
-    confirmLeave: () => (state==='playing' || state==='paused') ? "Leave this run? You'll lose your progress." : false }); KIT.pwa(); KIT.showMenuButton(false); }
+    confirmLeave: () => (state==='playing' || state==='paused') ? "Leave this run? You'll lose your progress." : false,
+    controls: { title: 'Asteroids — Controls',
+      keyboard: [ ['← →  ·  A D','Rotate'], ['↑  ·  W','Thrust'], ['Space','Shoot'], ['Esc','Pause'] ],
+      touch: [ ['Drag the left half','Steer & thrust'], ['FIRE button','Shoot'] ] } }); KIT.pwa(); KIT.showMenuButton(false); }
 
   // ---- test hook: state getters + a layout snapshot for the headless harness (inert in normal play) ----
   window.__test = {

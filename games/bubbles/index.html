@@ -1184,9 +1184,13 @@
   { const pm = KIT && KIT.param && KIT.param('mode'); if (['arcade', 'speedrun', 'endless', 'zen'].indexOf(pm) >= 0) mode = pm; }
 
   // ---- top nav (game-kit): ‹ Menu + komyo › guard a live run; ⏸ + Esc drive the menu pause ----
-  KIT.nav({ reset: 'bubbles_', home: '../../', onMenu: () => toMenu(),
+  KIT.nav({ reset: 'bubbles_', home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
-    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false });
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
+    controls: { title: 'Bubble Pop — Controls',
+      mouse: [ ['Move','Aim'], ['Click','Shoot'] ],
+      keyboard: [ ['← →  ·  A D','Aim'], ['Space  ·  Enter','Shoot'], ['Esc','Pause'] ],
+      touch: [ ['Move / drag','Aim'], ['Tap','Shoot'] ] } });
   showStartMenu(); // open the unified start menu (mode preselected from ?mode=)
 
   // ---- __test API ----
