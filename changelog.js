@@ -7,6 +7,7 @@ window.CHANGELOG = [
   { date: '2026-06-30', title: 'Walls, taps & rotation', items: [
     'New: a CHALLENGE badge on game tiles — when a game is the focus of today’s daily or this week’s weekly challenge, its tile is marked so you can spot it at a glance, with a matching CHALLENGE filter to show just those games.',
     'Improved: search now matches a game’s labels too — type “challenge”, “popular”, “new” or “updated” to see just those games.',
+    'New: Bubble Pop — a redesigned start menu. Pick your mode from cards (Arcade / Speedrun / Endless / Zen) that show what each one plays like, with a little icon and your best score; the whole menu is keyboard-friendly, pause works the same from Esc or the ⏸ button, and hitting Menu mid-game asks before it drops your run.',
     'New: Asteroids — a redesigned start menu. Pick your mode from cards (Classic / Classic+) that show what each one plays like and your best score, flip on Speedrun with a tick, and steer the whole menu with the keyboard. Hitting Menu mid-run now asks before it drops your run, and your picks live in the link so you can share the exact setup.',
     'Fix: Asteroids & Asteroids+ — in Speedrun mode your shared/Discord result now leads with your clear time (the actual goal), instead of your score and wave.',
     'Improved: offline play — open komyo once online and every game is saved to play offline (even ones you haven’t opened yet), and refreshing with no connection no longer breaks the app. Try it in airplane mode!',
