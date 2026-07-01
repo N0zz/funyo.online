@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
 <script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
 <style>
   :root {
     --aqua:#2ee8c8; --aqua2:#1bc4a8; --bg1:#0d1f2d; --bg2:#162840;
@@ -204,7 +205,8 @@
   let topMargin = 48;
   let WALL = 8; // thickness of the play-column walls (set in resize); side walls bounce, ceiling attaches
   let state = 'ready'; // 'ready'|'playing'|'over'|'won'
-  let mode = 'arcade';
+  let mode = 'arcade'; // 'arcade'|'endless'|'zen'
+  let timeDescent = false; // descent driven by a timer (vs by shots); toggle on the menu; ignored in zen
   let score = 0, bestScore = 0, level = 1;
   let grid = []; // array of rows; each row is array of {color, colorIdx} or null
   let gridOffsetY = 0; // pixels the whole grid has descended
@@ -340,8 +342,9 @@
   }
 
   // ---- Start / modes ----
-  function startMode(m) {
+  function startMode(m, timed) {
     mode = m || 'arcade';
+    timeDescent = (mode === 'zen') ? false : !!timed; // zen never descends
     level = 1;
     score = 0;
     gridOffsetY = 0;
@@ -392,24 +395,25 @@
   function pvSpeed(g,w,h){ pvCard(g,w,h,icClock,'#ffe066'); }
   function pvEndless(g,w,h){ pvCard(g,w,h,icInfinity,'#b78cff'); } // rows push in forever
   function pvZen(g,w,h){ pvCard(g,w,h,icZzz,'#7ee8ff'); }
-  const MODE_HINT = { arcade:'Pop groups of 3+; clear the board to advance.', speedrun:'Beat the timer — the grid drops on a clock.', endless:'Rows push in forever — survive and score.', zen:'Relax and pop. No fail, no descent.' };
-  function shareMsg(){ return KIT.shareText({ score: score, game:'Bubble Pop', emoji:'🫧', mode: mode.charAt(0).toUpperCase()+mode.slice(1), extra:['level '+level] }); }
+  const MODE_HINT = { arcade:'Pop groups of 3+; clear the board to advance.', endless:'Rows push in forever — survive and score.', zen:'Relax and pop. No fail, no descent.' };
+  const modeParams = st => (st.timed && st.mode !== 'zen') ? { mode: st.mode, timed: '1' } : { mode: st.mode };
+  function shareMsg(){ return KIT.shareText({ score: score, game:'Bubble Pop', emoji:'🫧', mode: mode.charAt(0).toUpperCase()+mode.slice(1)+(timeDescent&&mode!=='zen'?' (timed)':''), extra:['level '+level] }); }
   function showStartMenu(){
     state = 'ready'; if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if(!KIT) return;
     KIT.menu.show({ kind:'start', theme:MENU_THEME, title:'BUBBLE POP',
       groups:[{ id:'mode', label:'MODE', style:'cards', default: mode, choices:[
-        { id:'arcade',   label:'ARCADE',   preview:pvArcade,  desc:'Clear the board to advance. The grid creeps down a step every few shots.', mech:['Clear to advance','Descends as you shoot'], best:()=>bestFor('arcade') },
-        { id:'speedrun', label:'SPEEDRUN', preview:pvSpeed,   desc:'Clear the board to advance — but the grid drops on a timer. Race it.',     mech:['Timed descent','Race the clock'],      best:()=>bestFor('speedrun') },
-        { id:'endless',  label:'ENDLESS',  preview:pvEndless, desc:'New rows push in from the top forever. Survive and rack up the score.',    mech:['Endless','Survival'],                  best:()=>bestFor('endless') },
-        { id:'zen',      label:'ZEN',      preview:pvZen,     desc:'No pressure, no descent. Just pop bubbles and relax.',                     mech:['No fail','Relax'],                     best:()=>bestFor('zen') },
+        { id:'arcade',  label:'ARCADE',  preview:pvArcade,  mech:['Clear to advance','Grid descends'], best:()=>bestFor('arcade') },
+        { id:'endless', label:'ENDLESS', preview:pvEndless, mech:['Endless','Rows push in'],           best:()=>bestFor('endless') },
+        { id:'zen',     label:'ZEN',     preview:pvZen,     mech:['No fail','No descent'],              best:()=>bestFor('zen') },
       ]}],
-      hint: st => MODE_HINT[st.mode] || '',
+      toggles:[{ id:'timed', label:'Time-based descent', caption:'— drops on a clock, not per shot', default: timeDescent, disabled: st => st.mode === 'zen' }],
+      hint: st => (MODE_HINT[st.mode] || '') + (st.timed && st.mode !== 'zen' ? ' · timed' : ''),
       actions:[{ id:'play', label:'PLAY ▶', primary:true }],
-      onChange: st => KIT.stampUrl({ mode: st.mode }),
-      onPlay: st => { KIT.stampUrl({ mode: st.mode }); startMode(st.mode); },
+      onChange: st => KIT.stampUrl(modeParams(st)),
+      onPlay: st => { KIT.stampUrl(modeParams(st)); startMode(st.mode, st.timed); },
     });
-    KIT.stampUrl({ mode: mode });
+    KIT.stampUrl(modeParams({ mode: mode, timed: timeDescent }));
   }
   function showEnd(won){
     state = won ? 'won' : 'over';
@@ -419,7 +423,7 @@
     if(!KIT) return;
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title: won ? 'CLEARED! ✨' : 'GAME OVER',
       score: score, best: bestScore, newBest: isBest, lines: [ won ? ('Level ' + level + ' · all levels cleared') : ('Reached level ' + level) ],
-      share: { slug:'bubbles', title:'Bubble Pop', message: ()=>shareMsg(), params: ()=>({ mode: mode }) },
+      share: { slug:'bubbles', title:'Bubble Pop', message: ()=>shareMsg(), params: ()=> modeParams({ mode: mode, timed: timeDescent }) },
       record: { slug:'bubbles', mode: mode, score: score },
       actions:[ {id:'again',label:'PLAY AGAIN',primary:true}, {id:'menu',label:'MENU'} ],
       onAction:(id)=>{ if(id==='again') startMode(mode); else if(id==='menu') toMenu(); } });
@@ -722,13 +726,13 @@
     isShooting = true;
     SND.play('shoot');
     shotsThisLevel++;
-    // Shot-driven pressure (only Speedrun is time-based): Arcade descends the grid every N shots,
-    // Endless pushes a fresh row in every N shots.
-    if (mode === 'arcade') {
+    // Shot-driven pressure (unless "time-based descent" is on): Arcade descends the grid every N shots,
+    // Endless pushes a fresh row in every N shots. When timeDescent is on, update() drives it instead.
+    if (!timeDescent && mode === 'arcade') {
       shotsSinceDescent++;
       const per = Math.max(3, ARCADE_SHOTS_PER_DESCENT - (level - 1));
       if (shotsSinceDescent >= per) { shotsSinceDescent = 0; descentStep(); }
-    } else if (mode === 'endless') {
+    } else if (!timeDescent && mode === 'endless') {
       shotsSinceDescent++;
       const per = Math.max(3, 7 - Math.floor(score / 3000));
       if (shotsSinceDescent >= per) { shotsSinceDescent = 0; addEndlessRow(); level = Math.max(level, 1 + Math.floor(score / 2000)); }
@@ -781,9 +785,9 @@
 
   function triggerLose() { showEnd(false); }
 
-  // ---- Win condition (arcade / speedrun: clear board to advance) ----
+  // ---- Win condition (arcade: clear the board to advance through levels) ----
   function checkWin() {
-    if (mode !== 'arcade' && mode !== 'speedrun') return;
+    if (mode !== 'arcade') return;
     if (countBubbles() === 0) {
       if (level >= 5) {
         showEnd(true);
@@ -826,13 +830,14 @@
   function update() {
     if (state !== 'playing') return;
 
-    // Time-based descent — Speedrun only (Arcade & Endless are now shot-driven; see shoot()).
-    if (mode === 'speedrun') {
+    // Time-based descent — when the toggle is on (Arcade drops the grid, Endless pushes a row); off = shots.
+    if (timeDescent && (mode === 'arcade' || mode === 'endless')) {
       descentTimer++;
       const interval = Math.max(60, DESCENT_INTERVAL_BASE - (level - 1) * 20 - Math.floor(shotsThisLevel / 10) * 5);
       if (descentTimer >= interval) {
         descentTimer = 0;
-        descentStep();
+        if (mode === 'arcade') descentStep();
+        else { addEndlessRow(); level = Math.max(level, 1 + Math.floor(score / 2000)); }
       }
     }
 
@@ -1181,10 +1186,10 @@
   });
 
   // deep-link ?mode= seeds the start menu's preselected mode
-  { const pm = KIT && KIT.param && KIT.param('mode'); if (['arcade', 'speedrun', 'endless', 'zen'].indexOf(pm) >= 0) mode = pm; }
+  { const pm = KIT && KIT.param && KIT.param('mode'); if (['arcade', 'endless', 'zen'].indexOf(pm) >= 0) mode = pm; if (KIT && KIT.param && KIT.param('timed') === '1') timeDescent = true; }
 
   // ---- top nav (game-kit): ‹ Menu + komyo › guard a live run; ⏸ + Esc drive the menu pause ----
-  KIT.nav({ reset: 'bubbles_', home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+  KIT.nav({ reset: 'bubbles_', home: '../../', theme: MENU_THEME, challenges: 'bubbles', onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Bubble Pop — Controls',
@@ -1202,6 +1207,7 @@
     get nextShotColor() { return nextColor; },
     get level() { return level; },
     get mode() { return mode; },
+    get timed() { return timeDescent; },
     bestFor(m) { return bestFor(m); },
     menu() { return KIT ? KIT.menu.current() : null; },
     get chargeLevel() { return chargeLevel; },
@@ -1216,7 +1222,7 @@
     snap(px, py) { return snapToGrid(px, py); },
 
     start() { startMode('arcade'); },
-    startMode(m) { startMode(m); },
+    startMode(m, timed) { startMode(m, timed); },
 
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
 

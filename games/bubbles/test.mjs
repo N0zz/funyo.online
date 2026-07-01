@@ -130,6 +130,15 @@ section('Bubble Pop: startMode');
   ok(T2().mode === 'zen', 'mode is zen');
   T2().startMode('arcade');
   ok(T2().mode === 'arcade', 'startMode(arcade) mode is arcade');
+  // time-based descent toggle: applies to arcade/endless, ignored in zen
+  T2().startMode('arcade', true);
+  ok(T2().timed === true, 'startMode(arcade, timed) turns on time-based descent');
+  T2().startMode('arcade', false);
+  ok(T2().timed === false, 'startMode(arcade) defaults to shot-based descent');
+  T2().startMode('endless', true);
+  ok(T2().timed === true, 'time-based descent also applies to endless');
+  T2().startMode('zen', true);
+  ok(T2().timed === false, 'zen ignores the toggle (never descends)');
 }
 
 section('Bubble Pop: grid getter');
