@@ -89,7 +89,7 @@
   .badge .spk:nth-child(3){ left:-5px; top:5px; animation:spk 2.3s .6s ease-in-out infinite; }
   .badge .spk:nth-child(4){ left:42%; top:13px; animation:spk 2s 1.1s ease-in-out infinite; }
   @keyframes badgeShine { to { background-position:220% 0; } }
-  @keyframes spk { 0%,100%{ opacity:0; transform:scale(.3); } 50%{ opacity:1; transform:scale(1.25); } }
+  @keyframes spk { 0%,100%{ opacity:0; transform:scale(.3); } 50%{ opacity:.5; transform:scale(1.1); } } /* 50% less sparkly */
   @media (prefers-reduced-motion: reduce){ .badge b{ animation:none; } .badge .spk{ display:none; } }
   /* local-multiplayer indicator (player count) */
   .players { position:absolute; left:10px; bottom:10px; z-index:2; font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:1px;
@@ -237,6 +237,7 @@
   .cl-items li { font-size:15px; color:var(--muted); line-height:1.6; }
   .cl-sep { border:none; border-top:1px solid var(--border); width:100%; margin:2px 0; }
   .cl-empty { color:var(--muted); font-size:14px; padding:16px 0; text-align:center; }
+  .cl-list mark { background:rgba(159,232,255,0.24); color:inherit; border-radius:3px; padding:0 2px; }
   .fb-form { padding:20px; display:flex; flex-direction:column; gap:11px; }
   .fb-form h3 { margin:0; font-family:var(--mono); letter-spacing:2px; font-size:16px; }
   .fb-intro { margin:0 0 4px; color:var(--muted); font-size:13px; }
@@ -635,7 +636,7 @@
   <dialog id="nameModal">
     <form class="fb-form" id="nameForm">
       <h3>👋 Welcome to Komyo Games</h3>
-      <p class="fb-intro">Pick a display name (optional) — it shows when you post a score to our Discord. Leave it blank to stay <b>anonymous</b>.</p>
+      <p class="fb-intro">Pick a display name (optional) — it shows when you post a score to our Discord. Leave it blank for a <b>random nickname</b> (like “Sneaky Otter”).</p>
       <div>
         <label for="nameInput">Display name</label>
         <input id="nameInput" type="text" maxlength="24" placeholder="e.g. FoxFan99" autocomplete="off">
@@ -688,6 +689,8 @@
       <p class="faq-a">Komyo Games is <b>source-available</b> under <b>PolyForm Noncommercial 1.0.0</b> — free to read, use and tinker with for any <b>non-commercial</b> purpose; commercial use isn't permitted. <a href="https://github.com/N0zz/komyo.online/blob/main/LICENSE" target="_blank" rel="noopener">Read the full license</a>.</p>
       <div class="faq-q">Privacy</div>
       <p class="faq-a">No accounts and no server storing your data — your game data stays on your device. The only third-party tracking is Google Analytics, loaded only if you accept cookies. <a href="privacy.html" target="_blank" rel="noopener">Read the full privacy policy</a>.</p>
+      <div class="faq-q">Terms</div>
+      <p class="faq-a">Free to play, no accounts, provided as-is for fun. Play fair and keep any display name you share respectful. <a href="tos.html" target="_blank" rel="noopener">Read the full terms of service</a>.</p>
     </div>
   </dialog>
 
@@ -1230,21 +1233,25 @@
       const modal = document.getElementById('clModal'), list = document.getElementById('clList');
       const search = document.getElementById('clSearch'), btn = document.getElementById('changelogBtn'), closeBtn = document.getElementById('clClose');
       if (!modal || !list || !modal.showModal) return;
-      const PAGE = 3; let shown = 0, filtered = CHANGELOG.slice();
+      const PAGE = 3; let shown = 0, filtered = CHANGELOG.slice(), curQ = '';
+      const hl = s => curQ ? String(s).replace(new RegExp('(' + curQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>') : s;
       const more = () => {
         filtered.slice(shown, shown + PAGE).forEach((rel, k) => {
           if (shown + k > 0) { const hr = document.createElement('hr'); hr.className = 'cl-sep'; list.appendChild(hr); }
           const b = document.createElement('div'); b.className = 'cl-rel';
-          b.innerHTML = '<div class="cl-relhead"><span class="cl-date">' + rel.date + '</span> — <span class="cl-title">' + rel.title + '</span></div>'
-            + '<ul class="cl-items">' + rel.items.map(it => '<li>' + it + '</li>').join('') + '</ul>';
+          // with a query, narrow to the matching bullets (unless the date/title matched → show all)
+          let items = rel.items;
+          if (curQ && !(rel.date + ' ' + rel.title).toLowerCase().includes(curQ)) { const mi = items.filter(it => it.toLowerCase().includes(curQ)); if (mi.length) items = mi; }
+          b.innerHTML = '<div class="cl-relhead"><span class="cl-date">' + rel.date + '</span> — <span class="cl-title">' + hl(rel.title) + '</span></div>'
+            + '<ul class="cl-items">' + items.map(it => '<li>' + hl(it) + '</li>').join('') + '</ul>';
           list.appendChild(b);
         });
         shown = Math.min(shown + PAGE, filtered.length);
       };
       const fill = () => { let g = 0; do { more(); } while (shown < filtered.length && list.scrollHeight <= list.clientHeight && g++ < 60); };
       const reset = () => {
-        const q = ((search && search.value) || '').trim().toLowerCase();
-        filtered = CHANGELOG.filter(r => !q || (r.date + ' ' + r.title + ' ' + r.items.join(' ')).toLowerCase().includes(q));
+        curQ = ((search && search.value) || '').trim().toLowerCase();
+        filtered = CHANGELOG.filter(r => !curQ || (r.date + ' ' + r.title + ' ' + r.items.join(' ')).toLowerCase().includes(curQ));
         shown = 0; list.innerHTML = '';
         if (!filtered.length) { const em = document.createElement('div'); em.className = 'cl-empty'; em.textContent = 'No changes match.'; list.appendChild(em); return; }
         fill();
