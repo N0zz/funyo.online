@@ -373,14 +373,14 @@
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'NEON SNAKE', backdrop: menuBackdrop, backdropAnimate: true,
       groups: [
         { id: 'walls', label: 'WALLS', style: 'cards', default: opts.walls, choices: [
-          { id: 'solid', label: 'Solid walls', mech: ['Classic'], preview: (g, w, h) => pvWall(g, w, h, false) },
-          { id: 'wrap', label: 'Wrap-around', mech: ['No edges'], preview: (g, w, h) => pvWall(g, w, h, true) },
+          { id: 'solid', label: 'Solid walls', mech: ['Classic'], best: st => comboBest({ walls: 'solid', speed: st.speed, size: st.size }), preview: (g, w, h) => pvWall(g, w, h, false) },
+          { id: 'wrap', label: 'Wrap-around', mech: ['No edges'], best: st => comboBest({ walls: 'wrap', speed: st.speed, size: st.size }), preview: (g, w, h) => pvWall(g, w, h, true) },
         ] },
         { id: 'speed', label: 'SPEED', style: 'slider', default: opts.speed, choices: [ { id: 'slow', label: 'Slow' }, { id: 'normal', label: 'Normal' }, { id: 'fast', label: 'Fast' } ] },
         { id: 'size', label: 'BOARD', default: opts.size, choices: [ { id: 'small', label: 'Small' }, { id: 'medium', label: 'Medium' }, { id: 'large', label: 'Large' } ] },
       ],
       actions: [{ id: 'play', label: 'PLAY', primary: true }],
-      hint: st => { const b = comboBest({ walls: st.walls, speed: st.speed, size: st.size }); return (b > 0 ? 'Best ' + b + ' · ' : '') + 'Arrows / WASD · swipe · on-screen D-pad on phones.'; },
+      hint: () => 'Arrows / WASD · swipe · on-screen D-pad on phones.',
       onChange: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); best = loadBest(); if (bestEl) bestEl.textContent = best; KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); },
       onPlay: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); startGame(); },
     });
