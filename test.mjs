@@ -163,7 +163,7 @@ function testCatalogue() {
     ok(!h.includes('×' + grp(1) + '</i>'), 'no ×1 noise anywhere');
     ok(h.includes('01:32.00'), 'a Speedrun mode shows its record as time (mm:ss.cs), not points');
     ok(h.includes('📅 Since'), 'playing-since is surfaced in the highlights');
-    ok((g.getEl('pfTitle').textContent || '').includes('My profile'), 'modal header is a plain "My profile" (identity lives in the box below)');
+    ok(h.includes('pf-titlebar'), 'the identity box is the top element (no separate header)');
     // (2) singular labels — the "1 DAYS" bug
     for (const k of Object.keys(g.store)) if (k.indexOf('gamekit_') === 0) delete g.store[k];
     g.store['gamekit_pb'] = JSON.stringify({ snake: { 'Classic': { score: 5, time: 0, plays: 1, stats: {} } } });

@@ -186,7 +186,8 @@
   #fbModal, #nlModal, #clModal, #aboutModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal, #profileModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
   #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop, #profileModal::backdrop { background:rgba(5,8,13,0.66); }
   #profileModal { width:min(760px,95vw); }
-  .about.profile { max-height:88vh; display:flex; flex-direction:column; overflow:hidden; }
+  .about.profile { max-height:88vh; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+  .pf-x { position:absolute; top:12px; right:12px; z-index:10; }
   #profileBody { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; overflow:hidden; }
   .pf-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; }
   /* about modal */
@@ -242,7 +243,7 @@
   .pf-share button { width:100%; padding:11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:600; cursor:pointer; }
   .pf-share button:hover { border-color:#9fe8ff; }
   /* ---- earned title (lifetime challenge points) — escalating shine, tier 0→8 ---- */
-  .pf-titlebar { position:relative; overflow:hidden; display:flex; align-items:center; gap:11px; padding:12px 14px; margin-bottom:12px; border:1px solid var(--border); border-radius:13px; background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent),var(--surface); }
+  .pf-titlebar { position:relative; overflow:hidden; display:flex; align-items:center; gap:11px; padding:12px 42px 12px 14px; margin-bottom:12px; border:1px solid var(--border); border-radius:13px; background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent),var(--surface); }
   .pf-tb-emoji { font-size:22px; position:relative; z-index:2; }
   .pf-tb-main { position:relative; z-index:2; display:flex; flex-direction:column; gap:4px; min-width:0; }
   .pf-title { position:relative; font-size:18px; line-height:1.15; }
@@ -794,7 +795,7 @@
 
   <dialog id="profileModal">
     <div class="about profile">
-      <div class="cl-head"><h3 id="pfTitle">👤 My profile</h3><button type="button" class="dx" id="profileClose" aria-label="Close">✕</button></div>
+      <button type="button" class="dx pf-x" id="profileClose" aria-label="Close">✕</button>
       <div id="profileBody"></div>
     </div>
   </dialog>
@@ -1516,7 +1517,6 @@
       function render() {
         const p = (K && K.profile) ? K.profile() : null;
         const who = (K && K.player) ? K.player() : 'anonymous';
-        const titleEl = document.getElementById('pfTitle');
         // lifetime challenge points → earned title (points never reset)
         let chPts = 0, chDone = 0;
         try { const d = JSON.parse(localStorage.getItem('gamekit_done') || '{}'); for (const k in d) chPts += (d[k] | 0); } catch (e) {}
@@ -1524,8 +1524,7 @@
         const TT = (window.CHALLENGES && window.CHALLENGES.titleFor) ? window.CHALLENGES.titleFor(chPts) : { tier: 0, emoji: '🎖️', title: '' };
         let sinceStr = '';
         if (p && p.since) { try { sinceStr = new Date(p.since).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }); } catch (e) {} }
-        // the modal title stays a plain header — identity (name + title) lives in the full-width box below
-        if (titleEl) { titleEl.className = ''; titleEl.textContent = '👤 My profile'; }
+        // identity (title + name) is the full-width box at the very top — no separate header
         // full-width identity box: title + username together (both shined to the tier), points on the right;
         // shown in both empty + populated states; particles for the shiny tiers (3+)
         const tb = '<div class="pf-titlebar pf-t' + TT.tier + '">'
