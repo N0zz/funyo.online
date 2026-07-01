@@ -441,6 +441,37 @@ section('Bubble Pop: descent shape + landing snap');
   ok(!occupied, 'snap never returns an occupied cell');
 }
 
+// ---- Ceiling glue: a shot up an empty column sticks to the (descended) top row ----
+// Regression for "bubbles don't glue to the ceiling": once the board has descended, the top
+// ROW sits below the fixed visual ceiling. A shot into the empty gap must stop at the top row
+// (gridY(0)), not fly up to the ceiling and teleport back down (which read as "disappears").
+section('Bubble Pop: shot glues to the descended top row, not the fixed ceiling');
+{
+  const g6 = runGame();
+  const T6 = g6.T;
+  T6().startMode('arcade', false);
+  T6().clearGrid();
+  T6().setGridCell(0, 0, 0);        // a left anchor so the board isn't empty (and shot's center column stays clear)
+  T6().forceDescend();
+  T6().forceDescend();              // push the top row well below the ceiling
+  const R = T6().layout.R;
+  const ceiling = T6().layout.walls.ceiling;
+  const topRowY = T6().cellY(0);    // gridY(0) — descended top-row center
+  ok(topRowY > ceiling + R, 'setup: descent put the top row below the ceiling (topRowY=' + topRowY.toFixed(1) + ', ceiling=' + ceiling.toFixed(1) + ')');
+
+  const before = T6().bubbleCount;
+  T6().setShotColor(1);             // different color → attaches, no pop
+  T6().aimAngle(-Math.PI / 2);      // straight up the center column (clear of the col-0 anchor)
+  T6().shoot();
+  let lastY = null;
+  for (let i = 0; i < 250 && T6().isShooting; i++) { if (T6().shot) lastY = T6().shot.y; T6().step(1); }
+
+  ok(T6().bubbleCount === before + 1, 'shot attached (count +1) — did not vanish (' + before + ' -> ' + T6().bubbleCount + ')');
+  ok(lastY != null && lastY >= topRowY - R, 'shot stopped at the descended top row, not the fixed ceiling (lastY=' + (lastY == null ? 'null' : lastY.toFixed(1)) + ', topRowY=' + topRowY.toFixed(1) + ')');
+  const inTopRow = (T6().grid[0] || []).some((ci, c) => ci === 1);
+  ok(inTopRow, 'the new bubble glued into the top row (row 0)');
+}
+
 // ---- Summary ----
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);

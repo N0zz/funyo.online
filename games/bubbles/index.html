@@ -693,7 +693,7 @@
       if (x <= left) { x = left; vx = Math.abs(vx); }
       if (x >= right) { x = right; vx = -Math.abs(vx); }
       points.push([x, y]);
-      if (y < ceilTop() + R) break;
+      if (y < gridY(0)) break;
     }
     return points;
   }
@@ -845,9 +845,13 @@
       if (shotBubble.x <= fb.left + R) { shotBubble.x = fb.left + R; shotBubble.vx = Math.abs(shotBubble.vx); }
       if (shotBubble.x >= fb.right - R) { shotBubble.x = fb.right - R; shotBubble.vx = -Math.abs(shotBubble.vx); }
 
-      // Hit ceiling → attach to the top row (the ceiling doesn't bounce)
-      if (shotBubble.y <= ceilTop() + R) {
-        landBubble(shotBubble.x, ceilTop() + R);
+      // Hit the top of the grid → glue to the top row. The glue line is the top ROW
+      // (gridY(0)), which sits gridOffsetY below the fixed ceiling once the board has
+      // descended — attaching there stops the bubble right at the top row instead of
+      // teleporting it down from the visual ceiling (and never floats it in the gap above).
+      const topY = gridY(0);
+      if (shotBubble.y <= topY) {
+        landBubble(shotBubble.x, topY);
         return;
       }
 
