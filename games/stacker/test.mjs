@@ -224,18 +224,20 @@ while (T5().state === 'playing' && g5Guard++ < 300) { T5().step(3); T5().drop();
 // After game over, state should be 'over' (setTimeout for overlay is no-op in sandbox)
 ok(T5().state === 'over', 'state is "over" after miss (got ' + T5().state + ')');
 
-section('restart from game-over via Space/Enter (handleDrop in state over)');
+section('game-over: Space no longer restarts (menu Play does); startMode restarts');
 const g6 = runStacker();
 g6.test().start();
 const T6 = () => g6.test();
 let g6Guard = 0;
 while (T6().state === 'playing' && g6Guard++ < 300) { T6().step(3); T6().drop(); }
 ok(T6().state === 'over', 'reached game-over state');
-// Fire the keydown handler simulating Space press
+// Space is now ignored outside play (restart is via the kit end menu's Play Again)
 g6.handlers['keydown']?.forEach(fn => fn({ key: ' ', preventDefault() {} }));
-ok(T6().state === 'playing', 'Space in state "over" restarts the game (got ' + T6().state + ')');
-ok(T6().blocks === 0, 'blocks reset to 0 on restart from over');
-ok(T6().score === 0, 'score reset to 0 on restart from over');
+ok(T6().state === 'over', 'Space in state "over" no longer restarts (got ' + T6().state + ')');
+T6().startMode('classic');
+ok(T6().state === 'playing', 'startMode restarts the game');
+ok(T6().blocks === 0, 'blocks reset to 0 on restart');
+ok(T6().score === 0, 'score reset to 0 on restart');
 
 // ---- Mode: Time Attack ----
 
@@ -318,35 +320,31 @@ ok(gi.store['stacker_best_zen'] != null, 'zen key set after zen session');
 ok(gi.store['stacker_best_classic'] !== gi.store['stacker_best_zen'] || true,
   'classic and zen keys are distinct (both exist)');
 
-// ---- Menu: per-mode best scores ----
+// ---- Menu (gamekit.menu) ----
 
-section('Menu — shows best per mode on boot');
+section('Menu — kit start menu open on boot; best(mode) exposed');
 const gm = runStacker();
 const TM = () => gm.test();
-ok(typeof TM().refreshMenuBests === 'function', 'exposes refreshMenuBests()');
-ok(TM().menuBest('classic') === 'best: 0', 'classic best line = "best: 0" on fresh boot (got ' + TM().menuBest('classic') + ')');
-ok(TM().menuBest('time') === 'best: 0', 'time best line = "best: 0" on fresh boot');
-ok(TM().menuBest('zen') === 'best: 0', 'zen best line = "best: 0" on fresh boot');
+ok(TM().menu() != null, 'start menu (gamekit.menu) is open on boot');
+ok(typeof TM().best === 'function', 'exposes best(mode)');
+ok(TM().best('classic') === 0 && TM().best('time') === 0 && TM().best('zen') === 0, 'all bests 0 on fresh boot');
 
-section('Menu — best lines reflect persisted scores after refresh');
+section('Menu — best(mode) reflects persisted scores');
 const gm2 = runStacker();
 gm2.store['stacker_best_classic'] = '42';
 gm2.store['stacker_best_zen'] = '7';
 const TM2 = () => gm2.test();
-TM2().refreshMenuBests();
-ok(TM2().menuBest('classic') === 'best: 42', 'classic best line reflects stored 42 (got ' + TM2().menuBest('classic') + ')');
-ok(TM2().menuBest('zen') === 'best: 7', 'zen best line reflects stored 7 (got ' + TM2().menuBest('zen') + ')');
-ok(TM2().menuBest('time') === 'best: 0', 'time best line still 0 (got ' + TM2().menuBest('time') + ')');
+ok(TM2().best('classic') === 42, 'classic best = 42 from storage (got ' + TM2().best('classic') + ')');
+ok(TM2().best('zen') === 7, 'zen best = 7 from storage (got ' + TM2().best('zen') + ')');
+ok(TM2().best('time') === 0, 'time best still 0');
 
-section('Menu — best line updates after a play raises the best');
+section('Menu — best rises after a play');
 const gm3 = runStacker();
 const TM3 = () => gm3.test();
 TM3().startMode('classic');
 for (let i = 0; i < 6; i++) TM3().dropPerfect();
 const playedScore = TM3().score;
-TM3().refreshMenuBests();
-ok(TM3().menuBest('classic') === 'best: ' + playedScore,
-  'classic best line shows the just-played score ' + playedScore + ' (got ' + TM3().menuBest('classic') + ')');
+ok(TM3().best('classic') === playedScore, 'classic best reflects the just-played score ' + playedScore + ' (got ' + TM3().best('classic') + ')');
 
 // ---- Layout: fits the screen across viewports ----
 

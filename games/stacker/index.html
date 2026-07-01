@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
 <script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #b8d4f0; font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
@@ -23,33 +24,7 @@
   #hud .stat b { color: #ede4ff; font-size: 18px; }
   #combo { position: fixed; top: 56px; left: 50%; transform: translateX(-50%); z-index: 5;
     font-size: 13px; color: #e06ab0; font-weight: bold; letter-spacing: 2px; opacity: 0; transition: opacity 0.2s; }
-  #overlay { position: fixed; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; text-align: center; gap: 16px; background: rgba(180,210,248,0.88); padding: 24px; }
-  #overlay.hidden { display: none; }
-  #overlay h1 { margin: 0; font-size: 52px; letter-spacing: 3px; color: #6a3fa8; }
-  #overlay .sub { font-size: 16px; color: #5a3a8a; opacity: 0.9; max-width: 360px; line-height: 1.5; }
-  #overlay .hint { font-size: 13px; color: #7a5aaa; opacity: 0.7; }
-  #overlay button { font-family: inherit; cursor: pointer; font-size: 16px; letter-spacing: 1px;
-    padding: 12px 32px; border-radius: 24px; color: #fff;
-    background: linear-gradient(135deg, #c084fc, #818cf8); border: none;
-    box-shadow: 0 4px 16px rgba(160,100,240,0.35); }
-  #overlay .score-display { font-size: 42px; font-weight: bold; color: #8a4fbf; }
-  #overlay .best-display { font-size: 15px; color: #7a5aaa; }
-  .mode-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-  .mode-btn { position: relative; font-family: inherit; cursor: pointer; font-size: 14px; letter-spacing: 1px;
-    padding: 10px 22px 10px 22px; border-radius: 20px; border: 2px solid rgba(160,100,240,0.4);
-    background: rgba(255,255,255,0.55); color: #6a3fa8; font-weight: 600;
-    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s; }
-  .mode-btn:hover { border-color: rgba(160,100,240,0.7); }
-  .mode-btn.active { background: linear-gradient(135deg, #c084fc, #818cf8); border-color: #6a3fa8;
-    color: #fff; box-shadow: 0 0 0 3px rgba(160,100,240,0.35), 0 4px 16px rgba(160,100,240,0.45);
-    transform: translateY(-1px); padding-left: 32px; }
-  .mode-btn.active::before { content: '✓'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-    font-size: 13px; font-weight: 700; }
-  .mode-desc { font-size: 12px; color: #7a5aaa; opacity: 0.75; min-height: 18px; }
-  .mode-btn .mbest { display: block; font-size: 10px; font-weight: 600; letter-spacing: 1px;
-    opacity: 0.7; margin-top: 3px; }
-  #shareRow { --gamekit-accent: #a064f0; }
+  /* start / pause / end screens now come from the shared gamekit.menu (see MENU_THEME below) */
 
   /* Portrait: kit HUD drops to top:50px — push the combo banner below it */
   @media (max-width: 560px) {
@@ -67,28 +42,11 @@
 </div>
 <div id="combo"></div>
 
-<div id="overlay">
-  <h1>STACK</h1>
-  <p class="sub">Tap to drop the block.<br>Stack perfectly for a bonus!</p>
-  <div class="mode-btns">
-    <button class="mode-btn active" id="btn-classic">Classic<span class="mbest" id="mbest-classic"></span></button>
-    <button class="mode-btn" id="btn-time">Time Attack<span class="mbest" id="mbest-time"></span></button>
-    <button class="mode-btn" id="btn-zen">Zen<span class="mbest" id="mbest-zen"></span></button>
-  </div>
-  <p class="mode-desc" id="mode-desc">Endless — stack as high as you can</p>
-  <div class="mode-btns" id="theme-btns">
-    <button class="mode-btn active" id="btn-theme-light">Light</button>
-    <button class="mode-btn" id="btn-theme-dark">Dark</button>
-  </div>
-  <p class="hint">Tap · Click · Space · Enter</p>
-  <button id="startBtn">Play</button>
-</div>
-
 <script>
 (() => {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const overlay = document.getElementById('overlay');
+  const KIT = window.gamekit;
   const comboEl = document.getElementById('combo');
   const timerStat = document.getElementById('timer-stat');
   const timerEl = document.getElementById('timer');
@@ -114,8 +72,6 @@
     time:    { perfectTol: 6,  regrow: 4,  initSpeed: 4.5, speedRamp: 0.35, speedCap: 10, timeLimit: 60, storageKey: 'stacker_best_time',    label: 'Time Attack',  desc: '60 seconds — stack as many as possible' },
     zen:     { perfectTol: 14, regrow: 6,  initSpeed: 2.2, speedRamp: 0.10, speedCap: 5,  timeLimit: 0,  storageKey: 'stacker_best_zen',     label: 'Zen',          desc: 'Relaxed — slow speed, wide perfect zone' },
   };
-
-  const MODE_DESCS = { classic: 'Endless — stack as high as you can', time: '60 seconds — stack as many as possible', zen: 'Relaxed — slow speed, wide perfect zone' };
 
   // ---- Theme ----
   const HUES = [348, 20, 45, 80, 150, 190, 220, 260, 290, 320];
@@ -283,88 +239,101 @@
   function gameOver(reason) {
     state = 'over';
     SND.play(reason === 'time' ? 'timeup' : 'over');
-    saveBest();
-    window.gamekit.recordResult('stacker', { mode: mode, score: score });
-    setTimeout(() => showOverlay('over'), 400);
-  }
-
-  function showOverlay(type) {
-    overlay.classList.remove('hidden');
-    if (type === 'over') {
-      const best = currentBest();
-      const modeName = MODE_CFG[mode].label;
-      overlay.innerHTML = `
-        <h1>OOPS!</h1>
-        <div style="font-size:13px;color:#7a5aaa;opacity:0.7;letter-spacing:1px">${modeName.toUpperCase()}</div>
-        <div class="score-display">${score}</div>
-        <div class="best-display">Best: ${best}</div>
-        <button id="restartBtn">Play Again</button>
-        <div id="shareRow"></div>`;
-      document.getElementById('restartBtn').addEventListener('click', () => startGameMode(mode));
-      const finalScore = score;
-      window.gamekit.shareRow(document.getElementById('shareRow'), {
-        slug: 'stacker', title: 'Stack',
-        message: () => window.gamekit.shareText({ verb: 'I stacked', score: finalScore, unit: 'high', game: 'Stack', emoji: '🧊', mode: MODE_CFG[mode].label }),
-        params: () => ({ mode: mode }),
-      });
-    }
+    const prevBest = currentBest(); saveBest(); const isBest = score > prevBest;
+    KIT.recordResult('stacker', { mode: mode, score: score });
+    setTimeout(() => showEnd(reason, isBest), 400);
   }
 
   function startGameMode(m) {
-    mode = m || 'classic';
+    mode = m || 'classic'; selectedMode = mode;
     state = 'playing';
-    overlay.classList.add('hidden');
-    window.gamekit.showMenuButton(true);
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     resetGame();
   }
+  function startGame() { startGameMode('classic'); } // back-compat: start() = classic
 
-  // Keep backward compat: start() = classic
-  function startGame() { startGameMode('classic'); }
-
-  // ---- Mode picker UI ----
+  // ---- Theme (light/dark) — driven by the menu's THEME selector (no separate buttons) ----
   let selectedMode = 'classic';
-  const modeDescEl = document.getElementById('mode-desc');
+  function selectTheme(t) { theme = (t === 'dark') ? 'dark' : 'light'; localStorage.setItem('stacker_theme', theme); applyTheme(); }
+  selectTheme(theme); // apply saved theme on boot
+  { const pm = KIT && KIT.param && KIT.param('mode'); if (MODE_CFG[pm]) selectedMode = pm; }          // deep-link ?mode=
+  { const pt = KIT && KIT.param && KIT.param('theme'); if (pt === 'dark' || pt === 'light') selectTheme(pt); } // deep-link ?theme=
 
-  function selectMode(m) {
-    selectedMode = m;
-    ['classic', 'time', 'zen'].forEach(id => {
-      const btn = document.getElementById('btn-' + id);
-      if (btn) btn.classList.toggle('active', id === m);
+  // ---- shared menus (gamekit.menu) — pastel theme; a leaning-tower backdrop that follows light/dark ----
+  const MENU_THEME = { accent: '#c084fc', glow: '0 0 20px rgba(192,132,252,0.45)', bg: 'rgba(34,26,44,0.72)',
+    border: 'rgba(192,132,252,0.32)', overlay: 'rgba(20,16,30,0.5)', title: '#e0b8ff', 'on-accent': '#180f22', 'accent-soft': 'rgba(192,132,252,0.18)' };
+  // menu art reads the theme from the menu STATE the kit passes in (so Light/Dark updates instantly),
+  // not the global `theme` (which onChange updates only after the kit has already repainted)
+  function skyTheme(st) { return THEMES[(st && st.theme) || theme]; }
+  function blkC(layer, t) { return `hsl(${HUES[layer % HUES.length]}, ${t.blockS}%, ${t.blockL}%)`; }
+  function blkS(layer, t) { return `hsl(${HUES[layer % HUES.length]}, ${t.strokeS}%, ${t.strokeL}%)`; }
+  // draw a real Stack tower bottom-up: each block sits within the one below and NARROWS on an
+  // imperfect drop (the overhang is sliced off), flush-alternating left/right → a zig-zag taper.
+  // `shrinks[i]` = px lost at layer i (0 = a perfect drop that keeps the width).
+  function drawTower(g, t, x0, bw0, yBase, n, blockH, gapY, shrinks, down, c0) {
+    c0 = c0 || 0; let bw = bw0, bx = x0;
+    for (let i = 0; i < n; i++) {
+      const y = down ? yBase + i * gapY : yBase - i * gapY;
+      g.fillStyle = blkC(c0 + i, t); g.strokeStyle = blkS(c0 + i, t); g.lineWidth = 1.5;
+      roundRect(g, bx, y, bw, blockH, 4); g.fill(); g.stroke();
+      g.fillStyle = 'rgba(255,255,255,0.32)'; roundRect(g, bx + 3, y + 2, Math.max(2, bw - 6), Math.min(5, blockH - 4), 2); g.fill();
+      const s = shrinks[i % shrinks.length], nbw = Math.max(bw0 * 0.28, bw - s);
+      bx = (i % 2 === 0) ? bx : bx + (bw - nbw); // flush-alternate so it zig-zags as it tapers
+      bw = nbw;
+    }
+  }
+  function menuBackdrop(g, w, h, st) {
+    const t = skyTheme(st); const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, t.skyTop); gr.addColorStop(1, t.skyBot); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    const bwL = Math.min(120, w * 0.32); // left tower rising from the floor
+    drawTower(g, t, w * 0.2 - bwL / 2, bwL, h - 30, 11, 24, 26, [0, 8, 0, 12, 6, 0, 10, 5, 9, 0, 7], false, 0);
+    const bwR = Math.min(96, w * 0.26);  // right tower hanging from the ceiling, tapering downward
+    drawTower(g, t, w * 0.8 - bwR / 2, bwR, -8, 8, 24, 26, [0, 11, 5, 0, 9, 6, 8, 4], true, 5);
+  }
+  function pvMode(g, w, h, variant, st) {
+    const t = skyTheme(st); const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, t.skyTop); gr.addColorStop(1, t.skyBot); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    const bw0 = variant === 'zen' ? w * 0.52 : w * 0.42; // zen keeps blocks wide (forgiving), so it barely tapers
+    const shrinks = variant === 'zen' ? [0, 3, 0, 2, 0] : [0, 8, 5, 10, 6];
+    drawTower(g, t, w / 2 - bw0 / 2, bw0, h - 12, 5, 10, 11, shrinks);
+    if (variant === 'time') { g.strokeStyle = '#e0a020'; g.lineWidth = 2.5; g.beginPath(); g.arc(w - 16, 15, 9, -1.3, 3.3); g.stroke(); g.beginPath(); g.moveTo(w - 16, 15); g.lineTo(w - 16, 9); g.stroke(); }
+    if (variant === 'zen') { g.fillStyle = (((st && st.theme) || theme) === 'dark') ? '#a8e878' : '#6a3fa8'; g.font = '700 15px system-ui'; g.fillText('z', w - 20, 20); g.font = '700 11px system-ui'; g.fillText('z', w - 13, 14); }
+  }
+  const menuParams = st => (st.theme && st.theme !== 'light') ? { mode: st.mode, theme: st.theme } : { mode: st.mode };
+  function showStartMenu() {
+    state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'STACK', backdrop: menuBackdrop,
+      groups: [
+        { id: 'mode', label: 'MODE', style: 'cards', default: selectedMode, choices: [
+          { id: 'classic', label: 'Classic',    mech: ['Endless', 'High score'], best: () => getBest('classic'), preview: (g, w, h, st) => pvMode(g, w, h, 'classic', st) },
+          { id: 'time',    label: 'Time Attack', mech: ['60 seconds'],            best: () => getBest('time'),    preview: (g, w, h, st) => pvMode(g, w, h, 'time', st) },
+          { id: 'zen',     label: 'Zen',         mech: ['Slow', 'Forgiving'],     best: () => getBest('zen'),     preview: (g, w, h, st) => pvMode(g, w, h, 'zen', st) },
+        ] },
+        { id: 'theme', label: 'THEME', default: theme, choices: [ { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' } ] },
+      ],
+      actions: [{ id: 'play', label: 'Play', primary: true }],
+      hint: () => 'Tap / click / Space to drop the block.',
+      onChange: st => { selectedMode = st.mode; if (st.theme !== theme) selectTheme(st.theme); KIT.stampUrl(menuParams(st)); },
+      onPlay: st => { selectTheme(st.theme); KIT.stampUrl(menuParams(st)); startGameMode(st.mode); },
     });
-    if (modeDescEl) modeDescEl.textContent = MODE_DESCS[m] || '';
+    KIT.stampUrl(menuParams({ mode: selectedMode, theme: theme }));
   }
-
-  ['classic', 'time', 'zen'].forEach(m => {
-    const btn = document.getElementById('btn-' + m);
-    if (btn) btn.addEventListener('click', e => { e.stopPropagation(); selectMode(m); });
-  });
-
-  // Per-mode best scores under each mode button (refreshed whenever the menu shows)
-  function refreshMenuBests() {
-    ['classic', 'time', 'zen'].forEach(m => {
-      const el = document.getElementById('mbest-' + m);
-      if (el) el.textContent = 'best: ' + getBest(m);
-    });
+  function shareMsg() { return KIT.shareText({ verb: 'I stacked', score: score, unit: 'high', game: 'Stack', emoji: '🧊', mode: MODE_CFG[mode].label }); }
+  function showEnd(reason, isBest) {
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: reason === 'time' ? "TIME'S UP!" : 'OOPS!', backdrop: menuBackdrop,
+      score: score, best: currentBest(), newBest: isBest, lines: [MODE_CFG[mode].label],
+      share: { slug: 'stacker', title: 'Stack', message: () => shareMsg(), params: () => menuParams({ mode: mode, theme: theme }) },
+      actions: [ { id: 'again', label: 'Play Again', primary: true }, { id: 'menu', label: 'Menu' } ],
+      onAction: id => { if (id === 'again') startGameMode(mode); else if (id === 'menu') toMenu(); } });
   }
-  refreshMenuBests();
-  selectMode(selectedMode); // make the default-selected mode obvious on load
-  { const pm = window.gamekit && window.gamekit.param && window.gamekit.param('mode'); if (MODE_CFG[pm]) selectMode(pm); } // deep-link ?mode=
-
-  // ---- Theme picker UI ----
-  function selectTheme(t) {
-    theme = (t === 'dark') ? 'dark' : 'light';
-    localStorage.setItem('stacker_theme', theme);
-    const lb = document.getElementById('btn-theme-light');
-    const db = document.getElementById('btn-theme-dark');
-    if (lb) lb.classList.toggle('active', theme === 'light');
-    if (db) db.classList.toggle('active', theme === 'dark');
-    applyTheme();
+  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED', lines: ['Score ' + score],
+      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
   }
-  document.getElementById('btn-theme-light')?.addEventListener('click', e => { e.stopPropagation(); selectTheme('light'); });
-  document.getElementById('btn-theme-dark')?.addEventListener('click', e => { e.stopPropagation(); selectTheme('dark'); });
-  selectTheme(theme); // apply saved theme on boot + sync button state
-
-  document.getElementById('startBtn').addEventListener('click', () => startGameMode(selectedMode));
+  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
+  function toMenu() { saveBest(); if (KIT) KIT.menu.hide(); showStartMenu(); }
 
   // ---- Particles ----
   function spawnParticles(cx, cy, n, color) {
@@ -542,13 +511,13 @@
   }
   window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
-  // ---- Input ----
-  function handleDrop() { if (state === 'playing') drop(); else if (state === 'ready' || state === 'over') startGameMode(selectedMode); }
+  // ---- Input ---- (start/restart come from the menu's Play; canvas taps only drop while playing)
+  function handleDrop() { if (state === 'playing') drop(); }
 
   canvas.addEventListener('pointerdown', handleDrop);
-  overlay.addEventListener('pointerdown', e => { if (e.target === overlay) handleDrop(); });
   document.addEventListener('keydown', e => {
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); handleDrop(); }
+    if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); return; }
+    if (state === 'playing' && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); handleDrop(); }
   });
 
   // ---- Game loop ----
@@ -602,17 +571,25 @@
     // Expose for tests: force timeLeft (Time Attack sim)
     _setTimeLeft(v) { timeLeft = v; },
     _setTimeTick(v) { timeTick = v; },
-    // Expose for tests: per-mode best line shown in the menu
-    refreshMenuBests() { refreshMenuBests(); },
-    menuBest(m) { const el = document.getElementById('mbest-' + m); return el ? el.textContent : null; },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    best(m) { return getBest(m); },
+    pause() { pauseGame(); },
+    resume() { resumeGame(); },
+    toMenu() { toMenu(); },
   };
 
-  window.gamekit.nav({ reset: 'stacker_' });
-  window.gamekit.showMenuButton(false); // initial screen is the menu
+  KIT.nav({ reset: 'stacker_', home: '../../', theme: MENU_THEME, challenges: 'stacker', onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
+    controls: { title: 'Stack — Controls',
+      mouse: [ ['Click', 'Drop the block'] ],
+      keyboard: [ ['Space  ·  Enter', 'Drop the block'], ['Esc', 'Pause'] ],
+      touch: [ ['Tap', 'Drop the block'] ] } });
 
   resize();
   updateHud();
   loop();
+  showStartMenu(); // open the shared start menu (mode/theme preselected from ?mode= / ?theme=)
 })();
   window.gamekit.pwa();
 </script>
