@@ -20,58 +20,64 @@ challenges, tv-controller.
 
 ## 🚀 Path to launch (ordered)
 
-The one ordered track. Everything else in this file is unordered backlog feeding into it.
+Reprioritised **2026-07-01**. Foundations are done (kit menu, audio, profile/best-store, challenges, GA4,
+PWA, share, Discord auto-post). We're close — the real gates are **game count** + the **two external
+items** (mascot, privacy). The staged friends/family rollout is already trickling.
 
-- **Testers:** 3–4 active players (vote on games, test builds) + self-testing.
-- **Launch content bar: 15–20 games.** Have **9** live → add **~3–5 I pick** + **~3–5 the players
-  vote for** → launch.
-- **External gates (not on my clock):** the **real mascot** and the **privacy policy** are owned by
-  someone else; both can slip the date. Sequence around them.
+**External gates (not on my clock):** the **real mascot** and the **privacy policy** are owned by others —
+sequence around them.
 
-1. **`gamekit.menu` framework** *(prio #1 — before new games)* — all menus kit-controlled, defined
-   per game (declarative config → consistent behavior, easy to rebuild). Migrate all 9 live games onto
-   it without breaking the three-screen schema / deep-links / mode preselection; suites green + manual
-   pass. **~2 sessions.**
-2. **Knobs audit pass** — ✅ **DONE (2026-06-29)**, see the "Done" section above. (Asteroids+ still in
-   playtest; difficulty tiers parked.)
-3. **Staging environment (`staging.komyo.online`)** *(nice-to-have, infra — enables online testing for
-   everything below)* — a public staging site so testers hit the real thing, not just localhost.
-   GitHub Pages serves one site per repo, so the two routes are **(a)** a second repo mirrored to
-   `staging.komyo.online` via an Action (stays 100% GitHub-native), or **(b)** point the repo at
-   Netlify / Cloudflare Pages for free per-branch deploys + the subdomain (less plumbing, adds a
-   platform for staging only). **Must isolate staging's side effects:** `noindex` + robots disallow
-   (keep it out of Google), **no prod GA4** (separate property or off), **no prod Discord webhook**
-   (test webhook or off — don't spam real channels), **no real Kit signups** (test form or off). DNS:
-   `staging` CNAME → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
-4. **Build games to the bar** — ~3–5 I choose + ~3–5 player-voted, reaching 15–20; each via the
-   dev-process gate (design+mock → POC → MVP → 2–3 iterations). **When picking, weigh build+tuning cost:
-   bias toward low-tuning genres (puzzle / timing / arcade-skill) and AVOID balance-heavy ones (tower
-   defense, roguelite shooters)** — Keep Defender and Asteroids+ each ate many tuning cycles
-   (geometric HP, economy, snowball, drop rates, difficulty tiers). The queue's per-game **Effort**
-   column already encodes this; treat balance-heavy as a high hidden cost. (See the
-   `komyo-avoid-balance-heavy-genres` note.)
-5. **Score-card redesign** *(gated on the real mascot)* — redesign the card art + settle the share
-   affordance. My weak point — may need design help. **~1 session.**
-6. **Target tuning** *(needs testing first)* — testers + self playtest (on staging), then retune
-   daily/weekly challenge targets; confirm the UTC daily reset behaves. **~1 session.**
-7. **Pre-launch QA** — real-device pass on staging (iPhone / Android / desktop): touch, audio unlock,
-   PWA install, rotation, visuals. **Test newsletter sending** (Kit form → inbox). Confirm GA4 events +
-   the in-site feedback path fire so post-launch feedback has inputs. **Test Export / import** — verify
-   the base64 blob round-trips a full account (scores, favorites, **profile: `gamekit_pb` + `gamekit_stats`**,
-   challenge history) between two devices with no loss.
-8. **Privacy policy signed off** *(external gate — counsel)* — hard blocker for any public launch
-   (GA4 + Discord auto-post + EU visitors).
-9. **Discord / community readiness** — ✅ **server set up (done)**: roles, rules, channels, verification,
-   automod/anti-spam, reporting path; score auto-post + changelog flow there. **Only open item:
-   moderators** — ask friends to volunteer; **if nobody bites, launch without mods** (someone will want
-   the role) — *not a launch blocker.* Fine to start small with family + friends.
-10. **Launch rollout (staged):** family + friends → let them share further → social media → launch
-    posts (forums / portals / Reddit) → consider **paid ads** (Facebook / Google / wherever fits) →
-    organic growth from shared scores + their friends joining.
+### Next ~2 days
 
-**Post-launch:** watch requests/feedback, add games in free time. **TV + gamepad + a11y** lands here
-(important, nice-to-have, not a launch blocker). Marketing experiments (QR stickers, merch, plushie)
-also post-launch.
+0. **Minor batch — ✅ DONE (2026-07-01).** `game_start` GA4 event (abandon-rate, pairs with `game_play`);
+   kit **"Tap to play" audio splash** (one gesture per load unlocks audio — fixes music-won't-start /
+   stops-on-refresh, skipped when muted); **nav-fit regression guard** in the suite (real pixel-overlap
+   still needs a device — harness can't measure DOM rects; see bug backlog).
+1. **Challenge-points economy — v1 (client-only, safe):** a **title** on the profile keyed to points
+   thresholds + a **mascot attire shop** — spend points on cosmetics for the mascot (shown in the logo,
+   score card, profile). **Discord custom roles for points = the hard part** and is a *separate,
+   backend-gated* project: points live in `localStorage`, so they're trivially forged (export → edit JSON →
+   import). Client-side we can recompute expected points from the full challenge + game logs and flag
+   mismatches (even a jokey "cheater" role), but a determined cheater crafts a *consistent* fake history →
+   it only raises the bar, never prevents (and risks false-positive shaming from our own migrations/bugs).
+   Real integrity needs **server-side authoritative recording** = a departure from no-backend. **Plan:**
+   ship the cosmetics now (titles + skins, honor-system — cheating only affects self-shown cosmetics, low
+   stakes); decide Discord-role rewards + real anti-cheat later. (See Integrations → challenge-points.)
+2. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
+   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). Big accelerator for #3.
+3. **Build games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
+   iterate). **Bias low-tuning genres** (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower
+   defense, roguelite shooters — they ate many tuning cycles). See `komyo-avoid-balance-heavy-genres`.
+4. **Staged rollout — friends / family** *(already slowly happening)* → let them share further.
+
+### Later
+
+- **Infra:** staging env (`staging.komyo.online`) **+ consider a Cloudflare CDN in front of GH Pages**
+  (bandwidth headroom past ~100 GB/mo + the escape hatch we discussed). Staging must isolate side effects:
+  `noindex` + robots disallow, **no prod GA4**, **no prod Discord webhook**, **no real Kit signups**. DNS:
+  `staging` CNAME → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
+- **Score card / mascot redesign** *(gated on the real mascot)*.
+- **Privacy policy signed off** *(external gate — counsel; hard blocker for a broad public launch —
+  GA4 + Discord auto-post + EU visitors)*.
+- **Marketing materials** — plan + prepare: promo video / montage (full + Discord preview cuts), per-game
+  OG/Twitter cards, story-format share card.
+- **LAUNCH** — publish everywhere: portals (itch.io, free-to-play indexes), news, forums, subreddits,
+  Discord servers, socials. Consider paid ads later.
+
+### Post-launch
+
+- **Target tuning** — retune daily/weekly challenge targets from real GA4 completion data; confirm UTC
+  daily reset.
+- **Discord Activity polish** — fix the proxied-feedback "network error" + verify webhook/GA4 in-Activity
+  (bonus lane, not main audience — see bug backlog).
+- Watch requests/feedback, add games in free time. **TV + gamepad + a11y**. Marketing experiments (QR
+  stickers, merch, plushie).
+
+### Dropped (not doing)
+
+- **Pre-launch QA as a formal gate** — organic test-and-report via friends/family instead (the tester pool
+  isn't big enough to staff a checklist; see Decision guards).
+- **Wrapped-style profile expansion** — the profile v1 is enough for launch.
 
 ## Coming-soon games (queue)
 
