@@ -70,7 +70,7 @@ function runGame(file, { search = '' } = {}) {
   const getEl = (id) => (elCache[id] ||= makeEl(id));
   // canvas needs getContext
   const handlers = {};
-  let pending = null;
+  let rafQ = []; // multiple concurrent rAF callbacks (game loop + menu-backdrop loop), like a real browser
   let clock = 1000;
   const errors = [];
 
@@ -99,7 +99,7 @@ function runGame(file, { search = '' } = {}) {
       removeItem: k => { delete store[k]; },
     },
     performance: win.performance,
-    requestAnimationFrame: (cb) => { pending = cb; return 1; },
+    requestAnimationFrame: (cb) => { rafQ.push(cb); return rafQ.length; },
     cancelAnimationFrame: () => {},
     URLSearchParams, Math: makeSeededMath(0x1234abcd), JSON, String, Number, Array, Object, parseInt, parseFloat,
     isFinite, isNaN, Date, console,
@@ -121,7 +121,7 @@ function runGame(file, { search = '' } = {}) {
     test: () => win.__test,
     key(type, key) { (handlers[type] || []).forEach(fn => { try { fn({ key, preventDefault() {} }); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } }); },
     down(k) { this.key('keydown', k); }, up(k) { this.key('keyup', k); },
-    step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; const cb = pending; pending = null; if (cb) { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } } } },
+    step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; const q = rafQ; rafQ = []; q.forEach(cb => { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } }); } },
     // drive a viewport change: the kit's __emit sets window dims + fires the layout callbacks (the
     // game's resize()) synchronously; fall back to setting dims directly if the kit is absent.
     resize(w, h) { if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h); else { win.innerWidth = w; win.innerHeight = h; } },
@@ -200,7 +200,7 @@ function rogueCommon(file, prog) {
   let guard = 0;
   while (T().state === 'playing' && guard++ < 20) { T().hurt(); g.step(130); }
   ok(T().state === 'dead', file + ' dies after enough hits');
-  ok(g.el('overlay').classList.contains('hidden') === false, file + ' shows game over overlay');
+  ok(T().menu() != null, file + ' shows the kit game-over menu');
 
   // restart
   g.down('Enter'); g.step(2);
@@ -329,15 +329,13 @@ function testKeyboardPicker(file) {
   const T = () => g.test();
   T().start(); g.step(2);
   T().forcePick(); g.step(1);
-  ok(T().state === 'levelup', file + ' picker open');
+  ok(T().state === 'levelup' && T().menu() != null, file + ' picker open (kit menu)');
   ok(T().picks.length >= 2, file + ' picker has options');
-  ok(T().sel === 0, file + ' selection starts at 0');
-  g.down('ArrowRight'); g.step(1);
-  ok(T().sel === 1, file + ' ArrowRight moves selection (got ' + T().sel + ')');
   const chosen = T().picks[1];
-  g.down('Enter'); g.step(2);
+  g.down('ArrowRight'); g.step(1);   // focus starts on the 1st card; move to the 2nd
+  g.down('Enter'); g.step(2);         // pick the focused card
   ok(T().state === 'playing', file + ' Enter confirms and resumes');
-  ok((T().upgrades[chosen] || 0) >= 1, file + ' Enter applied the highlighted upgrade (' + chosen + ')');
+  ok((T().upgrades[chosen] || 0) >= 1, file + ' Enter applied the focused upgrade (' + chosen + ')');
 }
 
 function testMenuButton(file) {
@@ -358,17 +356,29 @@ function testKeyboardShopNav(file) {
   T().start(); g.step(2);
   T().addCredits(200);
   T().clearEnemies(); g.step(5);
-  ok(T().state === 'shop', file + ' shop open');
-  // SPACE buys the highlighted item (sel starts at 0)
+  ok(T().state === 'shop' && T().menu() != null, file + ' shop open (kit menu)');
+  // focus opens on the primary Continue; move onto a shop item, then Space buys the focused item
   const credBefore = T().credits;
+  g.down('ArrowLeft'); g.step(1);
   g.down(' '); g.step(1); g.up(' ');
   const bought = Object.values(T().upgrades).some(v => v >= 1);
-  ok(bought && T().credits < credBefore, file + ' Space buys highlighted item');
-  // ENTER always continues to the next wave
-  g.down('Enter'); g.step(2);
-  ok(T().state === 'playing' && T().wave === 2, file + ' Enter continues to the next wave (got state=' + T().state + ' wave=' + T().wave + ')');
+  ok(bought && T().credits < credBefore, file + ' Space buys the focused item');
+  // Continue advances to the next wave
+  T().menu().activate('continue'); g.step(2);
+  ok(T().state === 'playing' && T().wave === 2, file + ' Continue advances to the next wave (got state=' + T().state + ' wave=' + T().wave + ')');
 }
 
+function testPauseButton(file) {
+  section(file + ' (pause button routes to the game menu — no double pause)');
+  const g = runGame(file);
+  const T = () => g.test();
+  T().start(); g.step(2);
+  ok(T().state === 'playing', file + ' playing after start');
+  g.el('gamekitPause').fire('click'); g.step(1);   // the kit ⏸ button must drive the game's menu-pause…
+  ok(T().state === 'paused' && T().menu() != null, file + ' ⏸ opens the game pause menu (state=' + T().state + ')');
+  g.down('Escape'); g.step(1);                       // …so Esc just resumes it (no second, stacked menu)
+  ok(T().state === 'playing' && T().menu() == null, file + ' Esc resumes cleanly — no stacked pause menu');
+}
 function testTieredPricing(file) {
   section(file + ' (tiered shop pricing)');
   const g = runGame(file);
@@ -438,12 +448,13 @@ function testWASD(file) {
   const a1 = T().shipAngle;
   g.down('a'); g.step(5); g.up('a');
   ok(T().shipAngle < a1, file + ' A rotates left');
-  // WASD must also navigate the upgrade picker (same as arrows)
+  // WASD must also navigate the kit upgrade picker (D = ArrowRight): move to the 2nd card + pick it
   T().forcePick(); g.step(1);
-  if (T().state === 'levelup') {
-    const s0 = T().sel;
+  if (T().state === 'levelup' && T().picks.length >= 2) {
+    const chosen = T().picks[1];
     g.down('d'); g.step(1); g.up('d');
-    ok(T().sel !== s0, file + ' D navigates the upgrade picker (' + s0 + ' -> ' + T().sel + ')');
+    g.down('Enter'); g.step(2);
+    ok((T().upgrades[chosen] || 0) >= 1, file + ' D navigates + picks in the upgrade picker (' + chosen + ')');
   }
 }
 
@@ -688,6 +699,7 @@ testMagnet('index.html?prog=levelup');
 testKeyboardPicker('index.html?prog=levelup');
 testKeyboardPicker('index.html?prog=milestones');
 testKeyboardShopNav('index.html?prog=shop');
+testPauseButton('index.html?prog=levelup');
 testShop('index.html?prog=shop');
 testShopProgression('index.html?prog=shop');
 testTieredPricing('index.html?prog=shop');

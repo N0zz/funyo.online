@@ -124,9 +124,9 @@
 
 <script>
 (() => {
-  // ============ PROGRESSION MODE — selected by the launcher via ?prog= (defaults to levelup) ============
-  const HAS_PROG = new URLSearchParams(location.search).has('prog'); // no ?prog → show the in-page mode picker
-  const PROGRESSION = (() => { const p = new URLSearchParams(location.search).get('prog'); return (p === 'milestones' || p === 'shop') ? p : 'levelup'; })();
+  // ============ PROGRESSION MODE — chosen in the kit start menu (deep-linkable via ?prog=). Runtime `let`
+  //   so switching modes needs no reload; the menu stamps the URL so refresh/share reopen the same pick. ==
+  let PROGRESSION = (() => { const p = new URLSearchParams(location.search).get('prog'); return (p === 'milestones' || p === 'shop') ? p : 'levelup'; })();
   // =====================================================================================================
 
   const $ = id => document.getElementById(id);
@@ -138,10 +138,10 @@
   const modeHint=$('modeHint'), modeTitle=$('modeTitle');
 
   // ---- Speedrun ----
-  const SPEEDRUN = new URLSearchParams(location.search).has('speedrun');
+  let SPEEDRUN = new URLSearchParams(location.search).has('speedrun');
   const SR_TARGET_WAVE = 5; // clear wave 5 (first boss)
-  const KEY = 'roguelite-' + PROGRESSION; // localStorage suffix, per progression
-  const BEST_KEY = 'asteroids_best_' + KEY;
+  let KEY = 'roguelite-' + PROGRESSION; // localStorage suffix, per progression
+  let BEST_KEY = 'asteroids_best_' + KEY;
   const now = () => (window.performance && performance.now) ? performance.now() : Date.now();
   let srElapsed=0, srPrev=0, srDone=false;
 
@@ -170,12 +170,16 @@
   if (KIT) KIT.music.subscribe(s => SND.setGain(s.gain));
   function fmtTime(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
   function saveBest(ms){ try{ const p=localStorage.getItem(BEST_KEY); if(p==null||ms<parseInt(p,10)){ localStorage.setItem(BEST_KEY,String(Math.floor(ms))); return true; } }catch(e){} return false; }
+  function readStat(key){ try{ const v=localStorage.getItem(key); return v==null?null:parseInt(v,10); }catch(e){ return null; } }
 
-  // mode-specific copy
-  if (PROGRESSION==='levelup'){ modeTitle.textContent='ROGUELITE — GEM LEVEL-UP'; modeHint.textContent='Destroy enemies, collect XP gems, level up and pick upgrades. Survive the waves.'; }
-  if (PROGRESSION==='milestones'){ modeTitle.textContent='ROGUELITE — SCORE MILESTONES'; modeHint.textContent='Cross score milestones to pick upgrades. Survive the waves.'; xpwrap.style.display='none'; }
-  if (PROGRESSION==='shop'){ modeTitle.textContent='ROGUELITE — WAVE SHOP'; modeHint.textContent='Earn credits, then spend them in the shop between waves. Survive.'; xpwrap.style.display='none'; creditsEl.style.display='block'; }
-  if (SPEEDRUN){ timerEl.style.display='block'; timerGoal.textContent='GOAL: CLEAR WAVE '+SR_TARGET_WAVE; modeHint.textContent='SPEEDRUN — clear wave '+SR_TARGET_WAVE+' (first boss) as fast as you can.'; }
+  // mode-specific HUD element visibility — called at boot and whenever a run's mode is chosen (no reload)
+  function applyModeHud(){
+    xpwrap.style.display   = (PROGRESSION==='levelup') ? '' : 'none';
+    creditsEl.style.display= (PROGRESSION==='shop')    ? 'block' : 'none';
+    timerEl.style.display  = SPEEDRUN ? 'block' : 'none';
+    if (SPEEDRUN) timerGoal.textContent = 'GOAL: CLEAR WAVE '+SR_TARGET_WAVE;
+  }
+  applyModeHud();
 
   let W,H,SCALE=1;
   function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; SCALE=S; W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S); buildStars(); }
@@ -217,29 +221,9 @@
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
     const low = e.key.length===1?e.key.toLowerCase():e.key;
     keys[low]=true;
-    // WASD mirror the arrow keys everywhere (steering AND menu navigation)
-    const k = ({a:'ArrowLeft', d:'ArrowRight', w:'ArrowUp', s:'ArrowDown'})[low] || e.key;
-    if((e.key==='Enter'||e.key===' ') && (state==='menu'||state==='dead'||state==='won')){ startGame(); return; }
+    // WASD mirror the arrow keys for steering (keys['a'|'d'|'w'] read in update()); the kit menu owns
+    // its own keyboard while any menu (start/pause/end/level-up/shop) is open, so Esc is all we handle here.
     if(e.key==='Escape'){ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); return; }
-    if(state==='levelup'){
-      if(k==='ArrowLeft'){ selIdx=(selIdx+pickOptions.length-1)%pickOptions.length; renderPicker(); }
-      else if(k==='ArrowRight'){ selIdx=(selIdx+1)%pickOptions.length; renderPicker(); }
-      else if(k==='Enter'||k===' ') pickByIndex(selIdx);
-      else if(/^[1-9]$/.test(k)) pickByIndex(parseInt(k,10)-1);
-      return;
-    }
-    if(state==='shop'){
-      const n=pool().length; // selection runs over the items only
-      if(k==='ArrowLeft'){ selIdx=(selIdx+n-1)%n; renderShop(); }
-      else if(k==='ArrowRight'){ selIdx=(selIdx+1)%n; renderShop(); }
-      else if(k==='ArrowUp'){ selIdx=(selIdx+n-4)%n; renderShop(); }
-      else if(k==='ArrowDown'){ selIdx=(selIdx+4)%n; renderShop(); }
-      else if(k==='Enter'){ closeShop(); }            // Enter always continues to next wave
-      else if(k===' '){ if(anyAffordable()) buyByIndex(selIdx); else closeShop(); }   // Space buys, or continues if nothing's affordable
-
-      else if(/^[1-9]$/.test(k)) buyByIndex(parseInt(k,10)-1);
-      return;
-    }
   });
   window.addEventListener('keyup',(e)=>{ keys[e.key.length===1?e.key.toLowerCase():e.key]=false; });
 
@@ -261,10 +245,51 @@
     waveBreak=0; pendingPicks=0; milestoneNext=700; milestoneStep=500;
     spawnShip(); recalc(); ship.hp=ship.maxHp; ship.shield=ship.shieldMax;
   }
-  function startGame(){ if(!HAS_PROG){ showModePicker(); if(KIT) KIT.showMenuButton(false); return; } resetRun(); startWave(1); state='playing'; overlay.classList.add('hidden');
-    srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT) KIT.showMenuButton(true); updateHud(); }
-  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">wave '+wave+' &middot; score '+score+'</p><div id="shopFoot"><button class="btn" id="resumeBtn">RESUME (ESC)</button> '+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
-  function resumeGame(){ state='playing'; srPrev=now(); overlay.classList.add('hidden'); }
+  // ---- Menus (kit-rendered; space theme + animated starfield backdrop, matching Classic Asteroids) ----
+  const MENU_THEME = { accent:'#9fe8ff', 'accent-soft':'rgba(159,232,255,0.18)', glow:'0 0 18px rgba(120,200,255,0.45)',
+    bg:'radial-gradient(circle at 50% 26%, rgba(18,26,48,0.72), rgba(7,9,16,0.82))', border:'rgba(120,200,255,0.30)',
+    overlay:'rgba(6,9,16,0.80)', scrim:'rgba(6,9,16,0.42)', title:'#cfe8ff', new:'#ffd166', 'on-accent':'#06121a' };
+  function mbRock(g,cx,cy,r,hue){ g.strokeStyle='hsl('+hue+',60%,72%)'; g.lineWidth=1.6; g.beginPath();
+    for(let i=0;i<9;i++){ const a=r+i/9*6.283, rr=r*(.74+(i%2?.16:0)), x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr; i?g.lineTo(x,y):g.moveTo(x,y); } g.closePath(); g.stroke(); }
+  function mbShip(g,cx,cy,col){ g.save(); g.translate(cx,cy); g.strokeStyle=col; g.lineWidth=2; g.shadowColor=col; g.shadowBlur=8;
+    g.beginPath(); g.moveTo(13,0); g.lineTo(-10,-9); g.lineTo(-5,0); g.lineTo(-10,9); g.closePath(); g.stroke(); g.restore(); g.shadowBlur=0; }
+  // the game's enemy silhouettes (drawn at origin; caller translates/rotates) — hunter, sentry, kamikaze
+  function mbEnemy(g,type,r){
+    if(type==='sentry'){ g.strokeStyle='#8effc0'; g.shadowColor='rgba(120,255,180,0.5)'; g.lineWidth=2; g.shadowBlur=8;
+      g.beginPath(); for(let i=0;i<6;i++){ const a=i/6*6.283, px=Math.cos(a)*r, py=Math.sin(a)*r; i?g.lineTo(px,py):g.moveTo(px,py); } g.closePath(); g.stroke(); }
+    else if(type==='kamikaze'){ g.strokeStyle='#ff5a4a'; g.shadowColor='rgba(255,70,60,0.6)'; g.lineWidth=2; g.shadowBlur=9;
+      g.beginPath(); g.moveTo(0,-r); g.lineTo(r*.73,r*.82); g.lineTo(0,r*.45); g.lineTo(-r*.73,r*.82); g.closePath(); g.stroke(); }
+    else { g.strokeStyle='#ff8fd6'; g.shadowColor='rgba(255,120,210,0.5)'; g.lineWidth=2; g.shadowBlur=8;
+      g.beginPath(); g.moveTo(0,-r); g.lineTo(r*.83,r*.67); g.lineTo(0,r*.25); g.lineTo(-r*.83,r*.67); g.closePath(); g.stroke(); }
+    g.shadowBlur=0; }
+  // mode-card mini previews (tiny, self-contained vector)
+  function pvLevelup(g,w,h){ mbShip(g,w*.34,h*.54,'#9fe8ff'); ['#7fe0a0','#b0f0c8','#7fe0a0'].forEach((c,i)=>{ g.fillStyle=c; g.save(); g.translate(w*(.6+i*.13),h*(.36+i*.16)); g.rotate(.78); g.fillRect(-3,-3,6,6); g.restore(); }); mbRock(g,w*.72,h*.74,9,205); }
+  function pvMilestones(g,w,h){ g.strokeStyle='rgba(159,232,255,.5)'; g.lineWidth=2; [0.66,0.5,0.34].forEach((y,i)=>{ g.beginPath(); g.moveTo(w*.22,h*y); g.lineTo(w*(.4+i*.14),h*y); g.stroke(); g.fillStyle='#ffd166'; g.beginPath(); g.arc(w*(.4+i*.14),h*y,3.2,0,6.28); g.fill(); }); mbShip(g,w*.78,h*.5,'#9fe8ff'); }
+  function pvShop(g,w,h){ g.fillStyle='#ffd166'; g.font='bold 22px ui-monospace,monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('◈',w*.5,h*.4); g.fillStyle='rgba(159,232,255,.85)'; g.font='bold 11px ui-monospace,monospace'; g.fillText('SHOP',w*.5,h*.66); }
+  // animated space backdrop: twinkling starfield + slowly drifting, spinning rocks (re-randomized per open)
+  var menuRocks = [], menuEnemies = [];
+  function genMenuRocks(){ menuRocks = []; var n = 5 + Math.floor(Math.random()*3);
+    for(var i=0;i<n;i++) menuRocks.push({ r:12+Math.random()*22, sp:0.18+Math.random()*0.5, base:Math.random(), y:0.08+Math.random()*0.84, hue:195+Math.random()*45, dir:Math.random()<0.5?1:-1, off:Math.random()*6, wob:Math.random()*6 });
+    menuEnemies = []; var ne = 3 + Math.floor(Math.random()*3), types = ['hunter','sentry','kamikaze'];
+    for(var j=0;j<ne;j++) menuEnemies.push({ t:types[Math.floor(Math.random()*3)], r:11+Math.random()*6, sp:0.25+Math.random()*0.55, base:Math.random(), y:0.1+Math.random()*0.8, off:Math.random()*6, wob:Math.random()*6, spin:(Math.random()<0.5?1:-1) }); }
+  function menuBackdrop(g,w,h,st,frame){ frame=frame||0;
+    if(!menuRocks.length) genMenuRocks();
+    g.fillStyle='#070910'; g.fillRect(0,0,w,h);
+    for(let s=0;s<70;s++){ const sx=(s*97+13)%w, sy=(s*53+7)%h, tw=0.4+0.6*(0.5+0.5*Math.sin(frame*0.06+s)); g.fillStyle='rgba(200,225,255,'+(tw*0.7).toFixed(3)+')'; const d=(s%7===0)?2:1; g.fillRect(sx,sy,d,d); }
+    for(let i=0;i<menuRocks.length;i++){ const k=menuRocks[i]; const x=((k.base*w - frame*k.sp)%(w+80)+w+80)%(w+80)-40, y=k.y*h+Math.sin(frame*0.01+k.wob)*10, spin=frame*0.005*k.dir+k.off;
+      g.save(); g.translate(x,y); g.rotate(spin); mbRock(g,0,0,k.r,k.hue); g.restore(); }
+    for(let i=0;i<menuEnemies.length;i++){ const k=menuEnemies[i]; const x=((k.base*w - frame*k.sp)%(w+80)+w+80)%(w+80)-40, y=k.y*h+Math.sin(frame*0.012+k.wob)*14, rot=frame*0.01*k.spin+k.off;
+      g.save(); g.translate(x,y); g.rotate(rot); mbEnemy(g,k.t,k.r); g.restore(); } }
+
+  // set the runtime mode + storage keys + HUD (menu Play calls this before starting a run — no reload)
+  function applyProgression(prog, sr){ PROGRESSION = (prog==='milestones'||prog==='shop') ? prog : 'levelup'; SPEEDRUN = !!sr; KEY='roguelite-'+PROGRESSION; BEST_KEY='asteroids_best_'+KEY; applyModeHud(); }
+  function startGame(){ if(KIT) KIT.menu.hide(); resetRun(); startWave(1); state='playing'; overlay.classList.add('hidden');
+    srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT){ KIT.showMenuButton(true); KIT.showPauseButton(true); } applyModeHud(); updateHud(); }
+  function pauseGame(){ state='paused'; if(!KIT) return;
+    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:'PAUSED', lines:[ 'Wave '+wave+' · Score '+score ],
+      actions:[ {id:'resume',label:'RESUME (ESC)',primary:true}, {id:'menu',label:'QUIT TO MENU',danger:true} ],
+      onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') quitToMenu(); }, onEsc: resumeGame }); }
+  function resumeGame(){ state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); }
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14,hp:3,maxHp:3,shield:0,shieldMax:0,frenzy:0}; invuln=120; }
 
   function recalc(){
@@ -323,40 +348,50 @@
     if(PROGRESSION==='shop'){ creditsEl.textContent='◈ '+credits; }
   }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=80; }
-  function quitToMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused'||state==='levelup'||state==='shop')){ saveStat('asteroids_score_'+KEY,score); saveStat('asteroids_wave_'+KEY,wave); } try{ location.href = location.pathname; }catch(e){} }
-  // in-page mode picker (replaces the old launcher cards): 1·RUN → 2·MODE → Play. Selecting only
-  // highlights; nothing starts until Play. Play reloads with ?prog=<mode>[&speedrun=1].
-  const PICK_PROGS = [
-    ['levelup',    'GEM LEVEL-UP',    'Collect the XP gems enemies drop to level up and pick upgrades.'],
-    ['milestones', 'SCORE MILESTONES','Hit score milestones to auto-pick upgrades — no gem-collecting.'],
-    ['shop',       'WAVE SHOP',       'Earn credits, then spend them in a shop between waves.'],
-  ];
-  function showModePicker(){
-    state='menu'; SND.stopMusic();
-    let selProg = 'levelup', selSR = new URLSearchParams(location.search).has('speedrun'); // default mode preselected (Play ready)
-    function render(){
-      const cur = PICK_PROGS.find(p => p[0] === selProg);
-      overlay.innerHTML = '<h1>ASTEROIDS+</h1>'
-        + '<div class="psec">1 · RUN</div>'
-        + '<div class="prow"><button class="btn' + (!selSR ? ' sel' : '') + '" data-sr="0">NORMAL</button>'
-          + '<button class="btn' + (selSR ? ' sel' : '') + '" data-sr="1">SPEEDRUN</button></div>'
-        + '<div class="psec">2 · MODE</div>'
-        + '<div class="prow">' + PICK_PROGS.map(p => '<button class="btn' + (selProg === p[0] ? ' sel' : '') + '" data-prog="' + p[0] + '">' + p[1] + '</button>').join('') + '</div>'
-        + '<button class="btn play" id="playBtn"' + (selProg ? '' : ' disabled') + '>PLAY ▶</button>'
-        + '<p class="hint">' + (cur ? cur[2] : 'Pick how you power up.') + (selSR ? (' · Speedrun: clear wave ' + SR_TARGET_WAVE + ' fast.') : '') + '</p>';
-      const q = overlay.querySelectorAll ? overlay.querySelectorAll('[data-sr],[data-prog],#playBtn') : [];
-      for (let i = 0; i < q.length; i++) { const b = q[i];
-        if (b.getAttribute && b.getAttribute('data-sr') != null) b.addEventListener('click', () => { selSR = b.getAttribute('data-sr') === '1'; render(); });
-        else if (b.getAttribute && b.getAttribute('data-prog') != null) b.addEventListener('click', () => { selProg = b.getAttribute('data-prog'); render(); });
-        else b.addEventListener('click', () => { if (!selProg) return; const p = new URLSearchParams(); p.set('prog', selProg); if (selSR) p.set('speedrun', '1'); try { location.href = location.pathname + '?' + p.toString(); } catch (e) {} });
-      }
-    }
-    overlay.classList.remove('hidden'); render();
+  // quit a run back to the start menu, in-place (no reload). Save the score best first (non-speedrun).
+  function quitToMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused'||state==='levelup'||state==='shop')){ saveStat('asteroids_score_'+KEY,score); saveStat('asteroids_wave_'+KEY,wave); } SND.stopMusic(); if(KIT) KIT.menu.hide(); showStartMenu(); }
+  // unified start menu (mode picker) — kit-rendered, themed, one screen. Play applies the mode + starts
+  // in-place (no reload); the address bar reflects the picks so refresh/share reopen the same mode.
+  function showStartMenu(){
+    state='menu'; SND.stopMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
+    if(!KIT) return;
+    genMenuRocks();
+    const bestScore = k => { const v=readStat('asteroids_score_roguelite-'+k); return v==null?'—':v; };
+    const bestTime  = k => { const v=readStat('asteroids_best_roguelite-'+k);  return v==null?'—':fmtTime(v); };
+    const goalChip  = st => st.speedrun ? { label:'Clear W'+SR_TARGET_WAVE, hot:true } : null;
+    const modeParams= st => st.speedrun ? { prog: st.mode, speedrun:'1' } : { prog: st.mode };
+    KIT.menu.show({ kind:'start', theme:MENU_THEME, title:'ASTEROIDS+', backdrop:menuBackdrop, backdropAnimate:true,
+      groups:[ { id:'mode', label:'MODE', style:'cards', default: PROGRESSION, choices:[
+        { id:'levelup', label:'LEVEL-UP', tag:'GEMS', preview:pvLevelup,
+          mech: st => ['Collect XP gems','Pick upgrades', goalChip(st)],
+          best: st => st.speedrun ? bestTime('levelup') : bestScore('levelup') },
+        { id:'milestones', label:'MILESTONES', preview:pvMilestones,
+          mech: st => ['Score thresholds','Auto-offer picks', goalChip(st)],
+          best: st => st.speedrun ? bestTime('milestones') : bestScore('milestones') },
+        { id:'shop', label:'WAVE SHOP', tag:'CREDITS', preview:pvShop,
+          mech: st => ['Earn credits','Buy between waves', goalChip(st)],
+          best: st => st.speedrun ? bestTime('shop') : bestScore('shop') },
+      ]} ],
+      toggles:[ { id:'speedrun', label:'SPEEDRUN', caption:'— clear wave '+SR_TARGET_WAVE+' (first boss) against the clock', default: SPEEDRUN } ],
+      hint: st => st.speedrun ? ('Speedrun — clear wave '+SR_TARGET_WAVE+' as fast as you can.')
+        : ({ levelup:'Level-up — collect gems, level up, choose upgrades.', milestones:'Milestones — cross score thresholds to pick upgrades.', shop:'Wave shop — earn credits and spend them between waves.' }[st.mode] || 'Pick how you power up.'),
+      actions:[ {id:'play',label:'PLAY ▶',primary:true} ],
+      onChange: st => KIT.stampUrl(modeParams(st)),
+      onPlay: st => { applyProgression(st.mode, !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
+    });
+    KIT.stampUrl(modeParams({ mode: PROGRESSION, speedrun: SPEEDRUN }));
   }
-  function wireOverlay(){ const mb=$('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=$('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); const sb=$('startBtn'); if(sb) sb.addEventListener('click', startGame); }
-  const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
-  // end-screen share row is built by the game-kit into this placeholder
-  const SHARE_ROW = '<div id="shareRow"></div>';
+  // end screen (game over / speedrun clear / victory) — kit-rendered; kit does recordResult + the share row.
+  function showEnd(o){
+    SND.stopMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
+    if(!KIT) return;
+    KIT.menu.show({ kind:'end', theme:MENU_THEME, title:o.title, backdrop:menuBackdrop, backdropAnimate:true,
+      score:score, scoreText:o.scoreText, best:o.best, newBest:o.newBest, lines:o.lines,
+      share:{ slug:'asteroids-plus', title:'Asteroids+', message:()=>shareMsg(score, o.won), params:()=> (SPEEDRUN ? { prog:PROGRESSION, speedrun:'1' } : { prog:PROGRESSION }) },
+      record:{ slug:'asteroids-plus', mode:o.mode, score:score, time:o.time||0, stats:o.stats||{wave:wave} },
+      actions:[ {id:'again',label:'PLAY AGAIN',primary:true}, {id:'menu',label:'MENU'} ],
+      onAction:(id)=>{ if(id==='again') startGame(); else if(id==='menu') quitToMenu(); } });
+  }
   // In Speedrun the RESULT is the time, not score/wave — so the share + Discord post lead with the clear time.
   // (die() also sets srDone, so a cleared run is distinguished by state==='won', not srDone.)
   function shareMsg(finalScore, won) {
@@ -364,9 +399,6 @@
       ? KIT.shareText({ verb: 'I cleared', score: fmtTime(srElapsed), unit: '', game: 'Asteroids+', emoji: '🛸', mode: 'Speedrun', extra: ['cleared wave ' + SR_TARGET_WAVE] })
       : KIT.shareText({ verb: 'I reached', score: 'wave ' + wave, unit: '', game: 'Asteroids+', emoji: '🛸', mode: 'Speedrun', extra: ['run failed at ' + fmtTime(srElapsed)] });
     return KIT.shareText({ verb: won ? 'I beat' : 'I scored', score: finalScore, game: 'Asteroids+', emoji: '🛸', mode: ({ levelup: 'Level-up', milestones: 'Milestones', shop: 'Wave shop' }[PROGRESSION] || 'Roguelite'), extra: won ? ['VICTORY · all ' + RUN_END_WAVE + ' waves'] : ['wave ' + wave] });
-  }
-  function wireShareRow(finalScore, won) {
-    if (KIT) KIT.shareRow($('shareRow'), { slug: 'asteroids-plus', title: 'Asteroids+', message: () => shareMsg(finalScore, won), params: () => (SPEEDRUN ? { prog: PROGRESSION, speedrun: '1' } : { prog: PROGRESSION }) });
   }
 
   // ---- Spawning / waves ----
@@ -497,20 +529,20 @@
     if(ship.hp<=0) die();
   }
   function saveStat(key,v){ try{ const p=localStorage.getItem(key); if(p==null||v>parseInt(p,10)){ localStorage.setItem(key,String(v)); return true; } }catch(e){} return false; }
-  function die(){ state='dead'; if(SPEEDRUN) srDone=true; burst(ship.x,ship.y,'255,160,120',50,5);
-    SND.stopMusic(); SND.play('over'); let best=false; if(!SPEEDRUN){ best=saveStat('asteroids_score_'+KEY,score); saveStat('asteroids_wave_'+KEY,wave); }
-    if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids-plus',{mode:SPEEDRUN?'speedrun':'',score:score,time:SPEEDRUN?srElapsed:0,stats:{wave:wave}});
-    overlay.innerHTML='<h1>GAME OVER</h1><p>Score <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+' &middot; reached wave '+wave+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'')+'<p class="blink">press ENTER or SPACE to play again</p><div id="shopFoot">'+MENU_BTN+'</div>'+SHARE_ROW;
-    overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
-  function winRun(){ srDone=true; state='won'; SND.stopMusic(); SND.play('level'); const best=saveBest(srElapsed); if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids-plus',{mode:SPEEDRUN?'speedrun':'',score:score,time:srElapsed,stats:{wave:wave}});
-    overlay.innerHTML='<h1 class="win">WAVE '+SR_TARGET_WAVE+' CLEARED</h1><p>Time <strong>'+fmtTime(srElapsed)+'</strong>'+(best?'  ★ NEW BEST':'')+'</p><p class="hint">score '+score+'</p><p class="blink">press ENTER or SPACE to run again</p><div id="shopFoot">'+MENU_BTN+'</div>'+SHARE_ROW;
-    overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
+  function die(){ state='dead'; if(SPEEDRUN) srDone=true; burst(ship.x,ship.y,'255,160,120',50,5); SND.play('over');
+    let newBest=false; if(!SPEEDRUN){ newBest=saveStat('asteroids_score_'+KEY,score); saveStat('asteroids_wave_'+KEY,wave); }
+    showEnd({ title:'GAME OVER', scoreText:String(score), best: SPEEDRUN?null:readStat('asteroids_score_'+KEY), newBest,
+      lines: SPEEDRUN ? ['Speedrun — run failed at '+fmtTime(srElapsed)] : ['Reached wave '+wave],
+      won:false, mode: SPEEDRUN?'speedrun':'', time: SPEEDRUN?srElapsed:0 }); }
+  function winRun(){ srDone=true; state='won'; SND.play('level'); const newBest=saveBest(srElapsed);
+    showEnd({ title:'WAVE '+SR_TARGET_WAVE+' CLEARED', scoreText:fmtTime(srElapsed), best:fmtTime(readStat(BEST_KEY)), newBest,
+      lines:['score '+score], won:false, mode:'speedrun', time:srElapsed }); }
   // beat the wave-30 dual-boss finale (non-speedrun) → the run is won and over
-  function victoryRun(){ state='won'; SND.stopMusic(); SND.play('level'); burst(ship.x,ship.y,'255,220,150',60,5);
-    const best=saveStat('asteroids_score_'+KEY,score); saveStat('asteroids_wave_'+KEY,wave);
-    if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids-plus',{mode:({levelup:'Level-up',milestones:'Milestones',shop:'Wave shop'}[PROGRESSION]||'Roguelite'),score:score,time:0,stats:{wave:wave,victory:1}});
-    overlay.innerHTML='<h1 class="win">VICTORY</h1><p>You cleared all '+RUN_END_WAVE+' waves and broke the dual-boss finale.</p><p>Score <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p><p class="blink">press ENTER or SPACE to play again</p><div id="shopFoot">'+MENU_BTN+'</div>'+SHARE_ROW;
-    overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score,true); }
+  function victoryRun(){ state='won'; SND.play('level'); burst(ship.x,ship.y,'255,220,150',60,5);
+    const newBest=saveStat('asteroids_score_'+KEY,score); saveStat('asteroids_wave_'+KEY,wave);
+    showEnd({ title:'VICTORY', scoreText:String(score), best:readStat('asteroids_score_'+KEY), newBest,
+      lines:['You cleared all '+RUN_END_WAVE+' waves and broke the dual-boss finale.'],
+      won:true, mode:({levelup:'Level-up',milestones:'Milestones',shop:'Wave shop'}[PROGRESSION]||'Roguelite'), stats:{wave:wave,victory:1} }); }
 
   // ---- Picker (levelup + milestones) ----
   let pickOptions=[];
@@ -519,40 +551,41 @@
     while(out.length<3 && cp.length){ const i=Math.floor(Math.random()*cp.length); out.push(cp.splice(i,1)[0]); } return out; }
   function openPicker(){ state='levelup'; pickOptions=rollPicks(); selIdx=0;
     if(pickOptions.length===0){ pendingPicks=0; state='playing'; return; }
-    renderPicker();
-  }
-  function renderPicker(){
+    if(!KIT) return;
     const ttl = PROGRESSION==='levelup' ? ('LEVEL '+level) : 'CHOOSE UPGRADE';
-    let html='<h1 class="level">'+ttl+'</h1><p class="hint">choose an upgrade ('+pendingPicks+' pending) — ←/→ then ENTER, or press 1-3</p><div class="cards">';
-    pickOptions.forEach((u,i)=>{ const lv=up[u.id]||0; const maxed=lv>=u.max; const lbl=maxed?('RENEW ('+EXPIRE_WAVES+'w)'):(lv>0?('LV '+lv+' → '+(lv+1)):'NEW')+(EXPIRING.has(u.id)?(' · '+EXPIRE_WAVES+'w'):''); html+='<div class="ucard'+(i===selIdx?' sel':'')+'" data-i="'+i+'"><div class="k">'+(i+1)+'</div><h3>'+u.name+'</h3><p>'+u.desc+'</p><div class="lvl">'+lbl+'</div></div>'; });
-    html+='</div>'; overlay.innerHTML=html; overlay.classList.remove('hidden');
-    overlay.querySelectorAll('.ucard').forEach(c=>c.addEventListener('click',()=>pickByIndex(parseInt(c.dataset.i,10))));
+    // no backdrop → the kit menu box sits over the frozen playfield (mid-run); shop-style cards ARE the action
+    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:ttl,
+      hint: () => 'Choose an upgrade' + (pendingPicks>1 ? (' · '+pendingPicks+' pending') : ''),
+      groups:[ { id:'pick', style:'shop', choices: pickOptions.map(u=>({ id:u.id, label:u.name, desc:u.desc })),
+        sub: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const maxed=lv>=u.max;
+          return maxed ? ('RENEW · '+EXPIRE_WAVES+'w') : ((lv>0?('LV '+lv+' → '+(lv+1)):'NEW')+(EXPIRING.has(u.id)?(' · '+EXPIRE_WAVES+'w'):'')); },
+        onPick: (id) => pickUpgrade(id) } ] });
   }
-  function pickByIndex(i){ if(state!=='levelup'||!pickOptions[i]) return; applyUpgrade(pickOptions[i].id); pendingPicks--; if(pendingPicks>0){ openPicker(); } else { state='playing'; srPrev=now(); overlay.classList.add('hidden'); } }
+  function pickUpgrade(id){ if(state!=='levelup') return; applyUpgrade(id); pendingPicks--; if(pendingPicks>0){ openPicker(); } else { state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); } }
+  function pickByIndex(i){ if(pickOptions[i]) pickUpgrade(pickOptions[i].id); } // kept for the headless harness
 
-  // ---- Shop (between waves) ----
+  // ---- Shop (between waves) — the reusable kit shop primitive (style:'shop' cells + live credit banner) ----
   // each tier costs a bit more than the last: base, +50%, +100%, ...
   function shopCost(u){ const lv=up[u.id]||0; return Math.round(u.price*(1+0.8*lv)); }
   function anyAffordable(){ return pool().some(u=>{ const lv=up[u.id]||0, renew=lv>=u.max&&EXPIRING.has(u.id); return (lv<u.max||renew) && credits>=shopCost(u); }); }
-  function openShop(){ state='shop'; selIdx=0; renderShop(); overlay.classList.remove('hidden'); }
-  function renderShop(){
-    const items=pool();
-    let html='<h1 class="win">DRYDOCK</h1>'+
-      '<div class="credits-big">◈ '+credits+' CREDITS</div>'+
-      '<p class="hint">wave '+wave+' cleared &middot; ←/→/↑/↓ to highlight &middot; SPACE / number / click to buy &middot; ENTER to continue</p><div class="cards shop">';
-    items.forEach((u,i)=>{ const lv=up[u.id]||0; const exp=EXPIRING.has(u.id); const maxed=lv>=u.max; const renew=maxed&&exp; const buyable=(!maxed||renew); const cost=shopCost(u); const afford=credits>=cost && buyable;
-      const lvl = renew?('RENEW ('+EXPIRE_WAVES+' waves)'):(maxed?'MAX':('LV '+lv+'/'+u.max)+(exp?(' · '+EXPIRE_WAVES+' waves'):''));
-      html+='<div class="ucard'+(afford?'':' disabled')+(i===selIdx?' sel':'')+'" data-i="'+i+'"><div class="k">'+(i+1)+'</div><h3>'+u.name+'</h3><p>'+u.desc+'</p><div class="lvl">'+lvl+'</div><div class="price">'+(buyable?('◈ '+cost):'—')+'</div></div>'; });
-    html+='</div><div id="shopFoot"><button class="btn" id="continueBtn">CONTINUE ▶ (ENTER)</button> '+MENU_BTN+'</div>';
-    overlay.innerHTML=html;
-    overlay.querySelectorAll('.ucard').forEach(c=>c.addEventListener('click',()=>buyByIndex(parseInt(c.dataset.i,10))));
-    $('continueBtn').addEventListener('click', closeShop);
-    wireOverlay();
-  }
-  function buyByIndex(i){ if(state!=='shop') return; const items=pool(); const u=items[i]; if(!u) return; const lv=up[u.id]||0;
+  function openShop(){ state='shop'; selIdx=0; if(!KIT) return;
+    // kind:'pause' (not 'end') — the shop is mid-run, so it must NOT count as a safe-reload moment
+    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:'DRYDOCK',
+      banner: () => '◈ '+credits+' CREDITS',
+      hint: () => 'Wave '+wave+' cleared — buy upgrades, then continue.',
+      groups:[ { id:'buy', style:'shop', choices: pool().map(u=>({ id:u.id, label:u.name, desc:u.desc })),
+        sub: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const exp=EXPIRING.has(u.id); const maxed=lv>=u.max; const renew=maxed&&exp; const cost=shopCost(u);
+          const lvl = renew?('RENEW '+EXPIRE_WAVES+'w'):(maxed?'MAX':('LV '+lv+'/'+u.max)+(exp?(' · '+EXPIRE_WAVES+'w'):''));
+          return '<span>'+lvl+'</span> · '+((maxed&&!renew)?'<span class="max">—</span>':('<span class="cost">◈ '+cost+'</span>')); },
+        disabled: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const renew=lv>=u.max&&EXPIRING.has(u.id); const buyable=(lv<u.max||renew); return !(buyable && credits>=shopCost(u)); },
+        onPick: (id) => buyUpgrade(id) } ],
+      actions:[ {id:'continue',label:'CONTINUE ▶',primary:true}, {id:'menu',label:'QUIT TO MENU',danger:true} ],
+      onAction:(id)=>{ if(id==='continue') closeShop(); else if(id==='menu') quitToMenu(); } }); }
+  function buyUpgrade(id){ if(state!=='shop') return; const u=ALL_UPGRADES.find(x=>x.id===id); if(!u) return; const lv=up[u.id]||0;
     const renew=lv>=u.max && EXPIRING.has(u.id); if(lv>=u.max && !renew) return;   // maxed permanent → no buy; maxed expiring → renew
-    const cost=shopCost(u); if(credits<cost) return; credits-=cost; applyUpgrade(u.id); renderShop(); }
-  function closeShop(){ state='playing'; srPrev=now(); overlay.classList.add('hidden'); startWave(wave+1); }
+    const cost=shopCost(u); if(credits<cost) return; credits-=cost; applyUpgrade(u.id); }
+  function buyByIndex(i){ const u=pool()[i]; if(u) buyUpgrade(u.id); } // kept for the headless harness
+  function closeShop(){ state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); startWave(wave+1); }
 
   // ---- Wave completion ----
   function onWaveCleared(){
@@ -767,7 +800,7 @@
     },
     spawnPickup(type){ pickups.push({x:ship.x,y:ship.y,type,vx:0,vy:0,life:540}); },
     dropReward(kind){ dropRewards(ship.x,ship.y,kind); }, get gemCount(){ return gems.length; }, get maxPickups(){ return MAX_PICKUPS; },
-    quitToMenu, hasMenuBtn(){ return !!$('menuBtn'); },
+    quitToMenu, menu(){ return KIT ? KIT.menu.current() : null; },
     start:startGame, clearEnemies(){ asteroids=[]; hunters=[]; sentries=[]; kamikazes=[]; bosses=[]; finalePending=false; },
     addScore(n){ score+=n; credits+=Math.floor(n/10); updateHud(); if(PROGRESSION==='milestones'){ while(score>=milestoneNext){ pendingPicks++; milestoneStep+=350; milestoneNext+=milestoneStep; } if(pendingPicks>0&&state==='playing') openPicker(); } },
     setScore(n){ score=n; updateHud(); },
@@ -814,15 +847,15 @@
     fireBtn.addEventListener('touchend',e=>{ keys[' ']=false; e.preventDefault(); },{passive:false});
     fireBtn.addEventListener('touchcancel',()=>{ keys[' ']=false; });
   }
-  // tap the start / game-over / win / pause screen instead of a key
-  overlay.addEventListener('click',(e)=>{ if(!HAS_PROG) return; /* picker is up — its buttons handle clicks */ if(e.target && e.target.closest && e.target.closest('button')) return; if(state==='menu'||state==='dead'||state==='won') startGame(); else if(HAS_PAUSE && state==='paused') resumeGame(); });
   if(isTouch){ document.body.classList.add('touch'); buildTouch(); }
 
-  // game-kit nav: top-left ‹ Menu (quits to the launcher) + top-right sound menu (SFX + Music + Reset)
-  if (KIT) { KIT.nav({ music: true, reset: 'asteroids_', home: '../../', onMenu: () => { quitToMenu(); } }); KIT.showMenuButton(false); KIT.pwa(); }
+  // game-kit nav: top-left ‹ Menu (quits to the start menu, in-place) + top-right sound menu (SFX + Music + Reset)
+  if (KIT) { KIT.nav({ music: true, reset: 'asteroids_', home: '../../', theme: MENU_THEME, challenges: 'asteroids-plus',
+    confirmLeave: () => (state==='playing'||state==='paused'||state==='levelup'||state==='shop') ? 'Leave this run? You’ll lose your progress.' : false,
+    onMenu: () => quitToMenu(), onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); } }); KIT.showMenuButton(false); KIT.showPauseButton(false); KIT.pwa(); }
 
   resize(); updateHud(); loop();
-  if (!HAS_PROG) showModePicker(); // entry with no mode chosen → show the in-page picker
+  showStartMenu(); // always open the unified kit start menu (mode preselected from the URL)
 })();
 </script>
 </body>
