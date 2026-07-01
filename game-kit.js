@@ -1136,18 +1136,18 @@
   // slug from the URL (/games/<slug>/) — used for the game_start analytics event
   function currentSlug() { try { var m = String(location.pathname).match(/\/games\/([^/]+)\//); return m ? m[1] : ''; } catch (e) { return ''; } }
 
-  // ---------- "Tap to play" splash (audio unlock) ----------
-  // Browsers block audio until a user gesture, so on a fresh game load music can't start until the player
-  // clicks. Show a branded splash once per load: the tap satisfies the gesture (the capture-phase unlock
-  // above resumes the context on the same event), so the menu appears with music already running instead
-  // of looking broken. Skipped when both channels are muted (nothing to unlock → no needless friction).
+  // ---------- "Tap to play" splash (start gate + audio unlock) ----------
+  // Always shown once per game load — a normal start gate. It also doubles as the audio-unlock gesture:
+  // browsers block audio until a user interacts, so the tap lets music start with the menu instead of
+  // looking broken. Kept ALWAYS-ON (not gated on the music toggle) for consistency — everyone gets the
+  // same behaviour, on every device, so there's nothing to explain. (Revisit only if players find the
+  // screen annoying — see the komyo-audio-design note.)
   var _tapShown = false;
   function tapToStart() {
     try {
       if (_tapShown) return;                                   // once per page load — never re-show, even on fast clicks / re-entry
       if (typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') return;
-      if (musMuted) return;                                    // splash only exists for AUTOPLAY music — SFX unlocks on the first in-game gesture, so no need (and no friction) when music is off
-      if (ac && ac.state === 'running') return;                // audio already unlocked this load → skip
+      if (ac && ac.state === 'running') return;                // audio already unlocked this load → nothing to gate, skip
       if (document.querySelector && document.querySelector('.gamekit-tap')) return;
       _tapShown = true;
       var el = document.createElement('div'); el.className = 'gamekit-tap';
