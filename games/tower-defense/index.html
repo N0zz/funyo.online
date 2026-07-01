@@ -15,6 +15,7 @@
 <script src="../../analytics.js" defer></script>
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
+<script src="../../challenges.js"></script>
 <script src="../../game-kit.js"></script>
 <style>
   :root { --wood:#4a3220; --wood2:#5e4026; --parch:#e7d6ad; --ink:#3a2a17; --gold:#e0b25a; }
@@ -165,26 +166,11 @@
   <button id="speedBtn" class="tbtn">&#x26A1;1x</button>
 </div>
 
-<div id="overlay">
-  <h1>KEEP DEFENDER</h1>
-  <p>Enemies march the road toward your keep. Build towers on the grass to stop them &mdash; leaks cost keep HP.</p>
-  <p class="hint">Pick a tower below, tap a grass tile to build &middot; tap a tower to upgrade/sell &middot; Start Wave when ready.</p>
-  <p style="font-size:13px;opacity:0.7;margin-top:4px;">Choose a map:</p>
-  <div class="map-picker" id="mapPicker"></div>
-  <p style="font-size:13px;opacity:0.7;margin-top:8px;">Difficulty:</p>
-  <div class="diff-picker" id="diffPicker">
-    <button class="diff-btn" data-diff="easy"><span class="nm">Easy<span class="tick">✓</span></span><span class="desc">Approachable, still a fair fight</span></button>
-    <button class="diff-btn" data-diff="medium"><span class="nm">Medium<span class="tick">✓</span></span><span class="desc">Tanky foes · tight gold</span></button>
-    <button class="diff-btn" data-diff="hard"><span class="nm">Hard<span class="tick">✓</span></span><span class="desc">Brutal · for veterans</span></button>
-  </div>
-  <button id="startGameBtn" style="margin-top:6px;">Begin</button>
-</div>
-
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   const canvas = $('game'), ctx = canvas.getContext('2d');
-  const overlay = $('overlay');
+  const KIT = window.gamekit;
 
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
@@ -460,12 +446,65 @@
   function startGame() {
     reset();
     state = 'build';
-    overlay.classList.add('hidden');
-    window.gamekit.showMenuButton(true); // in-session → the ‹ Menu button is meaningful
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); } // in-session → the ‹ Menu button is meaningful
     loadBest();
     updateHud();
     refreshToolbar();
   }
+
+  // ---- shared menus (gamekit.menu) — parchment theme; difficulty SLIDER + map POPUP + live map backdrop ----
+  const MENU_THEME = { accent: '#e0b25a', glow: '0 0 18px rgba(224,178,90,0.45)', bg: 'rgba(33,24,16,0.72)',
+    border: 'rgba(224,178,90,0.32)', overlay: 'rgba(20,14,8,0.62)', title: '#f0c87a', 'on-accent': '#1c1207', 'accent-soft': 'rgba(224,178,90,0.18)' };
+  function menuKeep(g, x, y, s) {
+    const hw = s * .34, hh = s * .32; g.fillStyle = '#78788a'; g.fillRect(x - hw, y - hh, hw * 2, hh * 2);
+    g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(x + hw * .3, y - hh, hw * .7, hh * 2);
+    g.fillStyle = '#8a8a9c'; const bw = s * .13, bh = s * .15, gap = s * .15; for (let i = -1; i <= 1; i++) g.fillRect(x + i * gap - bw / 2, y - hh - bh, bw, bh);
+    g.fillStyle = '#cc3333'; g.beginPath(); g.moveTo(x, y - hh - bh - s * .26); g.lineTo(x + s * .16, y - hh - bh - s * .17); g.lineTo(x, y - hh - bh - s * .08); g.fill();
+    g.strokeStyle = '#4a3220'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - hh - bh); g.lineTo(x, y - hh - bh - s * .28); g.stroke();
+  }
+  function menuMapRender(g, W2, H2, m) {
+    const th = m.theme, ts2 = Math.max(W2 / COLS, H2 / ROWS), ox2 = (W2 - COLS * ts2) / 2, oy2 = (H2 - ROWS * ts2) / 2;
+    const cxx = c => ox2 + c * ts2 + ts2 / 2, cyy = r => oy2 + r * ts2 + ts2 / 2;
+    g.fillStyle = th.bg; g.fillRect(0, 0, W2, H2);
+    const rd = Array.from({ length: COLS }, () => Array(ROWS).fill(false));
+    for (let i = 0; i < m.wp.length - 1; i++) { let [c0, r0] = m.wp[i], [c1, r1] = m.wp[i + 1]; const sc = Math.sign(c1 - c0), sr = Math.sign(r1 - r0); let c = c0, r = r0; for (; ;) { if (c >= 0 && c < COLS && r >= 0 && r < ROWS) rd[c][r] = true; if (c === c1 && r === r1) break; c += sc; r += sr; } }
+    const rgb1 = hexToRgb(th.g1), rgb2 = hexToRgb(th.g2);
+    for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) { if (rd[c][r]) continue; const base = ((c + r) % 2) ? rgb1 : rgb2, v = ((c * 7 + r * 13) % 5) - 2; g.fillStyle = 'rgb(' + (base[0] + v) + ',' + (base[1] + v) + ',' + (base[2] + v) + ')'; g.fillRect(ox2 + c * ts2, oy2 + r * ts2, ts2 + 1, ts2 + 1); }
+    const pth = () => { g.beginPath(); for (let i = 0; i < m.wp.length; i++) { const x = cxx(m.wp[i][0]), y = cyy(m.wp[i][1]); i ? g.lineTo(x, y) : g.moveTo(x, y); } };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = th.road; g.lineWidth = ts2 * .76; pth(); g.stroke();
+    g.strokeStyle = th.edge; g.lineWidth = ts2 * .62; pth(); g.stroke();
+    g.strokeStyle = th.road; g.lineWidth = ts2 * .5; pth(); g.stroke();
+    const last = m.wp[m.wp.length - 1]; menuKeep(g, Math.min(cxx(last[0]), W2 - ts2 * .5), cyy(last[1]), ts2);
+  }
+  function showStartMenu() {
+    state = 'menu'; if (KIT) KIT.showMenuButton(false);
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'KEEP DEFENDER',
+      backdrop: (g, w, h, st) => menuMapRender(g, w, h, MAPS[parseInt((st && st.map) || mapIndex, 10) || 0]),
+      groups: [
+        { id: 'map', label: 'MAP', style: 'popup', pickerTitle: 'CHOOSE A MAP', default: String(mapIndex),
+          choices: MAPS.map((m, i) => ({ id: String(i), label: m.name, desc: (m.desc || m.surfaceLabel), best: () => getMapBest(i).wave, pvW: 210, pvH: 110, preview: (g, w, h) => menuMapRender(g, w, h, m) })) },
+        { id: 'diff', label: 'DIFFICULTY', style: 'slider', default: diffLevel, choices: [ { id: 'easy', label: 'Easy' }, { id: 'medium', label: 'Medium' }, { id: 'hard', label: 'Hard' } ] },
+      ],
+      actions: [{ id: 'play', label: 'Defend', primary: true }],
+      hint: () => 'Build towers on grass · tap a tower to upgrade, sell or set targeting.',
+      onChange: st => { const mi = parseInt(st.map, 10) || 0; if (mi !== mapIndex) { applyMap(mi); loadBest(); } setDiff(st.diff); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); },
+      onPlay: st => { const mi = parseInt(st.map, 10) || 0; applyMap(mi); loadBest(); setDiff(st.diff); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); startGame(); },
+    });
+    KIT.stampUrl({ map: mapIndex, diff: diffLevel });
+  }
+  function showEnd() {
+    if (KIT) KIT.showMenuButton(false);
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'THE KEEP HAS FALLEN', backdrop: (g, w, h) => menuMapRender(g, w, h, MAPS[mapIndex]),
+      score: score, best: bestScore, newBest: score >= bestScore && score > 0,
+      lines: ['Waves survived: ' + wave + ' · ' + MAPS[mapIndex].name + ' · ' + DIFF().label],
+      share: { slug: 'tower-defense', title: 'Keep Defender', message: () => KIT.shareText({ verb: 'I survived', score: wave, unit: 'waves', game: 'Keep Defender', emoji: '🏰', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, extra: ['Score ' + score] }), params: () => ({ map: mapIndex, diff: diffLevel }) },
+      actions: [ { id: 'again', label: 'Play again', primary: true }, { id: 'menu', label: 'Menu' } ],
+      onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
+  }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
 
   // Per-map records: { score, wave } keyed by map index. Legacy single 'best' migrates to map 0.
   function bestKey(i) { return 'tower-defense_best_' + i; }
@@ -1112,22 +1151,10 @@
   function gameOver() {
     state = 'over';
     saveBest();
-    window.gamekit.recordResult('tower-defense', { mode: DIFF().label, score: score, stats: { wave: wave, difficulty: diffLevel } });
+    KIT.recordResult('tower-defense', { mode: DIFF().label, score: score, stats: { wave: wave, difficulty: diffLevel } });
     SND.play('over');
     enemies = []; shots = []; spawnQ = [];
-    overlay.innerHTML =
-      '<h1>THE KEEP HAS FALLEN</h1>' +
-      '<p>Waves survived: <b>' + wave + '</b></p>' +
-      '<p>Score: <b>' + score + '</b> &nbsp;|&nbsp; Best: <b>' + bestScore + '</b></p>' +
-      '<button id="againBtn">Play again</button>' +
-      '<div id="shareRow"></div>';
-    overlay.classList.remove('hidden');
-    const ab = $('againBtn'); if (ab) ab.addEventListener('click', startGame);
-    window.gamekit.shareRow($('shareRow'), {
-      slug: 'tower-defense', title: 'Keep Defender',
-      message: () => window.gamekit.shareText({ verb: 'I survived', score: wave, unit: 'waves', game: 'Keep Defender', emoji: '🏰', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, extra: ['Score ' + score] }),
-      params: () => ({ map: mapIndex, diff: diffLevel }),
-    });
+    showEnd();
   }
 
   // ---- Render helpers ----
@@ -1550,12 +1577,14 @@
   $('upBtn').addEventListener('click', () => { if (selTower) upgradeTower(selTower); });
   $('sellBtn').addEventListener('click', () => { if (selTower) sellTower(selTower); });
   { const tb = $('targetBtn'); if (tb) tb.addEventListener('click', () => { if (selTower) cycleTarget(selTower); }); }
-  $('startGameBtn').addEventListener('click', startGame);
-  document.querySelectorAll('.diff-btn').forEach(b => b.addEventListener('click', () => setDiff(b.dataset.diff)));
   const spdBtn = $('speedBtn');
   if (spdBtn) spdBtn.addEventListener('click', () => { gameSpeed = gameSpeed === 1 ? 2 : 1; refreshToolbar(); });
-  window.gamekit.nav({ reset: 'tower-defense_' });
-  window.gamekit.showMenuButton(false); // initial = menu screen → hide the ‹ Menu button
+  KIT.nav({ reset: 'tower-defense_', home: '../../', theme: MENU_THEME, challenges: 'tower-defense', onMenu: () => toMenu(),
+    confirmLeave: () => (state === 'build' || state === 'wave') ? "Leave this run? You'll lose your progress." : false,
+    controls: { title: 'Keep Defender — Controls',
+      mouse: [ ['Pick a tower', 'Select to build'], ['Click grass', 'Place tower'], ['Click a tower', 'Upgrade / sell / targeting'] ],
+      touch: [ ['Tap a tower type', 'Select'], ['Tap grass', 'Place'], ['Tap a placed tower', 'Upgrade / sell / targeting'], ['Tap a drop', 'Collect'] ] } });
+  KIT.showMenuButton(false); // initial = menu screen → hide the ‹ Menu button
   const autoBtn = $('autoBtn');
   if (autoBtn) autoBtn.addEventListener('click', () => {
     autoWave = !autoWave;
@@ -1567,6 +1596,7 @@
   // ---- Test hook ----
   window.__test = {
     get state() { return state; },
+    menu() { return KIT ? KIT.menu.current() : null; },
     get gold() { return gold; },
     get hp() { return hp; },
     get wave() { return wave; },
@@ -1657,10 +1687,11 @@
     towerInfo(i) { const t = towers[i]; return t ? placedTowerStatsHtml(t) : null; },
   };
 
-  resize(); loadBest(); buildMapPicker(); applyMap(mapIndex); loadDiff(); setDiff(diffLevel); updateHud(); loop();
-  // deep-link ?map= → preselect that map
-  { const P = window.gamekit && window.gamekit.param; const m = P && parseInt(P('map'), 10); if (m >= 0 && m < MAPS.length) { applyMap(m); loadBest(); buildMapPicker(); }
-    const d = P && P('diff'); if (d && DIFFICULTY[d]) setDiff(d); } // a shared link can deep-link the difficulty too
+  resize(); loadBest(); applyMap(mapIndex); loadDiff(); setDiff(diffLevel); updateHud(); loop();
+  // deep-link ?map= / ?diff= → preselect before opening the menu
+  { const P = KIT && KIT.param; const m = P && parseInt(P('map'), 10); if (m >= 0 && m < MAPS.length) { applyMap(m); loadBest(); }
+    const d = P && P('diff'); if (d && DIFFICULTY[d]) setDiff(d); }
+  showStartMenu(); // open the shared start menu (map/difficulty preselected from the URL)
 })();
   window.gamekit.pwa();
 </script>

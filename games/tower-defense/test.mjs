@@ -112,17 +112,14 @@ function run() {
   T().addGold(1000);                   // refund → refreshToolbar re-enables it live
   ok(T().upBtnDisabled() === false, 'upgrade button pops in once affordable');
 
-  section('END screen + share row');
+  section('END (kit menu) + share');
   const g2 = runInline('index.html'); const U = () => g2.test();
   U().start();
   let guard = 0; while (U().hp > 0 && guard++ < 60000) { if (U().state === 'build') U().startWave(); U().step(1); }
-  ok(U().hp <= 0 && U().state === 'over', 'undefended waves end the run (END screen)');
-  const ov = g2.getEl('overlay');
-  ok(/Play again/.test(ov.innerHTML), 'END screen has a Play again action');
-  ok(/Waves survived/.test(ov.innerHTML), 'END screen reports waves survived');
-  ok(/id="shareRow"/.test(ov.innerHTML), 'END screen has a game-kit share row mount');
-  const sr = g2.getEl('shareRow');
-  ok(/data-act="x"/.test(sr.innerHTML) && /data-act="reddit"/.test(sr.innerHTML) && /data-act="copy"/.test(sr.innerHTML), 'share row has X / Reddit / Copy buttons');
+  ok(U().hp <= 0 && U().state === 'over', 'undefended waves end the run');
+  ok(U().menu() != null, 'kit end menu is shown on game over');
+  U().menu().activate('again');
+  ok(U().state === 'build', 'Play again starts a fresh run (state=' + U().state + ')');
   const su = g2.win.gamekit.shareUrls('https://komyo.online/games/tower-defense/', 'I survived 3 waves in Keep Defender 🏰');
   ok(/komyo\.online(%2F|\/)games(%2F|\/)tower-defense/.test(su.x) && /tower-defense/.test(su.copy), 'share links point at the game URL');
 
