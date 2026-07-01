@@ -122,26 +122,23 @@ ok(T().state === 'ready', 'initial state is "ready"');
 T().start();
 ok(T().state === 'playing', 'start() → "playing"');
 
-// (b2) tap-to-start gives upward vy (first-flap impulse)
-section('Tap-start impulse');
+// (b2) start comes from the kit menu's Play (not a canvas tap on the ready screen)
+section('Menu start');
 {
   g = runGame();
-  ok(T().state === 'ready', 'tap-start: initial state is ready');
-  // Fire canvas pointerdown — the real tap path: onTap() → flap() → startGame() + FLAP_VY
-  g.getEl('game').fire('pointerdown');
-  ok(T().state === 'playing', 'canvas tap from ready → playing');
-  ok(T().bird.vy < 0, 'canvas tap from ready gives negative vy (upward impulse), got ' + T().bird.vy);
+  ok(T().state === 'ready', 'initial state is ready (menu open)');
+  T().start();
+  ok(T().state === 'playing', 'menu Play → playing');
 }
 
-// (b3) Space/Enter from 'over' also gives upward vy
-section('Key-restart impulse');
+// (b3) restart comes from the end menu's Play Again
+section('Restart from end menu');
 {
   g = runGame(); T().start();
-  while (T().state === 'playing') T().step(1);
-  ok(T().state === 'over', 'key-restart: game ended');
-  g.fireKey(' ');
-  ok(T().state === 'playing', 'Space from over → playing');
-  ok(T().bird.vy < 0, 'Space from over gives upward impulse, got ' + T().bird.vy);
+  let guard = 0; while (T().state === 'playing' && guard++ < 3000) T().step(1);
+  ok(T().state === 'over', 'game ended');
+  T().menu().activate('again');
+  ok(T().state === 'playing', 'Play Again from the end menu → playing');
 }
 
 // (c) gravity: stepping without flapping lowers the bird and increases vy
@@ -332,31 +329,15 @@ section('pendingGapY cleared on restart');
   }
 }
 
-// (o) end screen restarts on tap/click (debounced) and on Space (immediate)
-section('End-screen restart inputs');
+// (o) restart comes from the kit end menu's Play Again action
+section('End menu restart');
 {
   g = runGame(); T().start();
-  while (T().state === 'playing') T().step(1);
-  ok(T().state === 'over', 'restart-inputs: game ended');
-  // Immediate goScreen pointerdown is swallowed by the death-tap debounce window.
-  g.getEl('goScreen').fire('pointerdown', { target: g.getEl('goScreen') });
-  ok(T().state === 'over', 'immediate end-screen tap is debounced (no instant restart from death-tap)');
-  // Space restarts immediately (deliberate keypress, no debounce).
-  g.fireKey(' ');
-  ok(T().state === 'playing', 'Space restarts the end screen');
-  ok(T().bird.vy < 0, 'Space restart gives upward impulse, got ' + T().bird.vy);
-}
-
-// (p) end-screen tap on the share row does NOT restart (share controls are exempt)
-section('Share-row tap exempt from restart');
-{
-  g = runGame(); T().start();
-  while (T().state === 'playing') T().step(1);
-  ok(T().state === 'over', 'share-exempt: game ended');
-  // A tap whose target is inside #shareRow must not trigger a restart, even past the debounce.
-  const shareTarget = { closest: sel => (sel === '#shareRow' ? g.getEl('shareRow') : null) };
-  g.getEl('goScreen').fire('click', { target: shareTarget });
-  ok(T().state === 'over', 'tap on share control does not restart the run');
+  let guard = 0; while (T().state === 'playing' && guard++ < 3000) T().step(1);
+  ok(T().state === 'over', 'game ended');
+  ok(T().menu() != null, 'kit end menu shown on game over');
+  T().menu().activate('again');
+  ok(T().state === 'playing', 'Play Again restarts');
 }
 
 // (q) shared best: legacy per-mode keys migrate/merge into flappy_best on boot

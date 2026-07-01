@@ -15,6 +15,7 @@
 <script src="../../analytics.js" defer></script>
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
+<script src="../../challenges.js"></script>
 <script src="../../game-kit.js"></script>
 <style>
   :root { --sky:#b8e4f9; --grass:#7ec850; --stem:#5a9e30; --petal:#f9c0c0; --cream:#fdf6e3; --ink:#3a2a17; }
@@ -79,32 +80,11 @@
   <div class="score" id="scoreEl">0</div>
   <div class="best"  id="bestEl">BEST 0</div>
 </div>
-<div id="overlay">
-  <h1>🌸 Meadow Flyer</h1>
-  <p>Guide the little bee through the flower meadow.</p>
-  <p class="hint">Tap / Click / Space to flap · Mobile friendly</p>
-  <div class="mode-row">
-    <button class="mode-btn active-day" id="modeDay">☀️ Day</button>
-    <button class="mode-btn" id="modeNight">🌙 Night</button>
-  </div>
-  <div class="menu-stats">
-    <span id="menuBest">BEST 0</span> · <span id="menuCash">💰 0</span>
-  </div>
-  <div class="bird-picker" id="birdPicker"></div>
-  <button class="play-btn" id="playBtn">Fly!</button>
-</div>
-<div id="goScreen" class="hidden">
-  <h2>Oh no!</h2>
-  <div class="goScore" id="goScoreEl">Score: 0</div>
-  <div class="goBest"  id="goBestEl">BEST 0</div>
-  <div id="shareRow"></div>
-  <div class="goHint">Tap / Click / Space to try again</div>
-</div>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   const canvas = $('game'), ctx = canvas.getContext('2d');
-  const overlay = $('overlay'), goScreen = $('goScreen'), hud = $('hud');
+  const KIT = window.gamekit;
 
   // roundRect polyfill for Safari < 15.4
   if (typeof ctx.roundRect !== 'function') {
@@ -153,28 +133,7 @@
   let mode = (localStorage.getItem(MODE_KEY) === 'night') ? 'night' : 'day'; // 'day' | 'night'
   function saveMode(m) { localStorage.setItem(MODE_KEY, m); }
 
-  function applyModeUI() {
-    if (mode === 'night') {
-      overlay.classList.add('night');
-      goScreen.classList.add('night');
-      hud.classList.add('night');
-    } else {
-      overlay.classList.remove('night');
-      goScreen.classList.remove('night');
-      hud.classList.remove('night');
-    }
-    if ($('modeDay')) {
-      $('modeDay').classList.toggle('active-day', mode === 'day');
-      $('modeDay').classList.toggle('active-night', false);
-      $('modeNight').classList.toggle('active-night', mode === 'night');
-      $('modeNight').classList.toggle('active-day', false);
-    }
-  }
-
-  if ($('modeDay')) {
-    $('modeDay').addEventListener('click', () => { mode = 'day'; saveMode(mode); applyModeUI(); updateHud(); refreshMenu(); });
-    $('modeNight').addEventListener('click', () => { mode = 'night'; saveMode(mode); applyModeUI(); updateHud(); refreshMenu(); });
-  }
+  function applyModeUI() { /* day/night is now driven by the kit menu's TIME OF DAY selector; render reads `mode` */ }
 
   // ---- RNG (seedable) ----
   let rngSeed = Date.now();
@@ -244,6 +203,8 @@
   let particles = [];   // { x, y, vx, vy, life, col }
   let stars = [];       // night mode stars
   let fireflies = [];   // night mode fireflies
+  let leaves = [];      // day mode wind-blown leaves
+  const LEAF_COLS = ['#8fce5a', '#b0dc80', '#e0b25a', '#c8e08a']; // shared by the menu backdrop + in-game
   let nextObsX = 0;
   let pendingGapY = null;
   let lastGapY = null;   // previous obstacle's gap top, for the reachability clamp
@@ -263,6 +224,8 @@
     for (let i = 0; i < 4; i++) hills.push({ x: (i / 4) * W + rng() * W * 0.4, r: W * (0.18 + rng() * 0.14), s: 0.55 + rng() * 0.35 });
     for (let i = 0; i < 60; i++) stars.push({ x: rng() * W, y: rng() * H * 0.65, r: 0.8 + rng() * 1.8, twinkle: rng() * Math.PI * 2 });
     for (let i = 0; i < 14; i++) fireflies.push({ x: rng() * W, y: H * 0.3 + rng() * H * 0.45, phase: rng() * Math.PI * 2, speed: 0.4 + rng() * 0.8, amp: 20 + rng() * 40 });
+    leaves.length = 0;
+    for (let i = 0; i < 10; i++) leaves.push({ x: rng() * W, y: H * 0.15 + rng() * H * 0.5, r: 4 + rng() * 2.5, spin: rng() * 6.28, spinV: (rng() - 0.5) * 0.06, sway: rng() * 6.28, speed: 0.5 + rng() * 0.8, col: LEAF_COLS[i % 4] });
   }
 
   function resize() {
@@ -302,10 +265,108 @@
   function startGame() {
     resetGame();
     state = 'playing';
-    overlay.classList.add('hidden');
-    goScreen.classList.add('hidden');
-    window.gamekit.showMenuButton(true); // run started → show the ‹ Menu button
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
   }
+
+  // ---- shared menus (gamekit.menu) — meadow theme that re-skins day ↔ night, bird GRID picker ----
+  const FLAPPY = {
+    day:   { accent: '#2f8a2a', glow: '0 0 18px rgba(47,138,42,0.4)', bg: 'rgba(226,244,236,0.82)', overlay: 'rgba(150,205,230,0.5)', text: '#12351f', title: '#1f5a2a', border: 'rgba(30,90,40,0.35)', 'on-accent': '#eafbe6', 'accent-soft': 'rgba(47,138,42,0.16)', scrim: 'rgba(255,255,255,0.26)' },
+    night: { accent: '#7ec850', glow: '0 0 18px rgba(126,200,80,0.4)', bg: 'rgba(12,22,30,0.78)', overlay: 'rgba(6,12,18,0.82)', text: '#dfeefa', title: '#a8e878', border: 'rgba(126,200,80,0.3)', 'on-accent': '#0a140a', 'accent-soft': 'rgba(126,200,80,0.16)', scrim: 'rgba(8,16,24,0.34)' },
+  };
+  function setVars(el, obj) { if (!el || !el.style || !el.style.setProperty) return; for (const k in obj) if (obj[k] != null) { try { el.style.setProperty('--gkm-' + k, obj[k]); } catch (e) {} } }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function mGrad(g, w, h, stops) { const lg = g.createLinearGradient(0, 0, 0, h); stops.forEach(s => lg.addColorStop(s[0], s[1])); g.fillStyle = lg; g.fillRect(0, 0, w, h); }
+  function menuBackdrop(g, w, h, tod, frame) {
+    frame = frame || 0;
+    const night = tod === 'night';
+    if (night) { mGrad(g, w, h, [[0, '#0a0e1e'], [.55, '#1a2040'], [1, '#1a3020']]);
+      g.fillStyle = '#fff'; for (let s = 0; s < 50; s++) { g.globalAlpha = .5; g.fillRect((s * 97 + 13) % w, (s * 53 + 7) % (h * .7), (s % 3) ? 1.5 : 2.3, (s % 3) ? 1.5 : 2.3); } g.globalAlpha = 1;
+      g.fillStyle = 'rgba(240,235,200,.9)'; g.beginPath(); g.arc(w * .82, h * .16, 22, 0, 7); g.fill(); g.fillStyle = 'rgba(30,40,80,.35)'; g.beginPath(); g.arc(w * .82 + 9, h * .16 - 7, 22, 0, 7); g.fill();
+    } else { mGrad(g, w, h, [[0, '#c8eeff'], [1, '#e8f8d0']]);
+      g.fillStyle = 'rgba(255,255,255,.82)'; [[w * .25, h * .2, 26], [w * .6, h * .12, 20], [w * .85, h * .28, 22]].forEach(c => { g.beginPath(); g.arc(c[0], c[1], c[2], 0, 7); g.arc(c[0] + c[2] * .8, c[1] + 3, c[2] * .7, 0, 7); g.arc(c[0] - c[2] * .8, c[1] + 4, c[2] * .6, 0, 7); g.fill(); });
+    }
+    const hills = night ? ['#101830', '#0c1428', '#141c34'] : ['#a8d870', '#90cc60', '#b0dc80'], hy = [h * .62, h * .68, h * .72], hr = [w * .28, w * .22, w * .32];
+    for (let k = 0; k < 3; k++) { g.fillStyle = hills[k]; for (let hx = -hr[k]; hx < w + hr[k]; hx += hr[k] * 1.4) { g.beginPath(); g.arc(hx + k * 40, hy[k] + hr[k], hr[k], Math.PI, 0); g.fill(); } }
+    g.fillStyle = night ? '#0e1a10' : '#7ec850'; g.fillRect(0, h - 28, w, 28); g.fillStyle = night ? '#162010' : '#5a9e30'; g.fillRect(0, h - 28, w, 5);
+    const pipes = [w * .22, w * .62], pw = 52;
+    pipes.forEach((px, idx) => { const gy = h * .42 + idx * 30, gap = 104;
+      const pg = g.createLinearGradient(px, 0, px + pw, 0); if (night) { pg.addColorStop(0, '#2a4060'); pg.addColorStop(.5, '#3a5880'); pg.addColorStop(1, '#1a2840'); } else { pg.addColorStop(0, '#7ec850'); pg.addColorStop(.5, '#9ed870'); pg.addColorStop(1, '#5a9e30'); }
+      g.fillStyle = pg; g.fillRect(px, 0, pw, gy - gap / 2); g.fillRect(px, gy + gap / 2, pw, h - (gy + gap / 2) - 28); g.fillRect(px - 5, gy - gap / 2 - 14, pw + 10, 14); g.fillRect(px - 5, gy + gap / 2, pw + 10, 14);
+      [gy - gap / 2, gy + gap / 2].forEach(fy => { g.fillStyle = night ? '#a080e0' : '#f9c0c0'; for (let p = 0; p < 5; p++) { const an = p / 5 * 6.28; g.beginPath(); g.ellipse(px + pw / 2 + Math.cos(an) * 11, fy + Math.sin(an) * 9, 5, 4, an, 0, 7); g.fill(); } g.fillStyle = night ? '#c0a0ff' : '#f9e080'; g.beginPath(); g.arc(px + pw / 2, fy, 4, 0, 7); g.fill(); });
+    });
+    if (night) { // fireflies drift + pulse
+      for (let f = 0; f < 12; f++) {
+        const drift = frame * (0.4 + (f % 5) * 0.14);
+        const fx = (((f * 131 + 40) - drift) % (w + 40) + w + 40) % (w + 40) - 20;
+        const fy = (f * 67 + 30) % (h * .55) + h * .1 + Math.sin(frame * 0.05 + f) * 18;
+        const gl = 0.3 + 0.6 * (0.5 + 0.5 * Math.sin(frame * 0.08 + f * 1.3));
+        g.fillStyle = 'rgba(192,255,64,' + (0.22 * gl).toFixed(3) + ')'; g.beginPath(); g.arc(fx, fy, 8, 0, 7); g.fill();
+        g.fillStyle = 'rgba(208,255,96,' + gl.toFixed(3) + ')'; g.beginPath(); g.arc(fx, fy, 2.5, 0, 7); g.fill();
+      }
+    } else { // leaves on the wind
+      const lc = ['#8fce5a', '#b0dc80', '#e0b25a', '#c8e08a'];
+      for (let l = 0; l < 9; l++) {
+        const sp = 0.5 + (l % 4) * 0.28;
+        const lx = (((l * 137 + 20) - frame * sp) % (w + 30) + w + 30) % (w + 30) - 15;
+        const ly = h * .18 + (l * 53) % (h * .42) + Math.sin(frame * 0.03 + l) * 16;
+        g.save(); g.translate(lx, ly); g.rotate(frame * 0.02 + l); g.globalAlpha = 0.85;
+        g.fillStyle = lc[l % 4]; g.beginPath(); g.ellipse(0, 0, 6, 3, 0, 0, 7); g.fill();
+        g.restore(); g.globalAlpha = 1;
+      }
+    }
+    g.font = '30px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(selectedBird.emoji, w * .4, h * .44);
+  }
+  let flappyHandle = null;
+  function showStartMenu() {
+    state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    flappyHandle = KIT.menu.show({ kind: 'start', title: '🌸 Meadow Flyer', theme: FLAPPY[mode], backdropAnimate: true,
+      backdrop: (g, w, h, st, frame) => menuBackdrop(g, w, h, (st && st.tod) || mode, frame),
+      lines: ['Guide the flyer through the flower meadow.'],
+      groups: [
+        { id: 'tod', label: 'TIME OF DAY', default: mode, choices: [ { id: 'day', label: '☀️ Day' }, { id: 'night', label: '🌙 Night' } ] },
+        { id: 'bird', label: 'FLYER', style: 'grid', default: selectedBird.id, choices: BIRDS.map(b => ({
+          id: b.id, label: cap(b.id), pvW: 44, pvH: 40,
+          preview: g => { g.font = '30px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(b.emoji, 22, 20); },
+          locked: () => !birdUnlocked(b), cost: b.cost, sub: b.cost === 0 ? 'Free' : 'Unlocked',
+        })) },
+      ],
+      actions: [{ id: 'play', label: 'Fly!', primary: true }],
+      hint: () => 'Best ' + getBest() + ' · 💰 ' + getCash() + ' · tap / click / Space to flap.',
+      onChange: st => {
+        mode = st.tod === 'night' ? 'night' : 'day'; saveMode(mode);
+        if (st.bird && st.bird !== selectedBird.id) { selectBird(st.bird); selectedBird = getSelectedBird(); }
+        if (flappyHandle) setVars(flappyHandle.el, FLAPPY[mode]);
+        KIT.stampUrl({ bird: selectedBird.id, mode: mode });
+      },
+      onPlay: st => {
+        mode = st.tod === 'night' ? 'night' : 'day'; saveMode(mode);
+        if (st.bird) { selectBird(st.bird); selectedBird = getSelectedBird(); }
+        KIT.stampUrl({ bird: selectedBird.id, mode: mode }); startGame();
+      },
+    });
+    setVars(flappyHandle.el, FLAPPY[mode]);
+    KIT.stampUrl({ bird: selectedBird.id, mode: mode });
+  }
+  function shareMsg() { return KIT.shareText({ verb: 'I flew to', score: score, game: 'Meadow Flyer', emoji: '🐤', mode: selectedBird.emoji + ' ' + cap(selectedBird.id) }); }
+  function showEnd(isBest) {
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    const h = KIT.menu.show({ kind: 'end', title: 'Oh no!', theme: FLAPPY[mode], backdropAnimate: true, backdrop: (g, w, hh, st, frame) => menuBackdrop(g, w, hh, mode, frame),
+      score: score, best: getBest(), newBest: isBest,
+      share: { slug: 'flappy', title: 'Meadow Flyer', message: () => shareMsg(), params: () => ({ bird: selectedBird.id, mode: mode }) },
+      record: { slug: 'flappy', mode: '', score: score },
+      actions: [ { id: 'again', label: 'FLY AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
+      onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
+    if (h) setVars(h.el, FLAPPY[mode]);
+  }
+  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
+    const h = KIT.menu.show({ kind: 'pause', theme: FLAPPY[mode], title: 'PAUSED', lines: ['Score ' + score],
+      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+    if (h) setVars(h.el, FLAPPY[mode]); }
+  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
 
   let overAt = 0; // timestamp the end screen appeared — used to debounce the death-tap
   function now() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
@@ -315,32 +376,15 @@
     overAt = now();
     SND.play('hit');
     const cur = getBest();
-    if (score > cur) saveBest(score);
+    const improved = score > cur;
+    if (improved) saveBest(score);
     best = getBest();
-    window.gamekit.recordResult('flappy', { mode: '', score: score });
     updateHud();
-    $('goScoreEl').textContent = 'Score: ' + score;
-    $('goBestEl').textContent = 'BEST ' + best;
-    goScreen.classList.remove('hidden');
-  }
-
-  function doRestart() {
-    if (state !== 'over') return;
-    startGame();
-    bird.vy = FLAP_VY;
-    bird.flapAnim = 1;
-  }
-  // Pointer/tap restart ignores the same tap that caused the death (a short settle window
-  // after game over). The keyboard path restarts immediately — a deliberate keypress.
-  const RESTART_DEBOUNCE = 250;
-  function tryRestart() {
-    if (state !== 'over') return;
-    if (now() - overAt < RESTART_DEBOUNCE) return;
-    doRestart();
+    showEnd(improved);
   }
 
   function flap() {
-    if (state === 'ready' || state === 'over') { startGame(); bird.vy = FLAP_VY; bird.flapAnim = 1; return; }
+    if (state !== 'playing') return; // start / restart come from the menu's Play
     bird.vy = FLAP_VY;
     bird.flapAnim = 1;
     SND.play('flap');
@@ -520,6 +564,11 @@
       f.x -= obsSpeed * 0.3;
       if (f.x < -10) f.x = W + 10;
     }
+    // leaf drift (day)
+    for (const l of leaves) {
+      l.x -= obsSpeed * l.speed; l.spin += l.spinV; l.sway += 0.03;
+      if (l.x < -12) { l.x = W + 12; l.y = H * 0.15 + rng() * H * 0.5; }
+    }
   }
 
   // ---- Render helpers ----
@@ -541,6 +590,16 @@
       ctx.globalAlpha = 0.4 + 0.6 * tw;
       ctx.fillStyle = '#ffffff';
       ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawLeaves() {
+    for (const l of leaves) {
+      const y = l.y + Math.sin(l.sway) * 10;
+      ctx.save(); ctx.translate(l.x, y); ctx.rotate(l.spin); ctx.globalAlpha = 0.8;
+      ctx.fillStyle = l.col; ctx.beginPath(); ctx.ellipse(0, 0, l.r + 2, l.r - 1, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
@@ -691,6 +750,7 @@
       ctx.fillStyle = '#5a9e30';
       ctx.fillRect(0, H - groundH, W, 5);
 
+      drawLeaves();
       for (const o of obstacles) drawObstacle(o);
     }
 
@@ -729,27 +789,16 @@
   // ---- Input ----
   canvas.addEventListener('pointerdown', () => flap());
   document.addEventListener('keydown', e => {
-    if (e.key === ' ' || e.key === 'Enter') {
-      e.preventDefault();
-      if (state === 'over') doRestart(); else flap();
-    }
+    if ((e.key === ' ' || e.key === 'Enter') && state === 'playing') { e.preventDefault(); flap(); }
+    else if (e.key === 'Escape' && state === 'playing') { e.preventDefault(); pauseGame(); }
   });
-  $('playBtn').addEventListener('click', startGame);
-  // End screen accepts tap (touchstart/pointerdown) AND mouse click to restart, debounced
-  // so the death-tap doesn't bounce straight into a new run. Don't restart when a share
-  // control was the target.
-  function fromShare(ev) { const t = ev && ev.target; return t && typeof t.closest === 'function' && t.closest('#shareRow'); }
-  goScreen.addEventListener('pointerdown', e => { if (fromShare(e)) return; tryRestart(); });
-  goScreen.addEventListener('click', e => { if (fromShare(e)) return; tryRestart(); });
 
-  // ---- Share row + top nav (game-kit) ----
-  window.gamekit.shareRow(document.getElementById('shareRow'), {
-    slug: 'flappy', title: 'Meadow Flyer',
-    message: () => window.gamekit.shareText({ verb: 'I flew to', score: score, game: 'Meadow Flyer', emoji: '🐤', mode: selectedBird.emoji + ' ' + (selectedBird.id.charAt(0).toUpperCase() + selectedBird.id.slice(1)) }),
-    params: () => ({ bird: selectedBird.id }),
-  });
-  window.gamekit.nav({ reset: 'flappy_' });
-  window.gamekit.showMenuButton(false); // initial = menu/ready screen → hide the ‹ Menu button
+  // ---- top nav (game-kit) ----
+  KIT.nav({ reset: 'flappy_', home: '../../', theme: FLAPPY.day, challenges: 'flappy', onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
+    controls: { title: 'Meadow Flyer — Controls',
+      mouse: [ ['Click', 'Flap'] ], keyboard: [ ['Space · Enter', 'Flap'], ['Esc', 'Pause'] ], touch: [ ['Tap', 'Flap'] ] } });
 
   // ---- Test hook ----
   window.__test = {
@@ -792,24 +841,25 @@
     currentGap() { return currentGap(); },
     currentSpeed() { return currentSpeed(); },
     get obsSpeed() { return obsSpeed; },
-    start() { mode = 'day'; applyModeUI(); startGame(); },
-    startMode(m) { mode = (m === 'night' ? 'night' : 'day'); applyModeUI(); startGame(); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    start() { mode = 'day'; startGame(); },
+    startMode(m) { mode = (m === 'night' ? 'night' : 'day'); startGame(); },
     flap: () => { if (state === 'playing') { bird.vy = FLAP_VY; bird.flapAnim = 1; } },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
     seed: seedRng,
     spawnGapAt(y) { pendingGapY = y; },
     setBest(v) { saveBest(v); best = v; },
-    setCash(v) { localStorage.setItem(CASH_KEY, String(v)); refreshMenu(); },
-    selectBird(id) { const r = selectBird(id); selectedBird = getSelectedBird(); refreshMenu(); return r; },
+    setCash(v) { localStorage.setItem(CASH_KEY, String(v)); },
+    selectBird(id) { const r = selectBird(id); selectedBird = getSelectedBird(); return r; },
     // Drop a collectible directly in front of the bird for headless collect tests.
     spawnCollectibleAt(x, y, val) { collectibles.push({ x: x, y: y, r: 14, emoji: '🪙', val: val || 2, taken: false }); },
     setScore(v) { score = v; updateHud(); },
   };
 
-  applyModeUI();
-  resize(); updateHud(); refreshMenu(); loop();
-  // deep-link ?bird= → preselect that bird (if it's unlocked)
-  { const P = window.gamekit && window.gamekit.param; const pb = P && P('bird'); if (pb && BIRDS.some(b => b.id === pb) && selectBird(pb)) { selectedBird = getSelectedBird(); refreshMenu(); } }
+  resize(); updateHud(); loop();
+  // deep-link ?bird= / ?mode= → preselect before opening the menu
+  { const P = KIT && KIT.param; if (P) { const pb = P('bird'); if (pb && BIRDS.some(b => b.id === pb) && selectBird(pb)) selectedBird = getSelectedBird(); const pm = P('mode'); if (pm === 'day' || pm === 'night') { mode = pm; saveMode(mode); } } }
+  showStartMenu(); // open the shared start menu (bird/day-night preselected from the URL)
 })();
   window.gamekit.pwa();
 </script>
