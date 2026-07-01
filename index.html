@@ -183,8 +183,10 @@
   #shareCopy.ok { color:#7fe0a0; border-color:#7fe0a0; }
 
   /* feedback modal */
-  #fbModal, #nlModal, #clModal, #aboutModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
-  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop { background:rgba(5,8,13,0.66); }
+  #fbModal, #nlModal, #clModal, #aboutModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal, #profileModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop, #profileModal::backdrop { background:rgba(5,8,13,0.66); }
+  #profileModal { width:min(760px,95vw); }
+  .about.profile { max-height:88vh; overflow-y:auto; }
   /* about modal */
   #aboutModal { width:min(520px,94vw); }
   .about { padding:18px 20px 20px; display:flex; flex-direction:column; gap:12px; }
@@ -202,6 +204,34 @@
   .settoggle.on { border-color:#9fe8ff; color:#9fe8ff; }
   .setvol { width:120px; accent-color:#9fe8ff; }
   .setvol:disabled { opacity:.4; }
+  .profile .pf-name { color:var(--muted); font-size:14px; margin:-4px 0 2px; }
+  .pf-stats { display:flex; flex-wrap:wrap; gap:10px 20px; margin:8px 0 4px; }
+  .pf-stat { display:flex; flex-direction:column; gap:1px; }
+  .pf-stat b { font-size:24px; color:var(--text); font-variant-numeric:tabular-nums; line-height:1.1; }
+  .pf-stat span { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
+  .pf-facts { display:flex; flex-direction:column; gap:5px; margin:12px 0 2px; font-size:14px; color:var(--muted); }
+  .pf-facts b { color:var(--text); }
+  .pf-sec { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin:16px 0 8px; border-top:1px solid var(--border); padding-top:14px; }
+  .pf-mp { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:10px; }
+  .pf-mprow { display:grid; grid-template-columns:1fr auto; column-gap:12px; row-gap:4px; align-items:baseline; padding:11px 12px; border-radius:12px; }
+  .pf-mpg { grid-column:1; grid-row:1; font-size:14px; font-weight:600; color:var(--text); }
+  .pf-mptot { grid-column:2; grid-row:1 / span 2; align-self:center; text-align:right; font-size:20px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
+  .pf-mpmodes { grid-column:1; grid-row:2; display:flex; flex-wrap:wrap; gap:4px 6px; }
+  .pf-mchip { font-size:11.5px; color:var(--muted); background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; padding:1px 7px; }
+  .pf-mchip b { color:var(--text); font-weight:600; }
+  .pf-tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; margin-top:8px; }
+  .pf-tinted { border:1px solid color-mix(in srgb, var(--acc,#9fe8ff) 28%, var(--border)); background:linear-gradient(155deg, color-mix(in srgb, var(--acc,#9fe8ff) 13%, transparent), transparent 62%), rgba(255,255,255,0.015); }
+  .pf-tile { border-radius:12px; padding:12px 13px; }
+  .pf-th { font-size:14.5px; font-weight:600; color:var(--text); margin-bottom:9px; }
+  .pf-rows { display:flex; flex-direction:column; gap:3px; }
+  .pf-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:14px; }
+  .pf-row .pr-mode { color:var(--muted); }
+  .pf-row .pr-best { color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .pf-row .pr-plays { color:var(--faint); font-size:12px; font-weight:400; margin-left:6px; }
+  .pf-empty { color:var(--muted); font-size:15px; line-height:1.6; }
+  .pf-share { margin-top:16px; }
+  .pf-share button { width:100%; padding:11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:600; cursor:pointer; }
+  .pf-share button:hover { border-color:#9fe8ff; }
   /* FAQ modal (reuses .about container) */
   #faqModal { width:min(560px,94vw); }
   .faq { max-height:80vh; overflow-y:auto; }
@@ -532,6 +562,10 @@
         <span class="dw-line"><span class="dw-name" id="dwName">anonymous</span><button class="dw-edit" id="dwEdit" type="button" aria-label="Edit display name" title="Edit display name">✏️</button></span>
       </div>
       <div class="dgrp">
+        <div class="dl">You</div>
+        <button class="ditem" id="profileBtn" type="button"><span class="di">👤</span> My profile</button>
+      </div>
+      <div class="dgrp">
         <div class="dl">Connect</div>
         <button class="ditem" id="feedback" type="button"><span class="di">💬</span> Feedback</button>
         <button class="ditem" id="newsletter" type="button"><span class="di">📬</span> Subscribe</button>
@@ -686,6 +720,13 @@
         <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume">
       </div>
       <p class="about-foot">Saved on this device. Each game also has these controls in its top-right menu.</p>
+    </div>
+  </dialog>
+
+  <dialog id="profileModal">
+    <div class="about profile">
+      <div class="cl-head"><h3 id="pfTitle">👤 My profile</h3><button type="button" class="dx" id="profileClose" aria-label="Close">✕</button></div>
+      <div id="profileBody"></div>
     </div>
   </dialog>
 
@@ -1331,6 +1372,139 @@
       }
     })();
 
+    // ---- My profile (centered modal) — device-only stats, sorted by game, shareable card ----
+    (function () {
+      const modal = document.getElementById('profileModal'), btn = document.getElementById('profileBtn'), closeBtn = document.getElementById('profileClose'), body = document.getElementById('profileBody');
+      if (!modal || !modal.showModal) return;
+      const K = window.gamekit, GAMES = window.GAMES || [];
+      const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
+      const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const fmt = n => (typeof n === 'number' && n.toLocaleString) ? n.toLocaleString() : String(n);
+      const meta = slug => { for (let i = 0; i < GAMES.length; i++) if (GAMES[i].slug === slug) return GAMES[i]; return null; };
+      const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+      let shareData = null;
+      // Snapshot the profile panel to a PNG that looks exactly like the on-screen modal — no libraries:
+      // clone it, inline computed styles (an SVG <foreignObject> has no access to the page's CSS),
+      // rasterise via an <img>. Falls back (returns null) if the browser taints the canvas (e.g. Safari).
+      function inlineStyles(src, dst) {
+        try { const cs = getComputedStyle(src); let s = ''; for (let i = 0; i < cs.length; i++) { const p = cs[i]; s += p + ':' + cs.getPropertyValue(p) + ';'; } dst.style.cssText = s; } catch (e) {}
+        const sc = src.children || [], dc = dst.children || [];
+        for (let i = 0; i < sc.length && i < dc.length; i++) inlineStyles(sc[i], dc[i]);
+      }
+      function snapshot() {
+        return new Promise(resolve => {
+          try {
+            const panel = modal.querySelector('.about.profile');
+            if (!panel || typeof XMLSerializer === 'undefined') return resolve(null);
+            const W = Math.round(panel.getBoundingClientRect().width) || 480;
+            const clone = panel.cloneNode(true);
+            inlineStyles(panel, clone);                                   // BEFORE removals (indices must align)
+            clone.querySelectorAll('.dx, .pf-share').forEach(n => n.remove());
+            const cs = getComputedStyle(modal);
+            clone.style.background = cs.backgroundColor; clone.style.border = '1px solid ' + cs.borderColor;
+            clone.style.borderRadius = '16px'; clone.style.margin = '0'; clone.style.width = W + 'px'; clone.style.boxSizing = 'border-box';
+            clone.style.maxHeight = 'none'; clone.style.overflow = 'visible'; clone.style.height = 'auto';  // capture full content, not the scroll-capped view
+            const foot = document.createElement('div'); foot.textContent = 'komyo.online';
+            foot.style.cssText = 'text-align:right;font:600 13px ui-monospace,monospace;color:#7a8aa0;margin-top:14px;';
+            clone.appendChild(foot);
+            clone.style.position = 'fixed'; clone.style.left = '-9999px'; clone.style.top = '0';
+            document.body.appendChild(clone);
+            const H = Math.ceil(clone.getBoundingClientRect().height);
+            clone.style.position = 'static'; clone.style.left = 'auto'; clone.style.top = 'auto';
+            const xml = new XMLSerializer().serializeToString(clone);
+            document.body.removeChild(clone);
+            const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '">'
+              + '<foreignObject x="0" y="0" width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">' + xml + '</div></foreignObject></svg>';
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const c = document.createElement('canvas'), s = 2; c.width = W * s; c.height = H * s;
+                const g = c.getContext('2d'); g.scale(s, s);
+                g.fillStyle = cs.backgroundColor || '#12151c'; g.fillRect(0, 0, W, H); g.drawImage(img, 0, 0);
+                g.getImageData(0, 0, 1, 1);                               // throws if tainted (Safari) → fallback
+                c.toBlob(b => resolve(b), 'image/png');
+              } catch (e) { resolve(null); }
+            };
+            img.onerror = () => resolve(null);
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+          } catch (e) { resolve(null); }
+        });
+      }
+      function render() {
+        const p = (K && K.profile) ? K.profile() : null;
+        const who = (K && K.player) ? K.player() : 'anonymous';
+        const titleEl = document.getElementById('pfTitle'); if (titleEl) titleEl.textContent = '👤 ' + who;
+        const played = [];
+        if (p) GAMES.forEach(gm => {
+          const pg = p.perGame[gm.slug];
+          if (!pg || pg.best <= 0) return;
+          const modes = pg.modes.filter(m => m.score > 0);
+          if (modes.length) played.push({ gm, modes, best: pg.best, plays: pg.plays });
+        });
+        if (!played.length) {
+          body.innerHTML = '<p class="pf-empty">No scores yet — play a few games and your bests, favorites and stats show up here, sorted by game. Everything stays on this device.</p>';
+          shareData = null; return;
+        }
+        const byTag = {};
+        GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays && gm.tag) byTag[gm.tag] = (byTag[gm.tag] || 0) + pg.plays; });
+        let favTag = '', favTagN = 0; for (const t in byTag) if (byTag[t] > favTagN) { favTag = t; favTagN = byTag[t]; }
+        const favGameMeta = meta(p.favGame.slug), accent = (favGameMeta && favGameMeta.accent) || '#9fe8ff';
+        // challenge points + completions (lifetime, from the challenge history)
+        let chDone = 0;
+        try { const h = JSON.parse(localStorage.getItem('gamekit_history') || '[]'); if (Array.isArray(h)) chDone = h.length; } catch (e) {}
+        const chips = [['Games', p.gamesPlayed], ['Modes', p.modesPlayed], ['Plays', p.plays], ['Days', p.daysPlayed]];
+        let html = '<div class="pf-stats">';
+        chips.forEach(s => { html += '<div class="pf-stat"><b>' + esc(String(s[1])) + '</b><span>' + esc(s[0]) + '</span></div>'; });
+        html += '</div><div class="pf-facts">';
+        if (favTag) html += '<span>🎯 Favorite genre — <b>' + esc(favTag) + '</b></span>';
+        if (p.goodRuns) html += '<span>💪 <b>' + p.goodRuns + '</b> good ' + (p.goodRuns === 1 ? 'run' : 'runs') + ' (cleared a game’s bar)</span>';
+        html += '<span>🏆 <b>' + chDone + '</b> ' + (chDone === 1 ? 'challenge' : 'challenges') + ' completed</span>';
+        if (p.since) { try { html += '<span>📅 Playing since <b>' + new Date(p.since).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) + '</b></span>'; } catch (e) {} }
+        html += '</div>';
+        // Most played — per game: mode-by-mode play breakdown + total, sorted by total
+        const ranked = [];
+        GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm: gm, pg: pg }); });
+        ranked.sort((a, b) => b.pg.plays - a.pg.plays);
+        if (ranked.length) {
+          html += '<div class="pf-sec">Most played</div><div class="pf-mp">';
+          ranked.forEach(it => {
+            const ms = it.pg.modes.slice().filter(m => m.plays > 0).sort((a, b) => b.plays - a.plays);
+            const chipsHtml = ms.map(m => '<span class="pf-mchip">' + esc(m.mode || 'Best') + ' <b>×' + m.plays + '</b></span>').join('');
+            html += '<div class="pf-mprow pf-tinted" style="--acc:' + (it.gm.accent || '#9fe8ff') + '"><div class="pf-mpg">' + (it.gm.icon || '🎮') + ' ' + esc(it.gm.title) + '</div><div class="pf-mptot">' + it.pg.plays + '</div><div class="pf-mpmodes">' + chipsHtml + '</div></div>';
+          });
+          html += '</div>';
+        }
+        // Best scores — per game (most-played first), each mode's PB + plays
+        const rows = [];
+        played.sort((a, b) => b.plays - a.plays);
+        html += '<div class="pf-sec">Records by game</div><div class="pf-tiles">';
+        played.forEach(function (it) {
+          const gm = it.gm;
+          html += '<div class="pf-tile pf-tinted" style="--acc:' + (gm.accent || '#9fe8ff') + '"><div class="pf-th">' + (gm.icon || '🎮') + ' ' + esc(gm.title) + '</div><div class="pf-rows">';
+          it.modes.forEach(m => { html += '<div class="pf-row"><span class="pr-mode">' + esc(m.mode || 'Best') + '</span><span class="pr-best">' + fmt(m.score) + '<span class="pr-plays">' + plural(m.plays, 'play') + '</span></span></div>'; });
+          html += '</div></div>';
+          rows.push({ name: gm.title, best: fmt(it.best), mode: (it.modes[0] && it.modes[0].mode) || '', accent: gm.accent });
+        });
+        html += '</div>';
+        html += '<div class="pf-share"><button type="button" id="pfShare">📷 Share my profile</button></div>';
+        body.innerHTML = html;
+        shareData = { player: who, accent: accent, stats: [{ label: 'Games', value: p.gamesPlayed }, { label: 'Modes', value: p.modesPlayed }, { label: 'Plays', value: p.plays }, { label: 'Days', value: p.daysPlayed }], rows: rows };
+        const sh = document.getElementById('pfShare');
+        if (sh) sh.addEventListener('click', () => {
+          const orig = sh.textContent; sh.disabled = true; sh.textContent = 'Rendering…';
+          const done = () => { sh.disabled = false; sh.textContent = orig; };
+          snapshot()
+            .then(b => b || (K && K.profileCard && shareData ? K.profileCard(shareData) : null))   // DOM snapshot, else drawn card
+            .then(b => { if (b && K && K.shareCard) K.shareCard(b, { slug: 'profile', title: 'My Komyo Games profile' }); done(); })
+            .catch(done);
+        });
+      }
+      if (btn) btn.addEventListener('click', () => { render(); modal.showModal(); lock(true); });
+      if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
+      modal.addEventListener('close', () => lock(false));
+      modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+    })();
+
     // ---- FAQ (centered modal) ----
     (function () {
       const modal = document.getElementById('faqModal'), btn = document.getElementById('faqBtn'), closeBtn = document.getElementById('faqClose');
@@ -1597,8 +1771,8 @@
 
     // ---- Deep links: /?m=faq|changelog|about|privacy|embed|data — open that panel + keep it in the URL ----
     (function () {
-      const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn', privacy: 'legalBtn', embed: 'embedBtn', data: 'dataBtn', settings: 'settingsBtn' };
-      const DLG = { faq: 'faqModal', changelog: 'clModal', about: 'aboutModal', privacy: 'legalModal', data: 'dataModal', settings: 'settingsModal' };
+      const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn', privacy: 'legalBtn', embed: 'embedBtn', data: 'dataBtn', settings: 'settingsBtn', profile: 'profileBtn' };
+      const DLG = { faq: 'faqModal', changelog: 'clModal', about: 'aboutModal', privacy: 'legalModal', data: 'dataModal', settings: 'settingsModal', profile: 'profileModal' };
       const ALIAS = { legal: 'privacy', license: 'privacy' };
       // reflect manual opens/closes in the URL (so it's shareable): trigger click → ?m=key; dialog close → drop it
       Object.keys(MAP).forEach(key => {
