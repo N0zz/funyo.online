@@ -353,6 +353,21 @@
 /* Discord Activity: X / Reddit open other sites (can't proxy without the SDK) → hide them. Copy, the
    Discord post (proxied webhook) and native share (only shown when supported) stay. */
 .in-activity .gamekit-share .sbtn[data-act="x"], .in-activity .gamekit-share .sbtn[data-act="reddit"] { display: none !important; }
+
+/* "Tap to play" splash — one gesture up front so audio can start (browsers block autoplay until a tap).
+   Shown once per game load; the tap is the unlock. */
+.gamekit-tap { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 9, 14, 0.82); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  cursor: pointer; transition: opacity .28s ease; }
+.gamekit-tap.gk-hide { opacity: 0; pointer-events: none; }
+.gamekit-tap-inner { display: flex; flex-direction: column; align-items: center; gap: 13px; text-align: center;
+  color: #fff; font: 700 15px/1.2 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 3px; }
+.gamekit-tap-play { width: 66px; height: 66px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.55);
+  display: flex; align-items: center; justify-content: center; font-size: 26px; padding-left: 4px;
+  box-shadow: 0 0 26px -6px rgba(159, 232, 255, 0.6); animation: gkTapPulse 1.8s ease-in-out infinite; }
+.gamekit-tap-inner small { font-size: 11px; letter-spacing: 1.5px; color: rgba(255, 255, 255, 0.55); font-weight: 400; }
+@keyframes gkTapPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .gamekit-tap { transition: none; } .gamekit-tap-play { animation: none; } }
 .gamekit-share .sbtn:disabled { opacity: 0.55 !important; cursor: default !important; }
 
 /* "rotate your phone" overlay (gamekit.layout.requireOrientation) — for games locked to one orientation */

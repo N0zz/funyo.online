@@ -391,6 +391,26 @@ function testKit() {
 }
 
 // ---------------- Challenges ↔ games coverage ----------------
+// Kit "chrome" (top nav / audio splash / analytics) — a REGRESSION GUARD, not a pixel test. The harness
+// mocks getBoundingClientRect (fixed 800×600), so real top-bar overlap can't be measured headlessly (see
+// bug backlog). This just asserts the responsive safeguards + hooks are present so they can't be silently
+// deleted; visual overlap must still be checked on a real device.
+function testKitChrome() {
+  section('game-kit (responsive nav safeguards + tap-to-play + game_start)');
+  const css = fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8');
+  const js = KIT;
+  // nav fit: measured label-collapse + narrow-width shrink + force-collapse ≤400px (covers 360px Android)
+  ok(css.includes('.gamekit-nav-tight .gamekit-home-label'), 'nav has the measured label-collapse rule');
+  ok(css.includes('@media (max-width: 560px)') && /max-width: 560px[\s\S]*\.gamekit-au-btn[^}]*width:/.test(css), 'right-cluster buttons shrink at ≤560px');
+  ok(css.includes('@media (max-width: 400px)') && /max-width: 400px[\s\S]*\.gamekit-home-label\s*\{\s*display:\s*none/.test(css), 'brand label force-collapses at ≤400px (fits 360px)');
+  // tap-to-play audio splash
+  ok(css.includes('.gamekit-tap'), 'tap-to-play splash style present');
+  ok(js.includes('function tapToStart') && js.includes('tapToStart();'), 'tapToStart is defined and called from nav()');
+  ok(js.includes('sfxMuted && musMuted'), 'splash is skipped when both audio channels are muted');
+  // game_start analytics event
+  ok(js.includes("'game_start'") && js.includes('function currentSlug'), 'game_start event fires with the URL slug');
+}
+
 function testChallenges() {
   section('challenges.js (coverage vs games.js)');
   const games = fs.readFileSync(path.join(DIR, 'games.js'), 'utf8');
@@ -460,6 +480,7 @@ testCatalogue();
 testTD();
 testLiveGames();
 testKit();
+testKitChrome();
 testChallenges();
 testServiceWorkers();
 console.log('\n----------------------------------------');

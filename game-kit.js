@@ -793,6 +793,7 @@
     versionTag();
     if (typeof layout !== 'undefined' && layout && layout.on) layout.on(fitNav);
     fitNav();
+    tapToStart(); // audio-unlock splash (once per load); no-op when both channels are muted
     // block the browser context menu on game canvases (no "save image…" popping mid-play)
     if (typeof document !== 'undefined' && document.querySelectorAll) {
       try {
@@ -1124,6 +1125,31 @@
     }
   })();
 
+  // slug from the URL (/games/<slug>/) — used for the game_start analytics event
+  function currentSlug() { try { var m = String(location.pathname).match(/\/games\/([^/]+)\//); return m ? m[1] : ''; } catch (e) { return ''; } }
+
+  // ---------- "Tap to play" splash (audio unlock) ----------
+  // Browsers block audio until a user gesture, so on a fresh game load music can't start until the player
+  // clicks. Show a branded splash once per load: the tap satisfies the gesture (the capture-phase unlock
+  // above resumes the context on the same event), so the menu appears with music already running instead
+  // of looking broken. Skipped when both channels are muted (nothing to unlock → no needless friction).
+  function tapToStart() {
+    try {
+      if (typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') return;
+      if (sfxMuted && musMuted) return;
+      if (document.querySelector && document.querySelector('.gamekit-tap')) return;
+      var el = document.createElement('div'); el.className = 'gamekit-tap';
+      el.innerHTML = '<div class="gamekit-tap-inner"><div class="gamekit-tap-play">▶</div><div>TAP TO PLAY</div><small></small></div>';
+      try { var lab = el.querySelector('small'); if (lab) lab.textContent = (typeof document.title === 'string' && document.title) ? document.title : 'Komyo'; } catch (e) {}
+      var gone = false;
+      var dismiss = function () { if (gone) return; gone = true; el.className = 'gamekit-tap gk-hide'; var rm = function () { try { if (el.parentNode) el.parentNode.removeChild(el); } catch (e) {} }; if (typeof setTimeout === 'function') setTimeout(rm, 320); else rm(); };
+      el.addEventListener('pointerdown', dismiss);
+      el.addEventListener('click', dismiss);
+      try { document.addEventListener('keydown', dismiss, { once: true }); } catch (e) { try { document.addEventListener('keydown', dismiss, true); } catch (_) {} }
+      document.body.appendChild(el);
+    } catch (e) {}
+  }
+
   // ---------- shared menu engine (declarative overlays: start / pause / end) ----------
   // ONE structure + behaviour for every game's menus; the LOOK is fully per-game via CSS custom
   // properties (--gkm-accent / --gkm-bg / --gkm-glow / --gkm-shadow / --gkm-border / --gkm-text /
@@ -1449,7 +1475,11 @@
     function selectChoice(ref) { if (ref.locked) return; sel[ref.grp] = ref.choice; changed(); }
     function toggleOne(ref) { if (ref.disabled) return; tog[ref.id] = !tog[ref.id]; changed(); }
     function fireAction(a) {
-      var go = function () { if (a.id === 'play' && typeof cfg.onPlay === 'function') cfg.onPlay(state()); else if (typeof cfg.onAction === 'function') cfg.onAction(a.id, state()); };
+      var go = function () {
+        // game_start (analytics): fired on entering gameplay from a menu — 'play' (start) or 'again' (replay)
+        if (a.id === 'play' || a.id === 'again') { try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('game_start', { slug: currentSlug() || 'unknown' }); } catch (e) {} }
+        if (a.id === 'play' && typeof cfg.onPlay === 'function') cfg.onPlay(state()); else if (typeof cfg.onAction === 'function') cfg.onAction(a.id, state());
+      };
       var cm = a.confirm ? (typeof a.confirm === 'function' ? a.confirm() : a.confirm) : null;
       if (cm) confirmDialog(cm, go, a.confirmYes || 'Leave', null); else go();
     }
