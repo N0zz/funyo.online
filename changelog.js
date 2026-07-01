@@ -4,6 +4,11 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-01', title: 'Roll the dice 🎲', items: [
+    'New: a 🎲 Random button on the home page picks a game for you — it leans toward ones you haven’t tried yet, an easy way to discover something new.',
+    'New: a random-pick daily & weekly challenge — “play today’s pick” — nudging you toward games you might have missed.',
+    'Fix: in Bubble Pop, bubbles now stick properly to the top row instead of occasionally vanishing or snapping to the wrong spot.',
+  ] },
   { date: '2026-07-01', title: 'Your player profile 👤', items: [
     'New: a My profile page (menu → 👤 My profile) — see your totals, favorite game and genre, good runs, and your best score in every mode of every game, laid out as tiles and ranked by how much you play them. Share the whole thing as an image.',
     'Everything stays on your device (nothing to sign up for), and carries over with Export / import.',

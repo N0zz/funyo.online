@@ -520,6 +520,7 @@
             <a href="#" class="filter-clear" id="filterClear">Clear filters</a>
           </div>
         </div>
+        <button class="ibtn" id="randomBtn" type="button" title="Play a random game (prefers ones you haven't tried)">🎲 Random</button>
         <button class="ibtn" id="densityBtn" type="button" aria-pressed="false" title="Switch between cozy and compact tiles">▦ Compact</button>
       </div>
     </header>
@@ -823,12 +824,17 @@
       const out = new Set(), C = window.CHALLENGES, K = window.gamekit;
       if (!C || !C.goals || !K || !K.utcDayNumber) return out;
       const day = K.utcDayNumber();
+      const playable = (window.GAMES || []).filter(x => x && x.slug && !x.soon).map(x => x.slug);
       const at = (list, isWeek) => {
         if (!list || !list.length) return null;
         const idx = isWeek ? Math.floor((day - CH_WEEK_ANCHOR) / 7) : day;
-        return C.goals[list[((idx % list.length) + list.length) % list.length]] || null;
+        return { goal: C.goals[list[((idx % list.length) + list.length) % list.length]] || null, idx };
       };
-      [at(C.daily, false), at(C.weekly, true)].forEach(g => { if (g && g.slug) out.add(g.slug); });
+      [at(C.daily, false), at(C.weekly, true)].forEach(a => {
+        const g = a && a.goal; if (!g) return;
+        if (g.scope === 'random' && C.randomSlug) { const s = C.randomSlug(a.idx, playable); if (s) out.add(s); }
+        else if (g.slug) out.add(g.slug);
+      });
       return out;
     }
     // badges stack (vertical, top-left). Auto NEW/UPDATED from dates (≤7 days) sit on top;
@@ -1089,12 +1095,15 @@
         const x = el.querySelector('[data-close]'); if (x && x.focus) x.focus();
       };
       const mb = document.getElementById('menuBtn'); if (mb) mb.addEventListener('click', () => open(menu));
-      const cb = document.getElementById('chalBtn'); if (cb) cb.addEventListener('click', () => { open(chal); if (window.__renderChallenges) window.__renderChallenges(); });
+      const cb = document.getElementById('chalBtn'); if (cb) cb.addEventListener('click', () => { open(chal); if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'challenges' }); if (window.__renderChallenges) window.__renderChallenges(); });
       if (scrim) scrim.addEventListener('click', close);
       document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
       [menu, chal].forEach(d => d && d.addEventListener('click', e => {
+        // aggregate, consent-gated: which drawer feature a player opens (id 'fooBtn' → 'foo')
+        const item = e.target.closest('.ditem');
+        if (item && item.id && window.gamekitTrack) window.gamekitTrack('feature_open', { feature: item.id.replace(/Btn$/, '') });
         // close button, or any actionable item (link / action button) dismisses the drawer
-        if (e.target.closest('[data-close]') || e.target.closest('.ditem')) close();
+        if (e.target.closest('[data-close]') || item) close();
       }));
       // resizable + persisted widths (challenges defaults wider than the menu)
       const DW = { menu: { key: 'gamekit_dw_menu', def: 340 }, chal: { key: 'gamekit_dw_chal', def: 440 } };
@@ -1201,6 +1210,7 @@
     document.getElementById('feedback').addEventListener('click', () => {
       document.getElementById('fbPage').value = location.href;
       fbStatus.textContent = ''; fbStatus.className = 'fb-status';
+      if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'feedback' });
       fbModal.showModal();
     });
     document.getElementById('fbCancel').addEventListener('click', () => fbModal.close());
@@ -1235,6 +1245,7 @@
     const nlEmail = document.getElementById('nlEmail');
     document.getElementById('newsletter').addEventListener('click', () => {
       nlStatus.textContent = ''; nlStatus.className = 'fb-status';
+      if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'newsletter' });
       nlModal.showModal();
     });
     document.getElementById('nlCancel').addEventListener('click', () => nlModal.close());
@@ -1546,15 +1557,18 @@
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => lock(false));
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
-      if (copyB) copyB.addEventListener('click', () => { try { ex.select(); if (navigator.clipboard) navigator.clipboard.writeText(ex.value); copyB.textContent = 'Copied!'; setTimeout(() => copyB.textContent = 'Copy', 1500); } catch (e) {} });
+      const track = (name, params) => { try { if (window.gamekitTrack) window.gamekitTrack(name, params); } catch (e) {} };
+      if (copyB) copyB.addEventListener('click', () => { try { ex.select(); if (navigator.clipboard) navigator.clipboard.writeText(ex.value); copyB.textContent = 'Copied!'; setTimeout(() => copyB.textContent = 'Copy', 1500); } catch (e) {} track('data_export', { via: 'copy' }); });
       if (dlB) dlB.addEventListener('click', () => {
         try { const u = URL.createObjectURL(new Blob([ex.value], { type: 'text/plain' })); const a = document.createElement('a'); a.href = u; a.download = 'komyo-backup.txt'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(u); a.remove(); }, 800); } catch (e) {}
+        track('data_export', { via: 'download' });
       });
       if (impB) impB.addEventListener('click', () => {
         let parsed = null; try { parsed = JSON.parse(dec((imp.value || '').trim())); } catch (e) {}
-        if (!parsed || parsed.app !== 'komyo' || !parsed.data) { setMsg("That doesn't look like a valid komyo backup code.", 'err'); return; }
+        if (!parsed || parsed.app !== 'komyo' || !parsed.data) { setMsg("That doesn't look like a valid komyo backup code.", 'err'); track('data_import', { result: 'invalid' }); return; }
         try { for (const k in parsed.data) if (Object.prototype.hasOwnProperty.call(parsed.data, k)) localStorage.setItem(k, parsed.data[k]); }
-        catch (e) { setMsg('Import failed — storage error.', 'err'); return; }
+        catch (e) { setMsg('Import failed — storage error.', 'err'); track('data_import', { result: 'error' }); return; }
+        track('data_import', { result: 'ok' });
         setMsg('Imported! Reloading…', 'ok');
         setTimeout(() => { try { location.reload(); } catch (e) {} }, 700);
       });
@@ -1565,9 +1579,11 @@
       const K = window.gamekit, C = window.CHALLENGES;
       const todayEl = document.getElementById('chalToday'), weekEl = document.getElementById('chalWeek'), streakEl = document.getElementById('chalStreak');
       if (!K || !todayEl) return;
-      const genreOf = {};
-      (window.GAMES || []).forEach(g => { if (g && g.slug) genreOf[g.slug] = (tagsOf(g)[0]) || ''; });
+      const genreOf = {}, titleOf = {};
+      (window.GAMES || []).forEach(g => { if (g && g.slug) { genreOf[g.slug] = (tagsOf(g)[0]) || ''; titleOf[g.slug] = g.title || g.slug; } });
+      const PLAYABLE = (window.GAMES || []).filter(g => g && g.slug && !g.soon).map(g => g.slug); // for scope:'random' picks
       const WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000); // a Monday — week buckets
+      const dayNumOf = s => { const p = (String(s || '')).split('-'); return p.length < 3 ? K.utcDayNumber() : Math.floor(Date.UTC(+p[0], (+p[1]) - 1, +p[2]) / 86400000); };
       const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
       // aggregate the per-day activity logs for the current UTC week (kit keeps ~8 days)
       function weekAgg() {
@@ -1589,6 +1605,15 @@
         if (!goal) return null;
         dStr = dStr || K.utcDateStr();
         let val = 0;
+        if (goal.scope === 'random') {
+          const isWeek = goal.range === 'week';
+          const dn = dayNumOf(dStr);
+          const idx = isWeek ? Math.floor((dn - WEEK_ANCHOR) / 7) : dn;
+          const slug = (C && C.randomSlug) ? C.randomSlug(idx, PLAYABLE) : '';
+          const played = isWeek ? (weekAgg().slugs.indexOf(slug) >= 0) : ((dayLog(dStr).slugs || []).indexOf(slug) >= 0);
+          const title = 'Play ' + (titleOf[slug] || 'a game') + (isWeek ? ' this week' : ' today');
+          return { val: played ? 1 : 0, target: 1, done: played, pct: played ? 1 : 0, title, slug };
+        }
         if (goal.scope === 'cross') {
           if (goal.range === 'week') val = crossVal(goal.metric, weekAgg());
           else { const lg = dayLog(dStr); val = crossVal(goal.metric, { slugs: lg.slugs || [], totalScore: lg.totalScore || 0, count: lg.count || 0 }); }
@@ -1635,7 +1660,11 @@
         if (key && !(key in done)) {
           done[key] = pts;
           try { localStorage.setItem('gamekit_done', JSON.stringify(done)); } catch (e) {}
-          if (snap) pushHistory({ day: snap.day != null ? snap.day : K.utcDayNumber(), date: snap.date || K.utcDateStr(), id: snap.id, title: snap.title, kind: snap.kind, pts });
+          if (snap) {
+            pushHistory({ day: snap.day != null ? snap.day : K.utcDayNumber(), date: snap.date || K.utcDateStr(), id: snap.id, title: snap.title, kind: snap.kind, pts });
+            // aggregate, consent-gated: completion rate per goal (pairs with challenge_shown)
+            try { if (window.gamekitTrack) window.gamekitTrack('challenge_done', { id: snap.id, kind: snap.kind }); } catch (e) {}
+          }
         }
         let total = 0; for (const k in done) total += (done[k] | 0); return total;
       }
@@ -1667,16 +1696,28 @@
         for (let d = today; len && d > today - 8; d--) {
           const dStr = K.utcDateStr(d * 86400000);
           const id = C.daily[((d % len) + len) % len], g = id && C.goals[id];
-          if (g) { const e = evalGoal(g, dStr); if (e && e.done) award(dStr + '#' + id, g.points || DAILY_PTS, { id, title: g.title, kind: 'daily', day: d, date: dStr }); }
+          if (g) { const e = evalGoal(g, dStr); if (e && e.done) award(dStr + '#' + id, g.points || DAILY_PTS, { id, title: e.title || g.title, kind: 'daily', day: d, date: dStr }); }
         }
         const weekly = pick(C.weekly, 'week'); // weekly persists all week → current week is enough
-        if (weekly && weekly.goal) { const we = evalGoal(weekly.goal); if (we && we.done) award(weekly.period + '#' + weekly.id, weekly.goal.points || WEEKLY_PTS, { id: weekly.id, title: weekly.goal.title, kind: 'weekly', day: today, date: K.utcDateStr() }); }
+        if (weekly && weekly.goal) { const we = evalGoal(weekly.goal); if (we && we.done) award(weekly.period + '#' + weekly.id, weekly.goal.points || WEEKLY_PTS, { id: weekly.id, title: we.title || weekly.goal.title, kind: 'weekly', day: today, date: K.utcDateStr() }); }
+      }
+      // aggregate, consent-gated: which goals get seen (once per tab-session per goal) — the
+      // denominator for challenge_done, so we can read completion rates per goal and retune targets.
+      function trackShown(p, kind) {
+        if (!p || !p.id) return;
+        try {
+          const k = 'gamekit_cshown_' + p.id;
+          if (sessionStorage.getItem(k)) return;
+          sessionStorage.setItem(k, '1');
+          if (window.gamekitTrack) window.gamekitTrack('challenge_shown', { id: p.id, kind });
+        } catch (e) {}
       }
       function render() {
         if (!C || !todayEl) return;
         const daily = pick(C.daily, 'day'), weekly = pick(C.weekly, 'week');
         todayEl.innerHTML = card(daily && daily.goal, DAILY_PTS);
         weekEl.innerHTML = card(weekly && weekly.goal, WEEKLY_PTS);
+        trackShown(daily, 'daily'); trackShown(weekly, 'weekly');
         backfillAndAward();
         const n = award();
         if (streakEl) streakEl.textContent = '🔥 ' + n + (n === 1 ? ' point' : ' points');
@@ -1694,6 +1735,25 @@
         const games = (window.GAMES || []).filter(g => g && !g.soon).map(g => ({ slug: g.slug, title: g.title || g.slug }));
         games.unshift({ slug: '', title: '🎮 Whole arcade (all games)' }); // embed the full catalogue, not just one game
         window.gamekit.embedModal({ games });
+      });
+    })();
+
+    // ---- 🎲 Random game — launch a random game, preferring ones not yet played ----
+    // (a game "played" = it has a gamekit_pb entry). Fallback: when everything's been tried,
+    // pick from all. Reused pool rule matches the design: only the BUTTON filters to unplayed.
+    (function () {
+      const btn = document.getElementById('randomBtn');
+      if (!btn) return;
+      const playedSlugs = () => { try { return new Set(Object.keys(JSON.parse(localStorage.getItem('gamekit_pb') || '{}'))); } catch (e) { return new Set(); } };
+      // exposed for tests: unplayed-first pool with all-games fallback
+      window.__randomPool = (all, played) => { const un = all.filter(g => !played.has(g.slug)); return un.length ? un : all; };
+      btn.addEventListener('click', () => {
+        const all = (window.GAMES || []).filter(g => g && g.slug && !g.soon);
+        if (!all.length) return;
+        const pool = window.__randomPool(all, playedSlugs());
+        const g = pool[Math.floor(Math.random() * pool.length)];
+        if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'random' });
+        if (g && g.slug) location.href = 'games/' + g.slug + '/';
       });
     })();
 

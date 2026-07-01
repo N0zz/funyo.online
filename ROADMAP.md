@@ -215,6 +215,18 @@ from day one.
   quiet it once opened (like a read notification). **Main lift:** the challenge logic (`CHALLENGES`, the UTC
   daily/weekly pick math, `evalGoal`, progress) lives inline in `index.html` today — it needs to move into
   `game-kit.js` (shared module) so the catalogue and the in-game button render from one source.
+- **Claude skill: scaffold a new game on our framework** *(idea — dev tooling, big leverage)* — a
+  `synerise`-style skill (name TBD, komyo-scoped) that captures **once** everything a new game must obey
+  — repo layout, the three-screen schema, `gamekit.menu` declarative config, `gamekit.sound`/`music`
+  usage, the `__test`/`__test.layout` hooks + headless-safety rules, the single-source best store
+  (`gamekit.best`/`saveBest` + `modeLabel()`), PWA files (manifest/sw/icons), `games.js` + changelog +
+  sitemap/llms wiring, and the design knobs (`@game-design-knobs.md`) — distilled from the existing 9
+  games' patterns and this repo's CLAUDE.md. Then: **describe a game in ~5 min → get a working,
+  on-framework MVP in a 20–30 min session** (POC → MVP that boots green in the suites, correct theme,
+  menu, sound, tests). The skill encodes the *dev-process gate* so the output isn't a one-prompt game —
+  it stops at a playable MVP for human iteration, not a "done" claim. **Build it by mining the repo once**
+  (patterns are already consistent across all 9 games), store as a reusable skill, then author new games
+  through it. Nice-to-have accelerator for the "build to 15–20 games" bar, not a launch blocker.
 - **CI check: `updated` badge stays honest** *(idea — dev tooling)* — a GitHub Action that fails when a
   game's OWN files changed but its `updated` date in `games.js` wasn't bumped (so the UPDATED badge never
   goes stale/missing). **Crucial nuance:** shared changes (`game-kit.js/css`, `challenges.js`, etc.) affect
@@ -270,9 +282,14 @@ from day one.
 ### Distribution
 
 - **Promo video / ad montage** *(idea)* — record short clips of the menus (now with animated
-  backdrops) + a few games, cut a simple montage for ad/social use, and upload it to the **Discord
-  app / server** too (activity preview, announcements). Cheap marketing asset once the menus + games
-  look final.
+  backdrops) + a few games. Capture the source footage once at high quality, then export **two cuts**:
+  - **Full montage (YouTube / Twitch / social)** — the good-quality version: 1080p+ (up to 1440p/4K
+    source), longer, higher bitrate, with music. The main marketing asset for socials + channel trailers.
+  - **Discord Activity "Video Preview"** — the tiny in-directory clip (shown on hover + on the
+    click-through upsell): a brief screen-recording of the activity. Hard limits: **640×360 · 16:9 · mp4 ·
+    ≤0.5 MB · 10 s** → short, low-bitrate cut; a per-activity preview if games ship as separate Discord
+    activities. Downscaled from the same source footage.
+  Do it once the menus + games look final.
 - **List on game portals** — itch.io, free-to-play indexes.
 - **Discord Activity (play inside a voice channel)** *(idea — strong architectural fit)* — register a
   Discord app with **Activities** enabled (Embedded App SDK) so people launch komyo **inside a voice

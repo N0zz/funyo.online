@@ -94,6 +94,10 @@ function testCatalogue() {
       if (goal && goal.scope === 'cross') {
         const slugs = GAMES.filter(x => !x.soon).slice(0, 5).map(x => x.slug);
         g.store['gamekit_played_' + dStr] = JSON.stringify({ slugs, totalScore: 1e9, count: 99 });
+      } else if (goal && goal.scope === 'random') {
+        const playable = GAMES.filter(x => x && x.slug && !x.soon).map(x => x.slug);
+        const slug = C.randomSlug(day, playable); // today's deterministic pick
+        g.store['gamekit_played_' + dStr] = JSON.stringify({ slugs: [slug], totalScore: 1, count: 1 });
       } else if (goal) {
         const best = {}; best[goal.slug] = { score: 1e9, time: 1e9, stats: { wave: 9999, accuracy: 100 } };
         g.store['gamekit_daybest_' + dStr] = JSON.stringify(best);
@@ -101,6 +105,30 @@ function testCatalogue() {
       g.win.__renderChallenges();
       let hist = []; try { hist = JSON.parse(g.store['gamekit_history'] || '[]'); } catch (e) {}
       ok(hist.some(r => r && r.id === id), 'completing the daily challenge records it in history (back-fill, goal=' + id + ')');
+    }
+  }
+
+  // ---- 🎲 random game: button pool + deterministic challenge pick ----
+  {
+    const C = g.win.CHALLENGES;
+    const all = GAMES.filter(x => x && x.slug && !x.soon);
+    // button pool: unplayed-first, all-games fallback
+    if (typeof g.win.__randomPool === 'function' && all.length >= 2) {
+      const played = new Set([all[0].slug]);
+      const pool = g.win.__randomPool(all, played);
+      ok(pool.length === all.length - 1 && !pool.some(x => x.slug === all[0].slug), 'random button prefers unplayed games (excludes the one played)');
+      const allPlayed = new Set(all.map(x => x.slug));
+      const fb = g.win.__randomPool(all, allPlayed);
+      ok(fb.length === all.length, 'random button falls back to all games when nothing is unplayed');
+    }
+    // challenge pick: deterministic + always a real playable slug + differs across days
+    if (C && typeof C.randomSlug === 'function' && all.length >= 2) {
+      const playable = all.map(x => x.slug);
+      const a = C.randomSlug(100, playable), b = C.randomSlug(100, playable);
+      ok(a === b && playable.indexOf(a) >= 0, 'randomSlug is deterministic and returns a real playable slug (' + a + ')');
+      let distinct = new Set(); for (let d = 0; d < playable.length; d++) distinct.add(C.randomSlug(d, playable));
+      ok(distinct.size > 1, 'randomSlug varies across days (got ' + distinct.size + ' distinct over ' + playable.length + ' days)');
+      ok(C.randomSlug(5, []) === '', 'randomSlug is safe with an empty pool');
     }
   }
 }
