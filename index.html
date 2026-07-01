@@ -251,6 +251,15 @@
   /* Discord Activity: hide links that navigate to OTHER sites (can't be proxied without the SDK's
      openExternalLink) — Buy me a coffee, GitHub, the Discord invite. Proxied features stay. */
   .in-activity .coffee, .in-activity .ghlink, .in-activity .ditem[href*="discord.gg"] { display:none !important; }
+  /* Discord's MOBILE overlay (the "Leave" pill) floats over the top of the Activity and covers komyo's
+     top controls. Reserve space below it: shift the catalogue's ☰/🏆 buttons down and pad the top of the
+     in-game iframe (which pushes the Back bar + the game's own nav clear too). Desktop Activity has no
+     such overlap, so this is mobile-only. Tune --act-top if the pill's height differs. */
+  @media (max-width: 560px) {
+    .in-activity { --act-top: 52px; }
+    .in-activity .float-btns-l, .in-activity .float-btns-r { top: calc(13px + var(--act-top)); }
+    .in-activity .act-frame { padding-top: var(--act-top); }
+  }
   /* FAQ modal (reuses .about container) */
   #faqModal { width:min(560px,94vw); }
   .faq { max-height:80vh; overflow-y:auto; }
