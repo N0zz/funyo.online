@@ -883,6 +883,7 @@
     return e;
   }
   function evalVal(v, st) { return (typeof v === 'function') ? v(st) : v; }
+  function evalItem(v, item, st) { return (typeof v === 'function') ? v(item, st) : v; } // for per-item callbacks (shop cells)
   function drawPreview(cv, fn, st) {
     if (!cv || !cv.getContext || typeof fn !== 'function') return;
     try { var g = cv.getContext('2d'); var w = cv.width || 0, h = cv.height || 0; if (g.clearRect) g.clearRect(0, 0, w, h); fn(g, w, h, st); } catch (e) {}
@@ -897,6 +898,11 @@
   //     (→ recordResult); actions:[{id,label,primary?,danger?,confirm?:msg|fn,confirmYes?}];
   //   onPlay(state); onAction(id,state); onChange(state) (fires on every selection/toggle change — e.g.
   //   to live-stamp the URL); onEsc; theme. `state` = selections merged with toggle booleans.
+  //   A style:'shop' group is an ACTION grid (buy/pick, not select): choices are {id,label,tag?,desc},
+  //     sub(item,state)->html (level/cost line), disabled(item,state)->bool (dim + unclickable), and
+  //     onPick(id,handle) fires on click/Enter (the menu re-renders after, so costs/affordability update
+  //     live). Powers the Asteroids+ level-up picker + between-wave shop; reusable for any store.
+  //   banner(state)->html: a live line under the title (e.g. a running credit counter), re-rendered on refresh.
   // ONE structure + behaviour; the look is per-game via --gkm-* (theme object or the game's own CSS).
   // Built with createElement + direct refs (no querySelectorAll), so it drives the same headless + live.
   function menuShow(cfg) {
@@ -935,8 +941,10 @@
       scroll.appendChild(mkEl('div', 'gkm-score', cfg.scoreText != null ? cfg.scoreText : fmtScore(cfg.score)));
       if (cfg.best != null) scroll.appendChild(mkEl('p', 'gkm-best', 'Best: ' + fmtScore(cfg.best) + (cfg.newBest ? ' <span class="gkm-new">★ New best!</span>' : '')));
     }
+    var bannerEl = (typeof cfg.banner === 'function') ? mkEl('div', 'gkm-banner') : null; // live line under the title (e.g. credit counter)
+    if (bannerEl) scroll.appendChild(bannerEl);
 
-    var choiceRefs = [], dynamic = [], popupRefs = []; // dynamic[]: per-card updater(state), re-run on any change; popupRefs: map-picker triggers
+    var choiceRefs = [], pickRefs = [], dynamic = [], popupRefs = []; // dynamic[]: per-card updater(state); pickRefs: shop action-cells; popupRefs: map-picker triggers
     groups.forEach(function (g2) {
       if (g2.label != null) scroll.appendChild(mkEl('div', 'gkm-sec', g2.label));
       if (g2.style === 'cards') {
@@ -1044,6 +1052,30 @@
         popupRefs.push(pref);
         dynamic.push(function (st) { var c = find(sel[g2.id]); trig.innerHTML = ''; var cv = mkEl('canvas', 'gkm-picker-cv'); try { cv.width = 40; cv.height = 26; } catch (e) {} drawPreview(cv, c.preview, st); trig.appendChild(cv); trig.appendChild(mkEl('span', 'gkm-picker-nm', c.label)); if (c.sub != null || c.best != null) trig.appendChild(mkEl('span', 'gkm-picker-sub', c.sub != null ? evalVal(c.sub, st) : ('Best ' + fmtScore(evalVal(c.best, st))))); trig.appendChild(mkEl('span', 'gkm-picker-chev', '▾')); });
         scroll.appendChild(trig);
+      } else if (g2.style === 'shop') {
+        // action grid: each cell BUYS/PICKS on click or Enter (it doesn't hold a selection). sub()/disabled()
+        // are per-item + re-run on every refresh, so after onPick the costs/affordability/banner update live.
+        var shopWrap = mkEl('div', 'gkm-shop');
+        (g2.choices || []).forEach(function (c) {
+          var cell = mkEl('div', 'gkm-shopcard');
+          var nm = mkEl('div', 'gkm-shop-nm', c.label + (c.tag ? ' <span class="gkm-tag">' + c.tag + '</span>' : ''));
+          var dsc = mkEl('div', 'gkm-shop-desc');
+          var sub = mkEl('div', 'gkm-shop-sub');
+          cell.appendChild(nm); cell.appendChild(dsc); cell.appendChild(sub);
+          var ref = { el: cell, kind: 'pick', grp: g2.id, choice: c.id, disabled: false, pick: null };
+          var fire = function () { if (ref.disabled) return; if (typeof g2.onPick === 'function') { try { g2.onPick(c.id, handle); } catch (e) {} } if (_menuEl === ov) refresh(); };
+          ref.pick = fire;
+          cell.addEventListener('click', function () { setFocusEl(cell); fire(); });
+          cell.addEventListener('mouseenter', function () { setFocusEl(cell); });
+          pickRefs.push(ref); shopWrap.appendChild(cell);
+          dynamic.push(function (st) {
+            dsc.textContent = evalItem(c.desc, c, st) || '';
+            sub.innerHTML = (g2.sub != null) ? (evalItem(g2.sub, c, st) || '') : '';
+            var dis = g2.disabled ? !!evalItem(g2.disabled, c, st) : false;
+            ref.disabled = dis; if (cell.classList) cell.classList.toggle('gkm-disabled', dis);
+          });
+        });
+        scroll.appendChild(shopWrap);
       } else {
         var row = mkEl('div', 'gkm-row');
         (g2.choices || []).forEach(function (c) {
@@ -1109,7 +1141,7 @@
     if (cfg.record) { try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
     if (shareHost) { try { shareRow(shareHost, cfg.share); } catch (e) {} }
 
-    var focusables = choiceRefs.concat(toggleRefs).concat(popupRefs).concat(actionRefs);
+    var focusables = choiceRefs.concat(pickRefs).concat(toggleRefs).concat(popupRefs).concat(actionRefs);
     var fi = 0;
     function setFocus(i) { if (!focusables.length) return; fi = (i % focusables.length + focusables.length) % focusables.length; for (var k = 0; k < focusables.length; k++) { if (focusables[k].el.classList) focusables[k].el.classList.toggle('gkm-focus', k === fi); } }
     function setFocusEl(el) { for (var k = 0; k < focusables.length; k++) if (focusables[k].el === el) { setFocus(k); return; } }
@@ -1124,7 +1156,8 @@
     }
     function renderDynamic() { var st = state(); for (var k = 0; k < dynamic.length; k++) try { dynamic[k](st); } catch (e) {} }
     function renderHint() { if (hintEl) { try { hintEl.textContent = cfg.hint(state()); } catch (e) {} } }
-    function refresh() { paintChoices(); paintToggles(); renderDynamic(); renderHint(); paintBackdrop(); }
+    function renderBanner() { if (bannerEl) { try { bannerEl.innerHTML = cfg.banner(state()); } catch (e) {} } }
+    function refresh() { paintChoices(); paintToggles(); renderDynamic(); renderHint(); renderBanner(); paintBackdrop(); }
     function changed() { refresh(); if (typeof cfg.onChange === 'function') { try { cfg.onChange(state()); } catch (e) {} } }
     function selectChoice(ref) { if (ref.locked) return; sel[ref.grp] = ref.choice; changed(); }
     function toggleOne(ref) { if (ref.disabled) return; tog[ref.id] = !tog[ref.id]; changed(); }
@@ -1133,11 +1166,11 @@
       var cm = a.confirm ? (typeof a.confirm === 'function' ? a.confirm() : a.confirm) : null;
       if (cm) confirmDialog(cm, go, a.confirmYes || 'Leave', null); else go();
     }
-    function activate(ref) { if (!ref) return; if (ref.kind === 'choice') selectChoice(ref); else if (ref.kind === 'toggle') toggleOne(ref); else if (ref.kind === 'popup') ref.open(); else fireAction(ref.action); }
+    function activate(ref) { if (!ref) return; if (ref.kind === 'choice') selectChoice(ref); else if (ref.kind === 'pick') { if (!ref.disabled) ref.pick(); } else if (ref.kind === 'toggle') toggleOne(ref); else if (ref.kind === 'popup') ref.open(); else fireAction(ref.action); }
     function stop(ev) { if (ev.preventDefault) ev.preventDefault(); if (ev.stopPropagation) ev.stopPropagation(); }
 
     refresh();
-    var primIdx = 0; for (var p = 0; p < actionRefs.length; p++) { if (actionRefs[p].action.primary) { primIdx = choiceRefs.length + toggleRefs.length + popupRefs.length + p; break; } }
+    var primIdx = 0; for (var p = 0; p < actionRefs.length; p++) { if (actionRefs[p].action.primary) { primIdx = choiceRefs.length + pickRefs.length + toggleRefs.length + popupRefs.length + p; break; } }
     setFocus(primIdx);
 
     var keyFn = function (e) {
