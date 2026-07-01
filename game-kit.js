@@ -1133,11 +1133,15 @@
   // clicks. Show a branded splash once per load: the tap satisfies the gesture (the capture-phase unlock
   // above resumes the context on the same event), so the menu appears with music already running instead
   // of looking broken. Skipped when both channels are muted (nothing to unlock → no needless friction).
+  var _tapShown = false;
   function tapToStart() {
     try {
+      if (_tapShown) return;                                   // once per page load — never re-show, even on fast clicks / re-entry
       if (typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') return;
-      if (sfxMuted && musMuted) return;
+      if (sfxMuted && musMuted) return;                        // nothing to unlock → no friction
+      if (ac && ac.state === 'running') return;                // audio already unlocked this load → skip
       if (document.querySelector && document.querySelector('.gamekit-tap')) return;
+      _tapShown = true;
       var el = document.createElement('div'); el.className = 'gamekit-tap';
       el.innerHTML = '<div class="gamekit-tap-inner"><div class="gamekit-tap-play">▶</div><div>TAP TO PLAY</div><small></small></div>';
       try { var lab = el.querySelector('small'); if (lab) lab.textContent = (typeof document.title === 'string' && document.title) ? document.title : 'Komyo'; } catch (e) {}
