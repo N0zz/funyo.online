@@ -241,6 +241,46 @@
   .pf-share { flex:0 0 auto; margin:0 -20px -20px; padding:13px 20px 20px; border-top:1px solid var(--border); background:var(--surface); }
   .pf-share button { width:100%; padding:11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:600; cursor:pointer; }
   .pf-share button:hover { border-color:#9fe8ff; }
+  /* ---- earned title (lifetime challenge points) — escalating shine, tier 0→8 ---- */
+  .pf-titlebar { position:relative; overflow:hidden; display:flex; align-items:center; gap:11px; padding:12px 14px; margin-bottom:12px; border:1px solid var(--border); border-radius:13px; background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent),var(--surface); }
+  .pf-tb-emoji { font-size:22px; position:relative; z-index:2; }
+  .pf-tb-main { position:relative; z-index:2; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .pf-tb-label { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  .pf-title { position:relative; font-size:18px; line-height:1.15; }
+  .pf-tb-pts { position:relative; z-index:2; margin-left:auto; text-align:right; font-family:var(--mono); font-size:15px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
+  .pf-tb-pts span { display:block; font-size:9px; font-weight:400; letter-spacing:1px; color:var(--faint); }
+  .pf-pfx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+  .pf-halo { position:absolute; inset:-8px -18px; z-index:0; border-radius:50%; filter:blur(14px); opacity:0; pointer-events:none; }
+  .pf-sh { position:relative; z-index:1; font-family:var(--mono); font-weight:700; letter-spacing:.5px; }
+  .pf-t0 .pf-sh { color:#78828f; }
+  .pf-t1 .pf-sh { color:#c3ccd8; }
+  .pf-t2 .pf-sh { color:#d0954f; text-shadow:0 0 7px rgba(208,149,79,.4); }
+  .pf-t3 .pf-sh { background-image:linear-gradient(180deg,#7f8b9c,#d7e0ec 42%,#fff 50%,#c2cddb 58%,#74808f); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 6px rgba(211,222,237,.5)); }
+  .pf-t4 .pf-sh { color:#c39cff; text-shadow:0 0 12px rgba(160,110,255,.85),0 0 26px rgba(160,110,255,.45); }
+  .pf-t5 .pf-sh,.pf-t6 .pf-sh,.pf-t7 .pf-sh,.pf-t8 .pf-sh { color:transparent; -webkit-background-clip:text; background-clip:text; }
+  .pf-t5 .pf-sh { background-image:linear-gradient(90deg,#b98cff,#9fe8ff); filter:drop-shadow(0 0 9px rgba(159,180,255,.6)); }
+  .pf-t6 .pf-sh { background-image:linear-gradient(100deg,#6fe0cf,#9fe8ff 40%,#fff 50%,#9fe8ff 60%,#6fe0cf); background-size:250% 100%; filter:drop-shadow(0 0 10px rgba(159,232,255,.65)); animation:pftSweep 3.4s linear infinite; }
+  .pf-t7 .pf-sh { background-image:linear-gradient(90deg,#ff8ad1,#b98cff,#9fe8ff,#7fffc4,#ff8ad1); background-size:300% 100%; animation:pftHolo 5s linear infinite,pftPulse 2.4s ease-in-out infinite; }
+  .pf-t8 .pf-sh { background-image:linear-gradient(90deg,#ffd76a,#fff3c0,#ff9ad1,#9fe8ff,#ffd76a); background-size:300% 100%; animation:pftHolo 4s linear infinite,pftPulseGold 2s ease-in-out infinite; }
+  .pf-t3 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(211,222,237,.28),transparent 70%); }
+  .pf-t4 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(160,110,255,.4),transparent 70%); animation:pftBreathe 3.4s ease-in-out infinite; }
+  .pf-t5 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(159,180,255,.42),transparent 70%); animation:pftBreathe 3.2s ease-in-out infinite; }
+  .pf-t6 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(159,232,255,.48),transparent 70%); animation:pftBreathe 3s ease-in-out infinite; }
+  .pf-t7 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(185,140,255,.5),transparent 70%); animation:pftBreathe 2.6s ease-in-out infinite; }
+  .pf-t8 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(255,215,106,.55),transparent 68%); animation:pftBreathe 2.2s ease-in-out infinite; }
+  .pf-gl::after { content:attr(data-text); position:absolute; left:0; top:0; white-space:pre; z-index:2; pointer-events:none; background-image:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%); background-size:220% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; animation:pftGlint 3.8s ease-in-out infinite; }
+  .pf-t0 .pf-gl::after, .pf-t1 .pf-gl::after, .pf-t2 .pf-gl::after { display:none; } /* rare shine starts at Knight */
+  .pf-t3 .pf-gl::after { background-image:linear-gradient(115deg,transparent 45%,#fff 50%,transparent 55%); animation-duration:3.1s; }
+  .pf-t6 .pf-gl::after { animation-duration:3.2s; }
+  .pf-t7 .pf-gl::after { animation-duration:2.6s; }
+  .pf-t8 .pf-gl::after { background-image:linear-gradient(115deg,transparent 40%,rgba(255,247,208,1) 50%,transparent 60%); animation-duration:2.1s; }
+  @keyframes pftSweep { to { background-position:-250% 0; } }
+  @keyframes pftHolo { to { background-position:300% 0; } }
+  @keyframes pftPulse { 0%,100%{ filter:drop-shadow(0 0 7px rgba(185,140,255,.55)); } 50%{ filter:drop-shadow(0 0 16px rgba(159,232,255,.95)); } }
+  @keyframes pftPulseGold { 0%,100%{ filter:drop-shadow(0 0 9px rgba(255,215,106,.6)); } 50%{ filter:drop-shadow(0 0 20px rgba(255,215,106,1)); } }
+  @keyframes pftBreathe { 0%,100%{ transform:scale(.92); opacity:.7; } 50%{ transform:scale(1.08); opacity:1; } }
+  @keyframes pftGlint { 0%{ background-position:180% 0; } 42%,100%{ background-position:-90% 0; } }
+  @media (prefers-reduced-motion: reduce) { .pf-sh, .pf-halo, .pf-gl::after { animation:none !important; } .pf-halo { opacity:.8; } }
   /* Discord Activity: games open in an in-page iframe (mobile Discord blocks top-frame navigation) */
   .act-frame { position:fixed; inset:0; z-index:300; background:var(--bg,#0a0e14); display:flex; flex-direction:column; }
   .act-frame[hidden] { display:none; }
@@ -1476,28 +1516,38 @@
       function render() {
         const p = (K && K.profile) ? K.profile() : null;
         const who = (K && K.player) ? K.player() : 'anonymous';
-        const titleEl = document.getElementById('pfTitle'); if (titleEl) titleEl.textContent = '👤 ' + who;
+        const titleEl = document.getElementById('pfTitle');
+        // lifetime challenge points → earned title (points never reset)
+        let chPts = 0, chDone = 0;
+        try { const d = JSON.parse(localStorage.getItem('gamekit_done') || '{}'); for (const k in d) chPts += (d[k] | 0); } catch (e) {}
+        try { const h = JSON.parse(localStorage.getItem('gamekit_history') || '[]'); if (Array.isArray(h)) chDone = h.length; } catch (e) {}
+        const TT = (window.CHALLENGES && window.CHALLENGES.titleFor) ? window.CHALLENGES.titleFor(chPts) : { tier: 0, emoji: '🎖️', title: '' };
+        // identity row: name (shined to the title's tier) + playing-since
+        if (titleEl) {
+          let sinceStr = '';
+          if (p && p.since) { try { sinceStr = '📅 Since ' + esc(new Date(p.since).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })); } catch (e) {} }
+          titleEl.className = 'pf-t' + TT.tier;
+          titleEl.innerHTML = '👤 <span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span>' + (sinceStr ? '<span class="pf-meta">' + sinceStr + '</span>' : '');
+        }
+        // earned-title banner (shown in both empty + populated states); particles for the shiny tiers (3+)
+        const tb = '<div class="pf-titlebar pf-t' + TT.tier + '">'
+          + (TT.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + TT.tier + '"></canvas>' : '')
+          + '<span class="pf-tb-emoji">' + (TT.emoji || '🎖️') + '</span>'
+          + '<span class="pf-tb-main"><span class="pf-tb-label">Title</span>'
+          + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(TT.title) + '">' + esc(TT.title) + '</span></span></span>'
+          + '<span class="pf-tb-pts">' + fmt(chPts) + '<span>PTS</span></span></div>';
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
         if (p) GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm, pg }); });
         ranked.sort((a, b) => b.pg.plays - a.pg.plays || b.pg.best - a.pg.best);
         if (!ranked.length) {
-          body.innerHTML = '<p class="pf-empty">No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.</p>';
-          shareData = null; return;
+          body.innerHTML = '<div class="pf-scroll">' + tb + '<p class="pf-empty">No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.</p></div>';
+          shareData = null; startTitleFx(); return;
         }
         const favGameMeta = meta(p.favGame.slug), accent = (favGameMeta && favGameMeta.accent) || '#9fe8ff';
-        // challenge completions (lifetime, from the challenge history)
-        let chDone = 0;
-        try { const h = JSON.parse(localStorage.getItem('gamekit_history') || '[]'); if (Array.isArray(h)) chDone = h.length; } catch (e) {}
-        // identity row: name (the modal title) + genre · playing-since, right-aligned in the same line
-        if (titleEl) {
-          let sinceStr = '';
-          if (p.since) { try { sinceStr = '📅 Since ' + esc(new Date(p.since).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })); } catch (e) {} }
-          titleEl.innerHTML = '👤 ' + esc(who) + (sinceStr ? '<span class="pf-meta">' + sinceStr + '</span>' : '');
-        }
         // stat labels pluralize with their count ("1 Day", not "1 Days")
         const chips = [['Game', p.gamesPlayed], ['Mode', p.modesPlayed], ['Play', p.plays], ['Day', p.daysPlayed]];
-        let html = '<div class="pf-scroll"><div class="pf-top"><div class="pf-stats">';
+        let html = '<div class="pf-scroll">' + tb + '<div class="pf-top"><div class="pf-stats">';
         chips.forEach(s => { const lbl = s[1] === 1 ? s[0] : s[0] + 's'; html += '<div class="pf-stat"><b>' + esc(fmt(s[1])) + '</b><span>' + esc(lbl) + '</span></div>'; });
         html += '</div><div class="pf-hl">';
         if (p.goodRuns) html += '<span title="Runs that cleared a game’s bar">💪 <b>' + fmt(p.goodRuns) + '</b> good ' + (p.goodRuns === 1 ? 'run' : 'runs') + '</span>';
@@ -1530,6 +1580,7 @@
         html += '</div>'; // close .pf-scroll (the games list scrolls; the share button below stays pinned)
         html += '<div class="pf-share"><button type="button" id="pfShare">📷 Share my profile</button></div>';
         body.innerHTML = html;
+        startTitleFx();
         shareData = { player: who, accent: accent, stats: [{ label: 'Games', value: p.gamesPlayed }, { label: 'Modes', value: p.modesPlayed }, { label: 'Plays', value: p.plays }, { label: 'Days', value: p.daysPlayed }], rows: rows };
         const sh = document.getElementById('pfShare');
         if (sh) sh.addEventListener('click', () => {
@@ -1541,10 +1592,31 @@
             .catch(done);
         });
       }
+      // earned-title particle field (premium tiers) — one canvas, cancelled when the modal closes
+      let _pfRaf = 0;
+      function stopTitleFx() { if (_pfRaf) { try { cancelAnimationFrame(_pfRaf); } catch (e) {} _pfRaf = 0; } }
+      function startTitleFx() {
+        stopTitleFx();
+        const cv = body.querySelector && body.querySelector('.pf-pfx');
+        if (!cv || !cv.getContext) return;
+        const CFG = { 3: { n: 7, cols: ['#d3deed', '#fff'], sz: [.6, 1.6], v: .12, glow: 4 }, 4: { n: 10, cols: ['#b98cff', '#c9b3ff'], sz: [.7, 2], v: .16, glow: 5 }, 5: { n: 13, cols: ['#b98cff', '#9fe8ff'], sz: [.7, 2.2], v: .18, glow: 6 }, 6: { n: 16, cols: ['#9fe8ff', '#7fe8d0', '#fff'], sz: [.7, 2.4], v: .22, glow: 7 }, 7: { n: 22, cols: ['#ff8ad1', '#b98cff', '#9fe8ff', '#7fffc4'], sz: [.8, 2.6], v: .26, glow: 8 }, 8: { n: 30, cols: ['#ffd76a', '#fff3c0', '#fff', '#ff9ad1'], sz: [.9, 3], v: .32, glow: 10 } };
+        const cfg = CFG[+cv.getAttribute('data-tier')]; if (!cfg) return;
+        const ctx = cv.getContext('2d'); if (!ctx) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2), rnd = (a, b) => a + Math.random() * (b - a);
+        let W = 0, H = 0; const ps = [];
+        const size = () => { const r = cv.getBoundingClientRect(); W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
+        const spawn = y => ({ x: rnd(0, W), y: y == null ? rnd(0, H) : y, r: rnd(cfg.sz[0], cfg.sz[1]), c: cfg.cols[(Math.random() * cfg.cols.length) | 0], vy: rnd(cfg.v * .6, cfg.v * 1.5), sway: rnd(.2, .9), ph: rnd(0, 6.28), tw: rnd(1.5, 3.5) });
+        size(); for (let i = 0; i < cfg.n; i++) ps.push(spawn());
+        const draw = (t, moving) => { ctx.clearRect(0, 0, W, H); for (const q of ps) { ctx.globalAlpha = moving ? (.35 + .65 * (.5 + .5 * Math.sin(t * (6.28 / q.tw) + q.ph))) : .7; ctx.fillStyle = q.c; ctx.shadowBlur = cfg.glow; ctx.shadowColor = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.28); ctx.fill(); } ctx.globalAlpha = 1; ctx.shadowBlur = 0; };
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduce || typeof requestAnimationFrame !== 'function') { draw(0, false); return; }
+        const frame = ms => { const t = ms / 1000; for (const q of ps) { q.y -= q.vy; q.x += Math.sin(t * q.sway + q.ph) * .25; if (q.y < -6) { const np = spawn(H + 6); for (const k in np) q[k] = np[k]; } } draw(t, true); _pfRaf = requestAnimationFrame(frame); };
+        _pfRaf = requestAnimationFrame(frame);
+      }
       window.__renderProfile = render; // exposed for tests
       if (btn) btn.addEventListener('click', () => { render(); modal.showModal(); lock(true); });
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
-      modal.addEventListener('close', () => lock(false));
+      modal.addEventListener('close', () => { lock(false); stopTitleFx(); });
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
     })();
 

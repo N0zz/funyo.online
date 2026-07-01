@@ -174,6 +174,28 @@ function testCatalogue() {
     ok(h2.includes('<span>Day</span>') && !h2.includes('<span>Days</span>'), 'stat label is "Day" (singular) at count 1, not "Days"');
     ok(h2.includes('<span>Game</span>') && h2.includes('<span>Play</span>'), 'Game / Play labels also singular at count 1');
   }
+
+  // ---- earned titles: challenge points → title + tier shine ----
+  {
+    const C = g.win.CHALLENGES;
+    if (C && typeof C.titleFor === 'function') {
+      ok(C.titleFor(0).title === 'Goblin of the Gutter' && C.titleFor(0).tier === 0, 'titleFor(0) → Goblin (tier 0)');
+      ok(C.titleFor(9).tier === 0 && C.titleFor(10).tier === 1, 'crossing 10 pts promotes Goblin → Peasant');
+      ok(C.titleFor(250).title === 'Archmage of the Arcane', 'titleFor(250) → Archmage (highest ≤ 250)');
+      ok(C.titleFor(1e9).title === 'Emperor of Eternity', 'huge points → Emperor (top title)');
+    }
+    if (typeof g.win.__renderProfile === 'function') {
+      for (const k of Object.keys(g.store)) if (k.indexOf('gamekit_') === 0) delete g.store[k];
+      g.store['gamekit_pb'] = JSON.stringify({ snake: { 'Classic': { score: 50, time: 0, plays: 3, stats: {} } } });
+      g.store['gamekit_done'] = JSON.stringify({ a: 5, b: 5, c: 5, d: 5, e: 5, f: 5, gg: 5, h: 5, i: 5, j: 5 }); // 50 pts → Knight (tier 3)
+      g.win.__renderProfile();
+      const bh = g.getEl('profileBody').innerHTML || '';
+      ok(bh.includes('Knight of the Realm') && bh.includes('pf-t3'), 'profile shows the earned title (Knight, tier 3) at 50 pts');
+      ok(bh.includes('50<span>PTS'), 'profile surfaces the challenge-points total (50)');
+      ok(bh.includes('pf-pfx'), 'a premium tier (3+) gets a particle canvas');
+      ok((g.getEl('pfTitle').className || '').includes('pf-t3') && (g.getEl('pfTitle').innerHTML || '').includes('pf-sh'), 'username takes the title tier shine');
+    }
+  }
 }
 
 // ---------------- Tower Defense ----------------

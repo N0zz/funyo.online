@@ -59,3 +59,25 @@ window.CHALLENGES.randomSlug = function (idx, playable) {
   var n = playable.length;
   return playable[((((idx | 0) * 5 + 2) % n) + n) % n];
 };
+
+// Cosmetic titles earned by LIFETIME challenge points (points never reset). The profile picks the
+// highest title whose `min` you've passed and renders it with an escalating shine (tier 0→8): plain →
+// bronze → steel blade → arcane glow → gradient → shimmer → holographic → gold + sparkles. Client-only
+// cosmetic (forgeable, but only shown on your own profile → zero stakes). Times ≈ ~4 pts/week casual.
+window.CHALLENGES.titles = [
+  { min: 0,    tier: 0, emoji: '👺', title: 'Goblin of the Gutter' },
+  { min: 10,   tier: 1, emoji: '🌾', title: 'Peasant of the Fields' },
+  { min: 25,   tier: 2, emoji: '🛡️', title: 'Squire of the Keep' },
+  { min: 50,   tier: 3, emoji: '⚔️', title: 'Knight of the Realm' },
+  { min: 100,  tier: 4, emoji: '🔮', title: 'Sorcerer of the Spire' },
+  { min: 200,  tier: 5, emoji: '🧙', title: 'Archmage of the Arcane' },
+  { min: 400,  tier: 6, emoji: '👁️', title: 'Oracle of the Grid' },
+  { min: 650,  tier: 7, emoji: '🌟', title: 'Ascendant of the Stars' },
+  { min: 1000, tier: 8, emoji: '👑', title: 'Emperor of Eternity' },
+];
+// highest title earned at `pts` lifetime challenge points
+window.CHALLENGES.titleFor = function (pts) {
+  var list = this.titles, out = list[0];
+  for (var i = 0; i < list.length; i++) if ((pts | 0) >= list[i].min) out = list[i];
+  return out;
+};
