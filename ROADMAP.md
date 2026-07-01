@@ -49,6 +49,15 @@ sequence around them.
    iterate). **Bias low-tuning genres** (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower
    defense, roguelite shooters — they ate many tuning cycles). See `komyo-avoid-balance-heavy-genres`.
 4. **Staged rollout — friends / family** *(already slowly happening)* → let them share further.
+5. **Translations / i18n — analysis spike (~2 days).** Non-English kids struggle with English game
+   descriptions + UI, so multi-language support is a real reach lever. **Scope it before building:**
+   target languages (a first few — PL + big EU/global?), architecture for a **no-build static site**
+   (per-language JSON dictionaries loaded client-side + a kit `t(key)` helper + `navigator.language`
+   detect + a language picker, choice persisted), and the true cost = **string extraction** (catalogue UI,
+   per-game blurbs in `games.js`, in-game menu labels + hints inlined in each game, challenges, FAQ /
+   About / privacy). Also: kid-friendly wording, SEO (`hreflang` + translated `<title>`/meta/OG per
+   language), a GA4 language read, and RTL if we ever add Arabic/Hebrew. **Output:** decision on languages
+   + a concrete implementation plan + effort estimate (this is a big surface — measure before committing).
 
 ### Later
 
@@ -56,6 +65,9 @@ sequence around them.
   (bandwidth headroom past ~100 GB/mo + the escape hatch we discussed). Staging must isolate side effects:
   `noindex` + robots disallow, **no prod GA4**, **no prod Discord webhook**, **no real Kit signups**. DNS:
   `staging` CNAME → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
+- **Translations / i18n — implement** (per the analysis spike): wire the `t()` layer into the kit,
+  extract + translate strings, language picker + persistence, `hreflang`/meta per language. Sizeable —
+  sequence after the spike sets the language list + plan.
 - **Score card / mascot redesign** *(gated on the real mascot)*.
 - **Privacy policy signed off** *(external gate — counsel; hard blocker for a broad public launch —
   GA4 + Discord auto-post + EU visitors)*.
