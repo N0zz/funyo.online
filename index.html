@@ -183,8 +183,8 @@
   #shareCopy.ok { color:#7fe0a0; border-color:#7fe0a0; }
 
   /* feedback modal */
-  #fbModal, #nlModal, #clModal, #aboutModal, #faqModal, #legalModal, #dataModal, #nameModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
-  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop { background:rgba(5,8,13,0.66); }
+  #fbModal, #nlModal, #clModal, #aboutModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop { background:rgba(5,8,13,0.66); }
   /* about modal */
   #aboutModal { width:min(520px,94vw); }
   .about { padding:18px 20px 20px; display:flex; flex-direction:column; gap:12px; }
@@ -194,6 +194,14 @@
   .about-list b { color:var(--text); }
   .about-list a { color:#9fe8ff; }
   .about-foot { color:var(--faint); font-size:14px; }
+  .setrow { display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--border); }
+  .setrow:first-of-type { border-top:0; }
+  .setlbl { flex:1; font-size:15px; color:var(--text); display:flex; align-items:center; gap:9px; }
+  .setlbl .di { width:22px; text-align:center; }
+  .settoggle { border:1px solid var(--border); background:var(--surface); color:var(--muted); border-radius:999px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer; min-width:70px; }
+  .settoggle.on { border-color:#9fe8ff; color:#9fe8ff; }
+  .setvol { width:120px; accent-color:#9fe8ff; }
+  .setvol:disabled { opacity:.4; }
   /* FAQ modal (reuses .about container) */
   #faqModal { width:min(560px,94vw); }
   .faq { max-height:80vh; overflow-y:auto; }
@@ -538,9 +546,10 @@
         <button class="ditem" id="legalBtn" type="button"><span class="di">⚖️</span> License &amp; privacy</button>
       </div>
       <div class="dgrp ddata">
-        <div class="dl">Your data <button class="dhelp" id="dataHelp" type="button" aria-label="What is this?" aria-expanded="false">?</button></div>
+        <div class="dl">Settings &amp; data <button class="dhelp" id="dataHelp" type="button" aria-label="What is this?" aria-expanded="false">?</button></div>
+        <button class="ditem" id="settingsBtn" type="button"><span class="di">⚙️</span> Settings</button>
         <div class="dnote" id="dataNote">Your scores, progress, favorites &amp; settings are saved <b>only on this device</b>. <b>Export</b> turns them into a code you can <b>Import</b> on another device — to carry your records between phone &amp; desktop, or keep a backup. Nothing is sent to a server.</div>
-        <button class="ditem" id="dataBtn" type="button"><span class="di">⇄</span> Export / import data</button>
+        <button class="ditem" id="dataBtn" type="button"><span class="di">⇄</span> Export &amp; import data</button>
         <a class="ditem reset" id="resetAll" href="#" title="Clear all saved scores &amp; progress for every game"><span class="di">↺</span> Reset all data</a>
       </div>
       <div class="dgrp">
@@ -662,6 +671,24 @@
     </div>
   </dialog>
 
+  <dialog id="settingsModal">
+    <div class="about">
+      <div class="cl-head"><h3>⚙️ Settings</h3><button type="button" class="dx" id="settingsClose" aria-label="Close">✕</button></div>
+      <p>These apply across <b>every game</b> on this device.</p>
+      <div class="setrow">
+        <span class="setlbl"><span class="di">🔊</span> Sound effects</span>
+        <button class="settoggle" id="setSfxToggle" type="button" role="switch" aria-checked="true">On</button>
+        <input class="setvol" id="setSfxVol" type="range" min="0" max="100" aria-label="Sound effects volume">
+      </div>
+      <div class="setrow">
+        <span class="setlbl"><span class="di">🎵</span> Music</span>
+        <button class="settoggle" id="setMusToggle" type="button" role="switch" aria-checked="true">On</button>
+        <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume">
+      </div>
+      <p class="about-foot">Saved on this device. Each game also has these controls in its top-right menu.</p>
+    </div>
+  </dialog>
+
   <dialog id="faqModal">
     <div class="about faq">
       <div class="cl-head"><h3>❓ FAQ</h3><button type="button" class="dx" id="faqClose" aria-label="Close">✕</button></div>
@@ -678,7 +705,7 @@
       <div class="faq-q">Is it safe for kids?</div>
       <p class="faq-a">Yes — no ads, no chat, no payments, no sign-ups, and nothing about your child is stored on a server. Just games.</p>
       <div class="faq-q">How do I keep my progress or move it to another device?</div>
-      <p class="faq-a">Your progress is saved in this browser, on this device — so clearing your browser data clears it. Use <b>Export / import data</b> in the menu to back it up or carry it between phone and desktop. There's no cloud sync, because (see above) there are no accounts.</p>
+      <p class="faq-a">Your progress is saved in this browser, on this device — so clearing your browser data clears it. Use <b>Export &amp; import data</b> in the menu to back it up or carry it between phone and desktop. There's no cloud sync, because (see above) there are no accounts.</p>
     </div>
   </dialog>
 
@@ -696,7 +723,7 @@
 
   <dialog id="dataModal">
     <div class="about">
-      <div class="cl-head"><h3>⇄ Export / import data</h3><button type="button" class="dx" id="dataClose" aria-label="Close">✕</button></div>
+      <div class="cl-head"><h3>⇄ Export &amp; import data</h3><button type="button" class="dx" id="dataClose" aria-label="Close">✕</button></div>
       <p class="faq-a">Your scores, progress and settings live only in this browser. Copy this code to back them up or move them to another device, then paste it there and import. <b>Importing replaces</b> this device's data.</p>
       <div class="faq-q">Export</div>
       <textarea id="dataExport" class="data-ta" readonly rows="4" aria-label="Your backup code"></textarea>
@@ -1276,6 +1303,34 @@
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
     })();
 
+    // ---- Settings (centered modal) — site-wide SFX + Music, backed by the kit's own channels ----
+    (function () {
+      const modal = document.getElementById('settingsModal'), btn = document.getElementById('settingsBtn'), closeBtn = document.getElementById('settingsClose');
+      if (!modal || !modal.showModal) return;
+      const K = window.gamekit;
+      const sfxT = document.getElementById('setSfxToggle'), sfxV = document.getElementById('setSfxVol');
+      const musT = document.getElementById('setMusToggle'), musV = document.getElementById('setMusVol');
+      const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
+      function paint(t, on) { t.textContent = on ? 'On' : 'Off'; t.setAttribute('aria-checked', String(on)); t.classList.toggle('on', on); }
+      function sync() {
+        if (!K) return;
+        const sm = K.sound.isMuted(), mm = K.music.isMuted();
+        paint(sfxT, !sm); paint(musT, !mm);
+        sfxV.value = Math.round(K.sound.volume() * 100); sfxV.disabled = sm;
+        musV.value = Math.round(K.music.volume() * 100); musV.disabled = mm;
+      }
+      if (btn) btn.addEventListener('click', () => { sync(); modal.showModal(); lock(true); });
+      if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
+      modal.addEventListener('close', () => lock(false));
+      modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+      if (K) {
+        sfxT.addEventListener('click', () => { K.sound.toggle(); sync(); });
+        musT.addEventListener('click', () => { K.music.toggle(); sync(); });
+        sfxV.addEventListener('input', e => { K.sound.volume(((e.target && e.target.value) || 0) / 100); });
+        musV.addEventListener('input', e => { K.music.volume(((e.target && e.target.value) || 0) / 100); });
+      }
+    })();
+
     // ---- FAQ (centered modal) ----
     (function () {
       const modal = document.getElementById('faqModal'), btn = document.getElementById('faqBtn'), closeBtn = document.getElementById('faqClose');
@@ -1542,8 +1597,8 @@
 
     // ---- Deep links: /?m=faq|changelog|about|privacy|embed|data — open that panel + keep it in the URL ----
     (function () {
-      const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn', privacy: 'legalBtn', embed: 'embedBtn', data: 'dataBtn' };
-      const DLG = { faq: 'faqModal', changelog: 'clModal', about: 'aboutModal', privacy: 'legalModal', data: 'dataModal' };
+      const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn', privacy: 'legalBtn', embed: 'embedBtn', data: 'dataBtn', settings: 'settingsBtn' };
+      const DLG = { faq: 'faqModal', changelog: 'clModal', about: 'aboutModal', privacy: 'legalModal', data: 'dataModal', settings: 'settingsModal' };
       const ALIAS = { legal: 'privacy', license: 'privacy' };
       // reflect manual opens/closes in the URL (so it's shareable): trigger click → ?m=key; dialog close → drop it
       Object.keys(MAP).forEach(key => {
