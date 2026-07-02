@@ -232,8 +232,13 @@ while (T().score < 1 && T().state === 'playing' && persistGuard++ < 800) {
   T().step(1);
 }
 if (T().score > 0) {
-  ok(pbScore(g.store) >= T().score,
-    'best saved to shared kit store (stored=' + pbScore(g.store) + ', score=' + T().score + ')');
+  ok(pbScore(g.store) === 0, 'best not written mid-run (stored=' + pbScore(g.store) + ')');
+  const runScore = T().score;
+  let overGuard = 0;
+  while (T().state === 'playing' && overGuard++ < 2000) T().step(1); // stop flapping → hit ground
+  ok(T().state === 'over', 'run ends (state=' + T().state + ')');
+  ok(pbScore(g.store) >= runScore,
+    'best saved to shared kit store at game over (stored=' + pbScore(g.store) + ', score=' + runScore + ')');
 } else {
   T().setBest(5);
   ok(pbScore(g.store) === 5, 'setBest writes to shared kit store');

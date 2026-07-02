@@ -357,7 +357,7 @@
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
     if (h) setVars(h.el, FLAPPY[mode]); }
   function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
-  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+  function toMenu() { if ((state === 'playing' || state === 'paused') && score > getBest()) saveBest(score); if (KIT) KIT.menu.hide(); showStartMenu(); }
 
   let overAt = 0; // timestamp the end screen appeared — used to debounce the death-tap
   function now() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
@@ -466,9 +466,6 @@
     c.taken = true;
     score += c.val;
     addCash(c.val);
-    const cur = getBest();
-    if (score > cur) saveBest(score);
-    best = getBest();
     updateHud();
     SND.play('score');
     spawnPass(c.x, c.y);
@@ -522,9 +519,6 @@
         o.passed = true;
         score++;
         addCash(1);
-        const cur = getBest();
-        if (score > cur) saveBest(score);
-        best = getBest();
         updateHud();
         SND.play('score');
         spawnPass(bird.x + 20, bird.y);
