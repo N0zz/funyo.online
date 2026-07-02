@@ -186,8 +186,8 @@
     drop:  (c) => { [660, 440, 330].forEach((f, i) => c.voice({ f, dur: 0.08, type: 'triangle', gain: 0.06, t: c.now() + i * 0.04 })); },
     special: (c) => { [523, 659, 880, 1175].forEach((f, i) => c.voice({ f, dur: 0.14, type: 'sine', gain: 0.1, reverb: 0.3, t: c.now() + i * 0.06 })); },
     won:   (c) => c.play('victory'),
-    lose:  (c) => c.play('lose'),
   });
+
 
   // ---- Constants ----
   const COLORS = ['#ff4d6d','#ff9f1c','#ffe14d','#4ddb8c','#4dbfff','#a56bff','#ff6bbf'];
