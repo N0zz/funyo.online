@@ -34,17 +34,18 @@ audio splash + nav-fit guard, 2026-07-01. **Challenge-points titles** — 9 titl
 by lifetime points, full-width profile box with escalating shine tier 0→8, username shares the shine,
 `CHALLENGES.titles`/`titleFor()`, 🏆 CHALLENGE PTS, client-only cosmetic, 2026-07-01.)
 
-0. **Profile page + share card fit — 🔧 in progress.** Full-width title box (title + username on their own
-   full-width lines, points moved onto the "TITLE" eyebrow, responsive title size `clamp(15–19px)`) + the
-   `.pf-hl` "Since" line no longer wrap; **the shared card must match the live modal** (the card is the
-   screenshot path). Suite green (241/0); verify on-device portrait / landscape / desktop before push.
-1. **Score card — shine + share fixes.** (a) Bring the score/profile **share card up to the title-ladder
-   shine** — reuse the earned-title tier language (gradient text + glow + halo, ~Archmage-or-better
-   richness); on-screen may animate, the **shared PNG bakes the gradient/glow in** (see the shine/PNG/share
-   spec kept in Later). (b) **Fix "Share → Copy → paste" pasting the image twice** — pasting into Discord /
-   chat drops **two** images instead of one (the copy path is writing the blob to the clipboard more than
-   once, or writing both an image and a fallback). *The mascot-driven art refresh stays gated (Later); this
-   item is the shine treatment + the double-paste bug only — both doable now.*
+0. **Profile page + share card fit — ✅ SHIPPED (2026-07-02)** *(pending a final on-phone verify)*. Title
+   box = title + name full-width with a right meta column (🏆 pts / 💪 good runs / 📅 since — always shown,
+   never hidden at 0); core counts in a centered divider strip; ✕ floats on the modal corner; avatar emoji
+   dropped. **Shared image now matches the live modal:** crop fixed (the clone inherited `bottom:0` →
+   viewport-tall canvas), particle frame composited in, and sizing props are no longer pixel-frozen so the
+   export reflows instead of truncating when the rasterizer's fonts drift (Android).
+1. **Score card — bring it up to the title-ladder shine.** Reuse the earned-title tier language (gradient
+   text + glow + halo, ~Archmage-or-better richness); on-screen may animate, the **shared PNG bakes the
+   gradient/glow in** (see the shine/PNG/share spec kept in Later). *The mascot-driven art refresh stays
+   gated (Later).* (**Double-paste — ✅ FIXED 2026-07-02:** sharing now opens a kit share menu — Share… /
+   Copy image / Download with preview, same on all platforms; our Copy writes a single PNG clipboard
+   flavor. The old doubling was the OS share sheet's multi-flavor Copy × Discord pasting each flavor.)
 2. **Translations / i18n — analysis + estimate (~2 days).** Non-English kids struggle with English game
    descriptions + UI, so multi-language support is a real reach lever. **Scope it before building:** target
    languages (a first few — PL + big EU/global?), architecture for a **no-build static site** (per-language
