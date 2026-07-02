@@ -1125,13 +1125,10 @@
       return Math.min(window.innerWidth, window.innerHeight) < 600;
     } catch (e) { return false; }
   }
-  function loop() {
-    requestAnimationFrame(loop);
-    const K = window.gamekit;
-    if (K && K.isPaused && K.isPaused()) return; // kit pause
+  function stepUpdate() {
     // when locked + held the wrong way: kit shows the "↻ rotate" overlay and we FREEZE (skip update)
-    if (portraitLockActive() && K && K.layout && K.layout.requireOrientation && !K.layout.requireOrientation('portrait')) return;
-    try { if (state === 'playing') update(); render(); } catch(e) { if (typeof console !== 'undefined') console.error(e); }
+    if (portraitLockActive() && KIT && KIT.layout && KIT.layout.requireOrientation && !KIT.layout.requireOrientation('portrait')) return;
+    update();
   }
 
   // ---- Input ----
@@ -1292,7 +1289,7 @@
     },
   };
 
-  resize(); loop();
+  resize(); KIT.loop(stepUpdate, render);
 })();
   window.gamekit.pwa();
 </script>
