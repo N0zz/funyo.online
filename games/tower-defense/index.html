@@ -246,7 +246,7 @@
     { name: 'Marsh', diff: 1.2, wp: [[-1,7],[3,7],[3,2],[7,2],[7,6],[11,6],[11,1],[15,1]],
       surface: 0.8, surfaceLabel: 'Thick mud slows enemies (-20%) but bog-beasts crawl out.',
       desc: 'Thick mud slows enemies (-20%) but bog-beasts crawl out.',
-      towerMod: { archer: 0.85 }, event: 'bog',
+      towerMod: {}, event: 'bog',
       theme: { bg:'#2a3a2a', g1:'#4e6a4a', g2:'#466042', road:'#6a6a3a', edge:'#3a4a2a', decor:'#5e7a4e', decoType:'moss' } },
   ];
   function mapDef() { return MAPS[mapIndex]; }
@@ -547,7 +547,7 @@
     sb.textContent = state === 'wave' ? 'Wave ' + wave + '...' : 'Start Wave';
     sb.classList.toggle('busy', state === 'wave');
     const spd = $('speedBtn');
-    if (spd) { spd.textContent = gameSpeed === 1 ? '⚡2x' : '⚡3x'; spd.classList.toggle('fast', gameSpeed === 2); }
+    if (spd) { spd.textContent = gameSpeed === 1 ? '⚡1x' : '⚡2x'; spd.classList.toggle('fast', gameSpeed === 2); }
     const ab = $('autoBtn');
     if (ab) { ab.textContent = 'Auto: ' + (autoWave ? 'On' : 'Off'); ab.classList.toggle('on', autoWave); }
     refreshUpBtn(); // keep the open tower panel's upgrade button affordability live as gold changes
