@@ -48,13 +48,6 @@ function makeEl(id) {
     set: v => {
       _html = String(v ?? '');
       if (!v) el.children = [];
-      // When game-over sets innerHTML containing a restartBtn, register it in elCache
-      const m = _html.match(/id="restartBtn"/);
-      if (m) {
-        const rBtn = makeEl('restartBtn');
-        // Extract addEventListener calls in innerHTML would be complex; we just make the element accessible
-        elCache['restartBtn'] = rBtn;
-      }
     },
   });
   return el;
