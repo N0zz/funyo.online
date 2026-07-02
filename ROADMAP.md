@@ -29,55 +29,62 @@ sequence around them.
 
 ### Next ~2 days
 
-0. **Minor batch — ✅ DONE (2026-07-01).** `game_start` GA4 event (abandon-rate, pairs with `game_play`);
-   kit **"Tap to play" audio splash** (one gesture per load unlocks audio — fixes music-won't-start /
-   stops-on-refresh, skipped when muted); **nav-fit regression guard** in the suite (real pixel-overlap
-   still needs a device — harness can't measure DOM rects; see bug backlog).
-1. **Challenge-points economy — v1 (client-only, safe):** a **title** on the profile keyed to points
-   thresholds + a **mascot attire shop** — spend points on cosmetics for the mascot (shown in the logo,
-   score card, profile). **Discord custom roles for points = the hard part** and is a *separate,
-   backend-gated* project: points live in `localStorage`, so they're trivially forged (export → edit JSON →
-   import). Client-side we can recompute expected points from the full challenge + game logs and flag
-   mismatches (even a jokey "cheater" role), but a determined cheater crafts a *consistent* fake history →
-   it only raises the bar, never prevents (and risks false-positive shaming from our own migrations/bugs).
-   Real integrity needs **server-side authoritative recording** = a departure from no-backend. **Plan:**
-   ship the cosmetics now (titles + skins, honor-system — cheating only affects self-shown cosmetics, low
-   stakes); decide Discord-role rewards + real anti-cheat later. (See Integrations → challenge-points.)
-2. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
-   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). Big accelerator for #3.
-3. **Build games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
+Reordered **2026-07-02**. (Recently done: **Minor batch** — `game_start` GA4 event + kit **"Tap to play"**
+audio splash + nav-fit guard, 2026-07-01. **Challenge-points titles** — 9 titles ("X of Y", Goblin→Emperor)
+by lifetime points, full-width profile box with escalating shine tier 0→8, username shares the shine,
+`CHALLENGES.titles`/`titleFor()`, 🏆 CHALLENGE PTS, client-only cosmetic, 2026-07-01.)
+
+0. **Profile page + share card fit — 🔧 in progress.** Full-width title box (title + username on their own
+   full-width lines, points moved onto the "TITLE" eyebrow, responsive title size `clamp(15–19px)`) + the
+   `.pf-hl` "Since" line no longer wrap; **the shared card must match the live modal** (the card is the
+   screenshot path). Suite green (241/0); verify on-device portrait / landscape / desktop before push.
+1. **Score card — shine + share fixes.** (a) Bring the score/profile **share card up to the title-ladder
+   shine** — reuse the earned-title tier language (gradient text + glow + halo, ~Archmage-or-better
+   richness); on-screen may animate, the **shared PNG bakes the gradient/glow in** (see the shine/PNG/share
+   spec kept in Later). (b) **Fix "Share → Copy → paste" pasting the image twice** — pasting into Discord /
+   chat drops **two** images instead of one (the copy path is writing the blob to the clipboard more than
+   once, or writing both an image and a fallback). *The mascot-driven art refresh stays gated (Later); this
+   item is the shine treatment + the double-paste bug only — both doable now.*
+2. **Translations / i18n — analysis + estimate (~2 days).** Non-English kids struggle with English game
+   descriptions + UI, so multi-language support is a real reach lever. **Scope it before building:** target
+   languages (a first few — PL + big EU/global?), architecture for a **no-build static site** (per-language
+   JSON dictionaries loaded client-side + a kit `t(key)` helper + `navigator.language` detect + a language
+   picker, choice persisted), and the true cost = **string extraction** (catalogue UI, per-game blurbs in
+   `games.js`, in-game menu labels + hints inlined in each game, challenges, FAQ / About / privacy). Also:
+   kid-friendly wording, SEO (`hreflang` + translated `<title>`/meta/OG per language), a GA4 language read,
+   RTL if we ever add Arabic/Hebrew. **Output:** decision on languages + a concrete implementation plan +
+   **effort estimate** → routes #3 vs #7.
+3. **Translations / i18n — implement IF the spike says it's easy.** If the extraction + `t()` layer turns
+   out small, ship it here; **if it's a big surface, it drops to Later (#7).**
+4. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
+   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). Big accelerator for #5.
+5. **Build games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
    iterate). **Bias low-tuning genres** (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower
    defense, roguelite shooters — they ate many tuning cycles). See `komyo-avoid-balance-heavy-genres`.
-4. **Staged rollout — friends / family** *(already slowly happening)* → let them share further.
-5. **Translations / i18n — analysis spike (~2 days).** Non-English kids struggle with English game
-   descriptions + UI, so multi-language support is a real reach lever. **Scope it before building:**
-   target languages (a first few — PL + big EU/global?), architecture for a **no-build static site**
-   (per-language JSON dictionaries loaded client-side + a kit `t(key)` helper + `navigator.language`
-   detect + a language picker, choice persisted), and the true cost = **string extraction** (catalogue UI,
-   per-game blurbs in `games.js`, in-game menu labels + hints inlined in each game, challenges, FAQ /
-   About / privacy). Also: kid-friendly wording, SEO (`hreflang` + translated `<title>`/meta/OG per
-   language), a GA4 language read, and RTL if we ever add Arabic/Hebrew. **Output:** decision on languages
-   + a concrete implementation plan + effort estimate (this is a big surface — measure before committing).
+6. **Staged rollout — friends / family** *(already slowly happening, ongoing)* → let them share further.
 
 ### Later
 
+7. **Translations / i18n — implement (if the spike said it's *not* easy).** Wire the `t()` layer into the
+   kit, extract + translate strings, language picker + persistence, `hreflang`/meta per language. The big-
+   surface branch of #2/#3 — sequence once the spike sets the language list + plan.
 - **Infra:** staging env (`staging.komyo.online`) **+ consider a Cloudflare CDN in front of GH Pages**
   (bandwidth headroom past ~100 GB/mo + the escape hatch we discussed). Staging must isolate side effects:
   `noindex` + robots disallow, **no prod GA4**, **no prod Discord webhook**, **no real Kit signups**. DNS:
   `staging` CNAME → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
-- **Translations / i18n — implement** (per the analysis spike): wire the `t()` layer into the kit,
-  extract + translate strings, language picker + persistence, `hreflang`/meta per language. Sizeable —
-  sequence after the spike sets the language list + plan.
-- **Score card redesign** *(gated on the real mascot)* — bring it up to the **title-ladder shine bar**
-  (approved 2026-07-01): reuse the tier-shine language — gradient text, glow/halo, ~Archmage-or-better
-  richness. **On-screen** card can animate (glints/particles, like the titles). **Shared** card must be a
+- **Score card — mascot art refresh** *(gated on the real mascot; the shine + double-paste fix ship in
+  Next #1)* — refresh `buildScoreCard`/`buildProfileCard` art around the mascot. Shine/PNG/share spec that
+  #1 reuses: on-screen card can animate (glints/particles, like the titles); the **shared** card must be a
   **static PNG** (animation can't survive an image; a GIF/MP4 is too heavy + unsupported by share targets),
   so bake the glow/gradient/halo into the still (particles won't serialize into the DOM-snapshot + Safari
-  taints → drawn-card fallback; that's fine — gradient + glow reach the bar). **Sharing = image-first,
-  text only as fallback:** image works on native Web Share (files), the Discord webhook, and download/copy;
+  taints → drawn-card fallback; that's fine — gradient + glow reach the bar). **Sharing = image-first, text
+  only as fallback:** image works on native Web Share (files), the Discord webhook, and download/copy;
   **X / Reddit / Twitter "intent" URLs are link+text only** (you can't attach a locally-generated PNG to an
   intent) → those fall back to text + link, and better previews there need pre-generated per-game/score **OG
-  images** (server-side → parked). Also refresh `buildScoreCard`/`buildProfileCard` art around the mascot.
+  images** (server-side → parked).
+- **Mascot attire shop** *(deferred — gated on the real mascot)* — spend challenge points on mascot
+  cosmetics (logo / score card / profile). Design when the mascot lands. (Discord roles / real anti-cheat
+  stay parked — backend-gated; see Integrations → challenge-points.)
 - **Privacy policy signed off** *(external gate — counsel; hard blocker for a broad public launch —
   GA4 + Discord auto-post + EU visitors)*.
 - **Marketing materials** — plan + prepare: promo video / montage (full + Discord preview cuts), per-game
