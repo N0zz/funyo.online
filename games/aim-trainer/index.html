@@ -567,12 +567,6 @@
     if (state === 'playing') drawCrosshair(reticle.x, reticle.y);
   }
 
-  function loop() {
-    requestAnimationFrame(loop);
-    if (window.gamekit && window.gamekit.isPaused && window.gamekit.isPaused()) return; // kit pause
-    try { update(); render(); } catch (e) { if (window.console) console.error(e); }
-  }
-
   // ---- Input ----
   function getCanvasPos(e) {
     const rect = canvas.getBoundingClientRect();
@@ -665,7 +659,7 @@
 
   resize();
   updateHud();
-  loop();
+  KIT.loop(update, render);
   showStartMenu(selectedMode); // open the shared start menu (mode/amount/moving preselected from the URL)
 })();
   window.gamekit.pwa();
