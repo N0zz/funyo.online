@@ -1474,8 +1474,12 @@
       // Snapshot the profile panel to a PNG that looks exactly like the on-screen modal — no libraries:
       // clone it, inline computed styles (an SVG <foreignObject> has no access to the page's CSS),
       // rasterise via an <img>. Falls back (returns null) if the browser taints the canvas (e.g. Safari).
+      // Sizing props are NOT inlined: baked used-widths are razor-tight to live font metrics, and the
+      // rasterizer's fonts can differ slightly (Android) → truncated/wrapped text. The flex/grid props
+      // reflow the same layout at the clone's width instead.
+      const SNAP_SKIP = new Set(['width', 'height', 'inline-size', 'block-size']);
       function inlineStyles(src, dst) {
-        try { const cs = getComputedStyle(src); let s = ''; for (let i = 0; i < cs.length; i++) { const p = cs[i]; s += p + ':' + cs.getPropertyValue(p) + ';'; } dst.style.cssText = s; } catch (e) {}
+        try { const cs = getComputedStyle(src); let s = ''; for (let i = 0; i < cs.length; i++) { const p = cs[i]; if (SNAP_SKIP.has(p)) continue; s += p + ':' + cs.getPropertyValue(p) + ';'; } dst.style.cssText = s; } catch (e) {}
         const sc = src.children || [], dc = dst.children || [];
         for (let i = 0; i < sc.length && i < dc.length; i++) inlineStyles(sc[i], dc[i]);
       }
@@ -1547,12 +1551,12 @@
           + '<div class="pf-tb-main">'
           + '<span class="pf-tb-label">Title</span>'
           + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(TT.title) + '">' + esc(TT.title) + '</span></span>'
-          + '<span class="pf-tb-name">👤 <span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span></span>'
+          + '<span class="pf-tb-name"><span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span></span>'
           + '</div>'
           + '<div class="pf-tb-meta">'
           + '<span class="pf-tb-pts">🏆 ' + fmt(chPts) + ' <span>CHALLENGE PTS</span></span>'
-          + (goodRuns ? '<span class="pf-tb-mini" title="Runs that cleared a game’s bar">💪 <b>' + fmt(goodRuns) + '</b> good ' + (goodRuns === 1 ? 'run' : 'runs') + '</span>' : '')
-          + (sinceStr ? '<span class="pf-tb-mini">📅 Since <b>' + esc(sinceStr) + '</b></span>' : '')
+          + '<span class="pf-tb-mini" title="Runs that cleared a game’s bar">💪 <b>' + fmt(goodRuns) + '</b> good ' + (goodRuns === 1 ? 'run' : 'runs') + '</span>'
+          + '<span class="pf-tb-mini">📅 Since <b>' + esc(sinceStr || '—') + '</b></span>'
           + '</div></div>';
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
