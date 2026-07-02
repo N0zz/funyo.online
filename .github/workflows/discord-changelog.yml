@@ -2,7 +2,7 @@ name: Discord changelog
 
 # Posts to the Discord changelog channel ONLY when changelog.js gains new entries on a
 # push to main (covers batched pushes AND merges). The post mirrors the in-page changelog
-# exactly — no chore/ci/docs/refactor noise. See .github/scripts/post-changelog.mjs.
+# exactly — no chore/ci/docs/refactor noise. See scripts/post-changelog.mjs.
 #
 # The webhook lives in a repo SECRET (never in this public file): add it at
 # Settings → Secrets and variables → Actions → New repository secret
@@ -28,4 +28,4 @@ jobs:
           BEFORE: ${{ github.event.before }}
         run: |
           if [ -z "$WEBHOOK" ]; then echo "DISCORD_CHANGELOG_WEBHOOK not set — skipping."; exit 0; fi
-          node .github/scripts/post-changelog.mjs
+          node scripts/post-changelog.mjs

@@ -19,8 +19,9 @@ analytics.js    GA4 loader, consent-gated (see "Analytics")
 game-kit.js    SHARED game shell — sound engine + mute, top nav, share row, PWA auto-update
 game-kit.css   shared shell styles (nav buttons, share row)
 test.mjs        top-level harness: catalogue + Keep Defender + live-games boot + game-kit test
-manifest.json sw.js favicon.svg og-image.png logo-*.png   CNAME .nojekyll
-games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, icon-192/512.png)
+scripts/        post-changelog.mjs (Discord changelog action) + gen-icon.mjs (icon generation)
+manifest.json sw.js favicon.svg og-image.png logo-*.png   CNAME .nojekyll .gitignore
+games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, favicon.svg, icon-192/512.png)
 ```
 
 ## Game conventions (the rules that matter)
@@ -99,7 +100,8 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
    `gamekit.pwa` for the shell; keep game logic inline with the `__test` hook.
 2. `games/<slug>/test.mjs` — dependency-free harness; **preload the kit** (read `../../game-kit.js`,
    run it in the sandbox before the inline script), then drive via `__test`.
-3. Icon: render a 512 color-emoji PNG via Chrome headless, downscale to 192 (`sips`).
+3. Icon: `node scripts/gen-icon.mjs <emoji> <background-css> games/<slug>` (Chrome headless 512 →
+   `sips` 192).
 4. `manifest.json` + `sw.js` (network-first; SHELL = the HTML + icons + the two `../../game-kit.*` files).
 5. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile). Set **`added: "YYYY-MM-DD"`**
    on a new game (drives the auto **NEW** badge for 7 days). **Whenever you ship a notable update to a
@@ -166,7 +168,7 @@ When the change is visual/interactive, offer the user this local URL to verify b
 - **GA4** (`G-S4JQPYNDNM`) is **consent-gated**: `analytics.js` loads gtag only after the cookie
   banner's *Accept* (stored in `localStorage.gamekit_consent`, shared across the origin so per-game
   pages track too). Footer says **"no ads · no payments · plays offline."**
-- **OG/Twitter** meta + `og-image.png` (1200×630, a letterboxed page screenshot). Regenerate it on
+- **OG/Twitter** meta + `og-image.png` (1200×675, a 16:9 page screenshot). Regenerate it on
   rebrands and bump `?v=` so scrapers refetch; re-scrape via the FB Sharing Debugger.
 - **Newsletter:** Kit. The inline Subscribe modal POSTs to Kit form **9615603**; sending domain
   `komyo.online` is DKIM/DMARC-verified (records in OVH), default from `news@komyo.online`.
